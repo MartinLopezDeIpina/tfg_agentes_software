@@ -1,0 +1,4 @@
+- Contenedor Base de datos
+- Contenedor Servidor MCP base de datos / código
+- Contenedor Sistema de agentes
+- Contenedor Sistema de agentes
