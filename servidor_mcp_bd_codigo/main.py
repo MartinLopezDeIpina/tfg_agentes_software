@@ -5,6 +5,7 @@ from src.mcp_client import MCPClient
 from dotenv import load_dotenv
 from src.agente_prueba import MCPAgent
 from src.pg_vector_tools import PGVectorTools
+from src.repomap import pruebas_repo_map
 
 
 async def run_db_agent():
@@ -23,7 +24,9 @@ async def run_db_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(run_db_agent())
+    #asyncio.run(run_db_agent())
+    pruebas_repo_map()
+
 
 
 
