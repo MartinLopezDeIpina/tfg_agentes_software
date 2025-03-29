@@ -26,13 +26,13 @@ class DBConnection:
                f"postgresql+psycopg2://{cls.DB_USER}:{cls.DB_PASSWORD}@{cls.DB_HOST}:{cls.DB_PORT}/{cls.DB_NAME}",
                 pool_size=5,
             )
-            """
             # Con el session factory y scoped session se supone que se maneja la concurrencia
             session_factory = sessionmaker(bind=engine)
 
             cls._instance = scoped_session(session_factory)
 
-        return cls._instance
-            """
+        """
             cls._instance = engine
+        return cls._instance
+        """
         return cls._instance

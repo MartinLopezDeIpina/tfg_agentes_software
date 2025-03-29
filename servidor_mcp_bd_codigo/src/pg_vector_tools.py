@@ -1,7 +1,7 @@
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_postgres.vectorstores import PGVector
 
-from src.db_connection import DBConnection
+from src.db.db_connection import DBConnection
 
 class PGVectorTools:
     def __init__(self):
