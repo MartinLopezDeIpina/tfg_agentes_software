@@ -10,6 +10,7 @@ from src.db.db_connection import DBConnection
 from src.utils import get_count_text_lines
 
 from src.utils import get_file_text
+from src.db.db_utils import get_fsentry_relative_path
 
 def analyze_file_abstract_syntaxis_tree(code_text: str, file_path: str):
     language = filename_to_lang(file_path)
@@ -55,23 +56,37 @@ class FileChunker:
     def solve_unsolved_references(self):
         for chunk_id, ref_names in self.not_solved_references.items():
             for ref_name in ref_names:
-                if ref_name not in self.solved_references:
-                    self.solved_references[ref_name] = set()
-                self.solved_references[ref_name].append(chunk_id)
+                if chunk_id not in self.solved_references:
+                    self.solved_references[chunk_id] = set()
+                self.solved_references[chunk_id].append(ref_name)
 
     def add_chunk_references_to_db(self):
         for chunk_id, ref_names in self.solved_references.items():
             chunk = self.db_session.query(FileChunk).filter(FileChunk.chunk_id==chunk_id).one()
+            alredy_referenced_chunk_ids = []
             for ref_name in ref_names:
                 chunk_id_definitions = self.name_definitions.get(ref_name)
                 """
                 En el caso de que un chunk sea referenciado por un chunk al que quiere referenciar no referenciarlo para evitar 
                 dependencias cíclicas.
+                En el caso de que la referencia sea una función que se define fuera del repositorio, chunk_id_definitions será None.
                 """
-                for chunk_id_definition in chunk_id_definitions:
-                    if chunk.referencing_chunks.contains(chunk_id_definition):
-                        chunk_id_definitions.remove(chunk_id_definition)
-                chunk.referenced_chunks.extend(chunk_id_definitions)
+                if chunk_id_definitions is not None:
+                    chunk_id_definitions_copy = []
+                    for chunk_id_definition in chunk_id_definitions:
+                        if chunk_id_definition not in chunk.referencing_chunks:
+                            chunk_id_definitions_copy.append(chunk_id_definition)
+                    chunk_id_definitions = chunk_id_definitions_copy
+
+                    definition_chunks = set()
+                    for def_id in chunk_id_definitions:
+                        definition_chunk = self.db_session.query(FileChunk).filter(FileChunk.chunk_id==def_id).one()
+                        definition_chunks.add(definition_chunk)
+
+                    for definition_chunk in definition_chunks:
+                        # importante no añadirla si ya existe
+                        if definition_chunk not in chunk.referenced_chunks:
+                            chunk.referenced_chunks.append(definition_chunk)
 
     def chunk_file_simple(self, file_entry: FSEntry, code_text: str):
         """
@@ -79,7 +94,7 @@ class FileChunker:
         """
         chunk_start_line = 0
         chunk_end_line = get_count_text_lines(code_text) - 1
-        
+
         self.create_multiple_chunks(
             chunk_start_line=chunk_start_line,
             chunk_end_line=chunk_end_line,
@@ -105,11 +120,12 @@ class FileChunker:
         for definition in definitions:
             definition_is_inside_chunk = self.definition_is_inside_chunk(definition, chunk_start_line, chunk_end_line)
             if (definition_is_inside_chunk):
-                defined_definitions.append(definition)
+                definition_name = definition.child_by_field_name('name').text.decode('utf-8')
+                defined_definitions.append(definition_name)
         for definition in defined_definitions:
-            if definition.text.decode("utf-8") not in self.name_definitions:
-                self.name_definitions[definition.text.decode("utf-8")] = []
-            self.name_definitions[definition.text.decode("utf-8")].append(chunk_id)
+            if definition not in self.name_definitions:
+                self.name_definitions[definition] = []
+            self.name_definitions[definition].append(chunk_id)
 
     def anotate_references(self, chunk_id, references, chunk_start_line, chunk_end_line):
         self.solved_references[chunk_id] = []
@@ -133,7 +149,10 @@ class FileChunker:
             references = {}
 
         num_chunks = ((chunk_end_line - chunk_start_line) // self.chunk_expected_size) + 1
-        chunk_size = (self.chunk_expected_size // num_chunks) + 1
+        if num_chunks == 1:
+            chunk_size = chunk_end_line - chunk_start_line
+        else:
+            chunk_size = (self.chunk_expected_size // num_chunks) + 1
         for i in range(num_chunks):
             self.create_chunk(
                 chunk_start_line=chunk_start_line,
@@ -169,7 +188,7 @@ class FileChunker:
         code_text = get_file_text(file_path)
 
         try:
-            if file_path == "/home/martin/open_source/ia-core-tools/app/model/user.py":
+            if file_path == "/home/martin/open_source/ia-core-tools/app/tools/milvusTools.py":
                 print("debug")
             abstract_tree_captures = analyze_file_abstract_syntaxis_tree(code_text, file_path)
 
@@ -248,13 +267,13 @@ class FileChunker:
                             sub_chunk_end_line = current_definition_iteration.end_point.row
                             if sub_chunk_end_line - sub_chunk_start_line >= self.chunk_max_line_size:
                                 if i - last_added_chunk_index > 0:
-                                   self.create_chunk(
-                                       chunk_start_line=sub_chunk_start_line,
-                                       chunk_end_line=current_definitions[i-1].end_point.row,
-                                       definitions=definitions,
-                                       references=references,
-                                       file_id=file_entry.id
-                                   )
+                                    self.create_chunk(
+                                        chunk_start_line=sub_chunk_start_line,
+                                        chunk_end_line=current_definitions[i-1].end_point.row,
+                                        definitions=definitions,
+                                        references=references,
+                                        file_id=file_entry.id
+                                    )
                                 else:
                                     self.create_multiple_chunks(
                                         chunk_start_line=sub_chunk_start_line,
@@ -341,4 +360,28 @@ class FileChunker:
         # añadir referencias a base de datos
         self.add_chunk_references_to_db()
 
+        self.db_session.flush()
         self.db_session.commit()
+
+        print(f"\n\n\n#####\n\nTodo el repo chunkeado: {repo_path}\n\n#####")
+
+    def visualize_chunks(self, repo_path: str):
+        session = DBConnection.get_session()
+        repo_files = session.query(FSEntry).filter(FSEntry.is_directory==False).all()
+        for file in repo_files:
+            if file.name.endswith(".py"):
+                print(f"\n\n\nfile: {file.name}\n\n")
+                for chunk in file.chunks:
+                    referenced_chunks_ids = [chunk.chunk_id for chunk in chunk.referenced_chunks]
+                    print(f"chunk: {chunk.chunk_id}, start_line: {chunk.start_line}, end_line: {chunk.end_line}")
+                    print(f"referenced_chunks: {referenced_chunks_ids}")
+                    file_relative_path = get_fsentry_relative_path(file)
+                    file_absolute_path = os.path.join(repo_path, file_relative_path)
+                    code_text = get_file_text(file_absolute_path)
+                    code_lines = code_text.splitlines()
+                    for i in range(chunk.start_line, chunk.end_line):
+                        try:
+                            print(code_lines[i])
+                        except Exception as e:
+                            pass
+                    print("\n\n")

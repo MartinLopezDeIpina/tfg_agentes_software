@@ -1,3 +1,4 @@
+from src.db.db_connection import DBConnection
 from src.db.models import FSEntry, Ancestor
 
 
@@ -44,3 +45,23 @@ def add_fs_entry(session, name: str, parent_id: int, is_directory: bool):
 
     return entry
 
+def get_fsentry_relative_path(fsentry: FSEntry):
+    if fsentry is None:
+        return ""
+
+    session = DBConnection.get_session()
+    root_node = session.query(FSEntry).filter(FSEntry.parent_id == None).first()
+
+    # Si estamos en el nodo raíz, devolvemos cadena vacía
+    if fsentry.id == root_node.id:
+        return ""
+
+    # Construir la ruta de forma recursiva
+    path_parts = []
+    current = fsentry
+
+    while current is not None and current.id != root_node.id:
+        path_parts.insert(0, current.name)  # Insertamos al principio para mantener el orden correcto
+        current = current.parent  # Utilizamos la relación backref 'parent' para navegar hacia arriba
+
+    return "/".join(path_parts)
