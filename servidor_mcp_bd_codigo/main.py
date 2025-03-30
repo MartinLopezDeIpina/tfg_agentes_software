@@ -2,6 +2,7 @@ from src.mcp_client import MCPClient
 from dotenv import load_dotenv
 from src.agente_prueba import MCPAgent
 from src.repomap import pruebas_repo_map
+from src.repo_chunker import FileChunker
 
 async def run_db_agent():
     mcp_client = MCPClient()
@@ -20,8 +21,9 @@ if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(run_db_agent())
-    #chunk_repo("/home/martin/open_source/ia-core-tools")
-    pruebas_repo_map()
+    #pruebas_repo_map()
+    file_chunker = FileChunker()
+    file_chunker.chunk_repo("/home/martin/open_source/ia-core-tools", ["alembic/versions", ".git", "/home/martin/open_source/ia-core-tools/app/model/user.py"])
 
 
 

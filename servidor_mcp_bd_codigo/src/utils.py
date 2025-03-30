@@ -11,3 +11,9 @@ def get_file_text(path: str) -> str:
     """
     with open(path, 'r', encoding='utf-8') as file:
         return file.read()
+
+def get_count_text_lines(text: str) -> int:
+    """
+    Devuelve el número de líneas en un chunk de texto.
+    """
+    return len(text.splitlines()) + 1
