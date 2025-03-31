@@ -67,7 +67,7 @@ class ChunkingContext:
         """
         Si las últimas líneas sin definición son suficientes como para crear un chunk, crearlo
         """
-        if self.next_definition_is_last():
+        if self.current_definition_is_last():
             remaining_lines = self.file_line_size - self.chunk_end_line
             if remaining_lines >= self.chunk_max_line_size * self.chunk_creator.minimum_proportion:
                 self.create_last_chunk=True
@@ -200,6 +200,12 @@ class ProcessClassState(ChunkingState):
         if context.next_definition_should_be_added_to_current_chunk():
             context.add_next_definition_to_current_chunk()
             context.class_next_definition_index += 1
+            context.add_remaining_lines_to_chunk_if_last_definition()
+
+
+            # Si es la última definición del fichero, crear la clase
+            if context.current_definition_is_last():
+                context.create_chunk()
 
             return ProcessClassState()
         else:
@@ -210,7 +216,6 @@ class CreateClassChunkState(ChunkingState):
         """
         Igual que el otro create chunk, pero para la clase
         """
-        context.add_remaining_lines_to_chunk_if_last_definition()
         context.create_chunk()
 
         return ProcessClassState()

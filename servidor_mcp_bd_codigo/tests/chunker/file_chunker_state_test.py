@@ -139,6 +139,41 @@ def function_definitions_pg_vector_tools():
         ),
     ]
 
+@pytest.fixture
+def function_definitions_function_before_class():
+    return [
+        Definition(
+            id="function1",
+            type="function_definition",
+            start_point=Point(row=15, col=0),
+            end_point=Point(row=26, col=39)
+        ),
+        Definition(
+            id="class1",
+            type="class_definition",
+            start_point=Point(row=26, col=0),
+            end_point=Point(row=84, col=39)
+        ),
+        Definition(
+            id="function2",
+            type="function_definition",
+            start_point=Point(row=27, col=0),
+            end_point=Point(row=32, col=39)
+        ),
+        Definition(
+            id="function3",
+            type="function_definition",
+            start_point=Point(row=32, col=0),
+            end_point=Point(row=48, col=39)
+        ),
+        Definition(
+            id="function4",
+            type="function_definition",
+            start_point=Point(row=48, col=0),
+            end_point=Point(row=84, col=39)
+        ),
+    ]
+
 
 @pytest.fixture
 def make_context(chunk_creator):
@@ -302,5 +337,48 @@ class TestClassChunks:
                 file_id=33
             ),
         ]
+
+        verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_create_multiple_chunks_calls)
+
+    def test_class_chunks_function_before_class(self, make_context, function_definitions_function_before_class, chunk_creator):
+        chunk_creator.create_chunk.reset_mock()
+        chunk_creator.create_multiple_chunks.reset_mock()
+
+        context = make_context(
+            definitions=function_definitions_function_before_class,
+            file_line_size=85,
+            chunk_max_size=50,
+            chunk_min_proportion=0.2
+        )
+
+        state = StartState()
+        while not isinstance(state, FinalState):
+            state = state.handle(context)
+
+        expected_create_chunk_calls = [
+            call(
+                chunk_start_line=0,
+                chunk_end_line=26,
+                definitions=function_definitions_function_before_class,
+                references=[],
+                file_id=33
+            ),
+            call(
+                chunk_start_line=26,
+                chunk_end_line=48,
+                definitions=function_definitions_function_before_class,
+                references=[],
+                file_id=33
+            ),
+            call(
+                chunk_start_line=48,
+                chunk_end_line=85,
+                definitions=function_definitions_function_before_class,
+                references=[],
+                file_id=33
+            )
+        ]
+
+        expected_create_multiple_chunks_calls = []
 
         verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_create_multiple_chunks_calls)
