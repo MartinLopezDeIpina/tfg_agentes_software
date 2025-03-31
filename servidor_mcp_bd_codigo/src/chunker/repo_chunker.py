@@ -1,4 +1,5 @@
 import os
+from chunk import Chunk
 from typing import List
 
 from grep_ast.tsl import get_language, get_parser  # noqa: E402
@@ -8,10 +9,10 @@ from tree_sitter import Point
 
 from src.chunker.chunk_creator import ChunkCreator
 from src.chunker.file_chunk_state import ChunkingContext, FinalState, StartState
-from src.db.models import FSEntry
+from src.db.models import FSEntry, FileChunk
 from src.db.db_connection import DBConnection
 
-from src.utils import get_file_text
+from src.utils import get_file_text, get_count_text_lines
 from src.db.db_utils import get_fsentry_relative_path, add_fs_entry
 
 
@@ -66,7 +67,9 @@ class FileChunker:
         code_text = get_file_text(file_path)
 
         try:
-            if file_path == "/home/martin/open_source/ia-core-tools/app/tools/modelTools.py":
+            #if file_path == "/home/martin/open_source/ia-core-tools/app/tools/modelTools.py":
+            #if file_path == "/home/martin/open_source/ia-core-tools/app/api/api.py":
+            if file_path == "/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files/example_java.java":
                 print("debug")
             abstract_tree_captures = analyze_file_abstract_syntaxis_tree(code_text, file_path)
 
@@ -86,7 +89,8 @@ class FileChunker:
                 chunk_creator=self.chunk_creator,
                 definitions=definitions,
                 references=references,
-                file_id=file_entry.id
+                file_id=file_entry.id,
+                file_line_size=get_count_text_lines(code_text)
             )
             state = StartState()
             while not isinstance(state, FinalState):
@@ -179,3 +183,39 @@ class FileChunker:
                         except Exception as e:
                             pass
                     print("\n\n")
+
+    def visualize_chunks_with_references(self, repo_path):
+        session = DBConnection.get_session()
+        repo_files = session.query(FSEntry).filter(FSEntry.is_directory==False).all()
+        for file in repo_files:
+            if file.name.endswith(".py"):
+                print(f"\n\n\nfile: {file.name}\n\n")
+                for chunk in file.chunks:
+                    referenced_chunks_ids = [chunk.chunk_id for chunk in chunk.referenced_chunks]
+                    print(f"chunk: {chunk.chunk_id}, start_line: {chunk.start_line}, end_line: {chunk.end_line}")
+                    print(f"referenced_chunks: {referenced_chunks_ids}")
+                    file_relative_path = get_fsentry_relative_path(file)
+                    file_absolute_path = os.path.join(repo_path, file_relative_path)
+                    code_text = get_file_text(file_absolute_path)
+                    code_lines = code_text.splitlines()
+                    for i in range(chunk.start_line, chunk.end_line):
+                        try:
+                            print(code_lines[i])
+                        except Exception as e:
+                            pass
+                    print("\n\n")
+                    print("Referenced chunks: \n##########")
+                    for i in range(len(referenced_chunks_ids)):
+                        referenced_chunk = session.query(FileChunk).filter(FileChunk.chunk_id == referenced_chunks_ids[i]).one()
+                        referenced_chunk_file_id = referenced_chunk.file_id
+                        referenced_chunk_file = session.query(FSEntry).filter(referenced_chunk_file_id == FSEntry.id).one()
+                        referenced_chunk_file_relative_path = get_fsentry_relative_path(referenced_chunk_file)
+                        referenced_chunk_file_absolute_path = os.path.join(repo_path, referenced_chunk_file_relative_path)
+                        referenced_chunk_code_text = get_file_text(referenced_chunk_file_absolute_path)
+                        referenced_chunk_code_lines = referenced_chunk_code_text.splitlines()
+                        referenced_chunk_text = referenced_chunk_code_lines[referenced_chunk.start_line:referenced_chunk.end_line]
+                        print(f"chunk {referenced_chunk.chunk_id}:")
+                        for line in referenced_chunk_text:
+                            print(line)
+                        print()
+                    print("###########")

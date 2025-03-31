@@ -57,6 +57,9 @@ class ChunkingContext:
 
         return next_definition_fits_current_chunk or current_chunk_too_small or self.next_definition_is_last_and_too_small()
 
+    def current_definition_is_class(self):
+        return str(self.definitions[self.next_definition_index - 1].type) == "class_definition"
+
     def add_next_definition_to_current_chunk(self):
         next_definition = self.definitions[self.next_definition_index]
         self.current_chunk_definitions.append(next_definition)
@@ -119,7 +122,7 @@ class StartState(ChunkingState):
 
 class EmptyChunkState(ChunkingState):
     def handle(self, context: ChunkingContext):
-        if context.chunk_end_line >= context.file_line_size or context.current_definition_is_last():
+        if (context.chunk_end_line >= context.file_line_size or context.current_definition_is_last()) and not context.current_definition_is_class():
             return AddLastLinesState()
 
         if context.next_definition_should_be_added_to_current_chunk():

@@ -48,7 +48,7 @@ class ChunkCreator:
 
                     for definition_chunk in definition_chunks:
                         # importante no añadirla si ya existe
-                        if definition_chunk not in chunk.referenced_chunks:
+                        if definition_chunk not in chunk.referenced_chunks and definition_chunk != chunk:
                             chunk.referenced_chunks.append(definition_chunk)
 
     def chunk_file_simple(self, file_entry: FSEntry, code_text: str):
@@ -111,11 +111,10 @@ class ChunkCreator:
         if references is None:
             references = {}
 
-        num_chunks = ((chunk_end_line - chunk_start_line) // self.chunk_expected_size) + 1
-        if num_chunks == 1:
-            chunk_size = chunk_end_line - chunk_start_line
-        else:
-            chunk_size = (self.chunk_expected_size // num_chunks) + 1
+        chunk_size = chunk_end_line - chunk_start_line
+        num_chunks = (chunk_size // self.chunk_max_line_size) + 1
+        if num_chunks >= 2:
+            chunk_size = (chunk_size // num_chunks) + 1
         for i in range(num_chunks):
             self.create_chunk(
                 chunk_start_line=chunk_start_line,

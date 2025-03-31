@@ -23,11 +23,13 @@ if __name__ == '__main__':
     #asyncio.run(run_db_agent())
     #pruebas_repo_map()
     file_chunker = FileChunker(
-        chunk_max_line_size=100,
+        chunk_max_line_size=50,
         chunk_minimum_proportion=0.2
     )
-    file_chunker.chunk_repo("/home/martin/open_source/ia-core-tools", ["alembic/versions", ".git", "/home/martin/open_source/ia-core-tools/app/model/user.py"])
+    #file_chunker.chunk_repo("/home/martin/open_source/ia-core-tools", ["alembic/versions", ".git", "/home/martin/open_source/ia-core-tools/app/model/user.py"])
+    file_chunker.chunk_repo("/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files")
     #file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")
+    #file_chunker.visualize_chunks_with_references("/home/martin/open_source/ia-core-tools")
 
 
 

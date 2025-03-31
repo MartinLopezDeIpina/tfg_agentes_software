@@ -346,7 +346,7 @@ class TestClassChunks:
 
         context = make_context(
             definitions=function_definitions_function_before_class,
-            file_line_size=85,
+            file_line_size=84,
             chunk_max_size=50,
             chunk_min_proportion=0.2
         )
@@ -372,7 +372,7 @@ class TestClassChunks:
             ),
             call(
                 chunk_start_line=48,
-                chunk_end_line=85,
+                chunk_end_line=84,
                 definitions=function_definitions_function_before_class,
                 references=[],
                 file_id=33
