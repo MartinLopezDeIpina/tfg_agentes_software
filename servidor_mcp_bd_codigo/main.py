@@ -24,7 +24,7 @@ if __name__ == '__main__':
     #pruebas_repo_map()
     file_chunker = FileChunker(
         chunk_max_line_size=100,
-        chunk_expected_size=50
+        chunk_minimum_proportion=0.2
     )
     file_chunker.chunk_repo("/home/martin/open_source/ia-core-tools", ["alembic/versions", ".git", "/home/martin/open_source/ia-core-tools/app/model/user.py"])
     #file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")

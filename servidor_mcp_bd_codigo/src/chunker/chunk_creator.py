@@ -10,10 +10,12 @@ class ChunkCreator:
     # nombre definiciones -> lista chunks en las que se definen (puede que los chunks se solapen o que una referencia sea ambigua)
     name_definitions = dict()
 
-    def __init__(self, db_session, chunk_expected_size: int = 250, chunk_max_line_size: int = 500):
+    def __init__(self, db_session, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2):
         self.db_session = db_session
-        self.chunk_expected_size = chunk_expected_size
         self.chunk_max_line_size = chunk_max_line_size
+        self.minimum_proportion = chunk_minimum_proportion
+        # si mínimo queremos 20 líneas y máximo 100, entonces la esperada será 60
+        self.chunk_expected_size =int((chunk_max_line_size + chunk_max_line_size * chunk_minimum_proportion) // 2)
 
     def solve_unsolved_references(self):
         for chunk_id, ref_names in self.not_solved_references.items():

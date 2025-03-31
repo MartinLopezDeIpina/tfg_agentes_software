@@ -3,13 +3,13 @@ from abc import ABC, abstractmethod
 from src.chunker.chunk_creator import ChunkCreator
 
 class ChunkingContext:
-    def __init__(self, chunk_creator: ChunkCreator, definitions, references, code_text, file_id):
+    def __init__(self, chunk_creator: ChunkCreator, definitions, references, file_id, file_line_size):
         self.chunk_creator = chunk_creator
         self.definitions = definitions
         self.references = references
-        self.code_text = code_text
         self.file_id = file_id
         self.chunk_max_line_size = chunk_creator.chunk_max_line_size
+        self.file_line_size = file_line_size
 
         # Variables de estado
         self.chunk_start_line = 0
@@ -17,12 +17,28 @@ class ChunkingContext:
         self.finished = False
         self.current_chunk_definitions = []
         # Índice de definición a evaluar, sin estar en el chunk
-        self.next_definition_index = -1
+        self.next_definition_index = 0
 
         # Variables para el procesamiento de clases
         self.class_definitions = []
         self.class_next_definition_index = -1
-    
+
+    def current_definition_is_last(self):
+        return self.next_definition_index >= len(self.definitions)
+
+    def next_definition_is_last(self):
+        return self.next_definition_index + 1 >= len(self.definitions)
+
+    def get_current_chunk_size(self):
+        return self.chunk_end_line - self.chunk_start_line
+
+    def last_definition_too_small(self):
+        return self.file_line_size - self.chunk_end_line < self.chunk_max_line_size * self.chunk_creator.minimum_proportion
+
+    def next_definition_is_last_and_too_small(self):
+        return self.next_definition_is_last() and self.last_definition_too_small()
+
+
     def add_next_definition_to_current_chunk(self):
         next_definition = self.definitions[self.next_definition_index]
         self.current_chunk_definitions.append(next_definition)
@@ -73,25 +89,30 @@ class StartState(ChunkingState):
         return EmptyChunkState()
 
 class EmptyChunkState(ChunkingState):
-    def handle(self, context):
-        if context.chunk_end_line >= context.chunk_max_line_size:
+    def handle(self, context: ChunkingContext):
+        if context.chunk_end_line >= context.file_line_size or context.current_definition_is_last():
             context.finished = True
         if context.finished:
             return FinalState()
         
-        context.next_definition_index += 1
-        # todo: cuando llega a la última definición esto da out of range porque aumenta el contador
         next_definition = context.definitions[context.next_definition_index]
         # Considerar las líneas entre el final del chunk actual y el inicio de la siguiente definición como parte de la siguiente definición
         next_definition_line_size = next_definition.end_point.row - context.chunk_end_line
         current_chunk_size = context.chunk_end_line - context.chunk_start_line
-        
-        # si la definición cabe en el chunk actual añadirla y repetir
-        if next_definition_line_size + current_chunk_size <= context.chunk_max_line_size:
+
+        next_definition_fits_current_chunk = next_definition_line_size + current_chunk_size <= context.chunk_max_line_size
+        current_chunk_too_small = current_chunk_size <= context.chunk_max_line_size * context.chunk_creator.minimum_proportion
+
+        """
+        Si la definición cabe en el chunk actual añadirla y repetir
+        En caso de que la siguiente definición no quepa, pero que el chunk actual sea muy pequeño, añadirlo
+        En caso de que la siguiente definición no quepa, pero si es la última definición y el chunk quedaría muy pequeño, añadirlo
+        """
+        if next_definition_fits_current_chunk or current_chunk_too_small or context.next_definition_is_last_and_too_small():
             context.add_next_definition_to_current_chunk()
             
             # Si es la última definición, crear el chunk
-            if context.next_definition_index >= len(context.definitions):
+            if context.current_definition_is_last():
                 return CreateChunkState()
                 
             return EmptyChunkState()

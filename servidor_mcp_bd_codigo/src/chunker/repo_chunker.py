@@ -4,15 +4,16 @@ from typing import List
 from grep_ast.tsl import get_language, get_parser  # noqa: E402
 from grep_ast import filename_to_lang
 from importlib import resources
+from tree_sitter import Point
 
 from src.chunker.chunk_creator import ChunkCreator
 from src.chunker.file_chunk_state import ChunkingContext, FinalState, StartState
 from src.db.models import FSEntry
-from src.db.db_utils import add_fs_entry
 from src.db.db_connection import DBConnection
 
 from src.utils import get_file_text
-from src.db.db_utils import get_fsentry_relative_path
+from src.db.db_utils import get_fsentry_relative_path, add_fs_entry
+
 
 def analyze_file_abstract_syntaxis_tree(code_text: str, file_path: str):
     language = filename_to_lang(file_path)
@@ -44,13 +45,13 @@ def analyze_file_abstract_syntaxis_tree(code_text: str, file_path: str):
 class FileChunker:
     chunk_creator: ChunkCreator
 
-    def __init__(self, chunk_max_line_size: int = 500, chunk_expected_size: int = 250):
+    def __init__(self, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2):
         self.chunk_max_line_size = chunk_max_line_size
-        self.chunk_expected_size = chunk_expected_size
+        self.chunk_minimum_proportion = chunk_minimum_proportion
         self.db_session = DBConnection().get_session()
         self.chunk_creator = ChunkCreator(
             db_session=self.db_session,
-            chunk_expected_size=self.chunk_expected_size,
+            chunk_minimum_proportion=self.chunk_minimum_proportion,
             chunk_max_line_size=self.chunk_max_line_size
         )
 
@@ -85,7 +86,6 @@ class FileChunker:
                 chunk_creator=self.chunk_creator,
                 definitions=definitions,
                 references=references,
-                code_text=code_text,
                 file_id=file_entry.id
             )
             state = StartState()
