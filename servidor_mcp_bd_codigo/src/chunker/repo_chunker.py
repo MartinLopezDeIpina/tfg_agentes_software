@@ -80,7 +80,7 @@ class FileChunker:
             references = []
             if "name.reference.call" in abstract_tree_captures:
                 references += abstract_tree_captures["name.reference.call"]
-            definitions.sort(key=lambda d: d.start_point.row)
+            references.sort(key=lambda d: d.start_point.row)
 
             context = ChunkingContext(
                 chunk_creator=self.chunk_creator,

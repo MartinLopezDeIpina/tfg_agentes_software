@@ -10,18 +10,18 @@ class ChunkingContext:
         self.file_id = file_id
         self.chunk_max_line_size = chunk_creator.chunk_max_line_size
         self.file_line_size = file_line_size
+        self.create_last_chunk = False
 
         # Variables de estado
         self.chunk_start_line = 0
         self.chunk_end_line = 0
-        self.finished = False
         self.current_chunk_definitions = []
         # Índice de definición a evaluar, sin estar en el chunk
         self.next_definition_index = 0
 
         # Variables para el procesamiento de clases
         self.class_definitions = []
-        self.class_next_definition_index = -1
+        self.class_next_definition_index = 0
 
     def current_definition_is_last(self):
         return self.next_definition_index >= len(self.definitions)
@@ -38,12 +38,41 @@ class ChunkingContext:
     def next_definition_is_last_and_too_small(self):
         return self.next_definition_is_last() and self.last_definition_too_small()
 
+    def current_class_definition_is_last(self):
+        return self.class_next_definition_index >= len(self.class_definitions)
+
+    def next_definition_should_be_added_to_current_chunk(self):
+        """
+        Si la definición cabe en el chunk actual añadirla y repetir
+        En caso de que la siguiente definición no quepa, pero que el chunk actual sea muy pequeño, añadirlo
+        En caso de que la siguiente definición no quepa, pero si es la última definición y el chunk quedaría muy pequeño, añadirlo
+        """
+        next_definition = self.definitions[self.next_definition_index]
+        # Considerar las líneas entre el final del chunk actual y el inicio de la siguiente definición como parte de la siguiente definición
+        next_definition_line_size = next_definition.end_point.row - self.chunk_end_line
+        current_chunk_size = self.chunk_end_line - self.chunk_start_line
+
+        next_definition_fits_current_chunk = next_definition_line_size + current_chunk_size <= self.chunk_max_line_size
+        current_chunk_too_small = current_chunk_size <= self.chunk_max_line_size * self.chunk_creator.minimum_proportion
+
+        return next_definition_fits_current_chunk or current_chunk_too_small or self.next_definition_is_last_and_too_small()
 
     def add_next_definition_to_current_chunk(self):
         next_definition = self.definitions[self.next_definition_index]
         self.current_chunk_definitions.append(next_definition)
         self.chunk_end_line = next_definition.end_point.row
         self.next_definition_index += 1
+
+    def add_remaining_lines_to_chunk_if_last_definition(self):
+        """
+        Si las últimas líneas sin definición son suficientes como para crear un chunk, crearlo
+        """
+        if self.next_definition_is_last():
+            remaining_lines = self.file_line_size - self.chunk_end_line
+            if remaining_lines >= self.chunk_max_line_size * self.chunk_creator.minimum_proportion:
+                self.create_last_chunk=True
+            else:
+                self.chunk_end_line = self.file_line_size
     
     def create_chunk(self):
         if self.chunk_end_line - self.chunk_start_line > self.chunk_max_line_size:
@@ -91,24 +120,9 @@ class StartState(ChunkingState):
 class EmptyChunkState(ChunkingState):
     def handle(self, context: ChunkingContext):
         if context.chunk_end_line >= context.file_line_size or context.current_definition_is_last():
-            context.finished = True
-        if context.finished:
-            return FinalState()
-        
-        next_definition = context.definitions[context.next_definition_index]
-        # Considerar las líneas entre el final del chunk actual y el inicio de la siguiente definición como parte de la siguiente definición
-        next_definition_line_size = next_definition.end_point.row - context.chunk_end_line
-        current_chunk_size = context.chunk_end_line - context.chunk_start_line
+            return AddLastLinesState()
 
-        next_definition_fits_current_chunk = next_definition_line_size + current_chunk_size <= context.chunk_max_line_size
-        current_chunk_too_small = current_chunk_size <= context.chunk_max_line_size * context.chunk_creator.minimum_proportion
-
-        """
-        Si la definición cabe en el chunk actual añadirla y repetir
-        En caso de que la siguiente definición no quepa, pero que el chunk actual sea muy pequeño, añadirlo
-        En caso de que la siguiente definición no quepa, pero si es la última definición y el chunk quedaría muy pequeño, añadirlo
-        """
-        if next_definition_fits_current_chunk or current_chunk_too_small or context.next_definition_is_last_and_too_small():
+        if context.next_definition_should_be_added_to_current_chunk():
             context.add_next_definition_to_current_chunk()
             
             # Si es la última definición, crear el chunk
@@ -143,7 +157,7 @@ class BigChunkState(ChunkingState):
             return CreateChunkState()
         else:
             # Es una clase, procesarla internamente
-            return ProcessClassState()
+            return StartClassState()
 
 class CreateChunkState(ChunkingState):
     """
@@ -151,6 +165,7 @@ class CreateChunkState(ChunkingState):
     Si el chunk supera el tamaño máximo, se divide en múltiples chunks.
     """
     def handle(self, context):
+        context.add_remaining_lines_to_chunk_if_last_definition()
         context.create_chunk()
 
         return EmptyChunkState()
@@ -167,30 +182,25 @@ class StartClassState(ChunkingState):
             and defi.end_point.row <= class_definition.end_point.row
             and defi.id != class_definition.id
         ]
+        # aumenetar en uno porque se va a chunkear la clase desde sus funciones -> pasar a la primera función de la clase
+        context.next_definition_index += 1
         context.class_next_definition_index = 0
         
         return ProcessClassState()
     
 class ProcessClassState(ChunkingState):
     """
-    Añadir la siguiente definición y evaluar si cabe en el chunk
-    
+    Utilizar la misma técnica que para las funciones
+    Si las funciones de clase se han acabado volver al estado anterior
     """
     def handle(self, context):
-        if context.class_next_definition_index >= len(context.class_definitions):
-            # No hay más definiciones de clase
+        if context.current_class_definition_is_last():
             return EmptyChunkState()
-        
-        current_class_definition = context.class_definitions[context.class_next_definition_index]
-        
-        """
-        Si la definición cabe en el chunk actual añadirla, si no, crear el chunk
-        """
-        chunk_size = current_class_definition.end_point.row - context.chunk_start_line
-        if chunk_size <= context.chunk_max_line_size:
-            context.class_definitions.append(current_class_definition)
+
+        if context.next_definition_should_be_added_to_current_chunk():
+            context.add_next_definition_to_current_chunk()
             context.class_next_definition_index += 1
-            
+
             return ProcessClassState()
         else:
             return CreateClassChunkState()
@@ -198,12 +208,22 @@ class ProcessClassState(ChunkingState):
 class CreateClassChunkState(ChunkingState):
     def handle(self, context):
         """
-        Crea un chunk con las definiciones acumuladas en el contexto.
-        Si el chunk supera el tamaño máximo, se divide en múltiples chunks.
+        Igual que el otro create chunk, pero para la clase
         """
+        context.add_remaining_lines_to_chunk_if_last_definition()
         context.create_chunk()
 
-        return EmptyChunkState()
+        return ProcessClassState()
+
+class AddLastLinesState(ChunkingState):
+    def handle(self, context):
+        """
+        Añadir las últimas líneas al chunk actual
+        """
+        if context.create_last_chunk:
+            context.chunk_end_line = context.file_line_size
+            context.create_chunk()
+        return FinalState()
         
 class FinalState(ChunkingState):
     def handle(self, context):

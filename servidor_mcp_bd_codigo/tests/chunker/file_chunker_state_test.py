@@ -87,8 +87,56 @@ def function_definitions_model_tools():
             id="function7",
             type="function_definition",
             start_point=Point(row=318, col=0),
-            end_point=Point(row=321, col=15)
+            end_point=Point(row=322, col=15)
         )
+    ]
+
+
+@pytest.fixture
+def function_definitions_pg_vector_tools():
+    return [
+        Definition(
+            id="class1",
+            type="class_definition",
+            start_point=Point(row=15, col=0),
+            end_point=Point(row=177, col=39)
+        ),
+        Definition(
+            id="function1",
+            type="function_definition",
+            start_point=Point(row=16, col=0),
+            end_point=Point(row=19, col=39)
+        ),
+        Definition(
+            id="function2",
+            type="function_definition",
+            start_point=Point(row=21, col=0),
+            end_point=Point(row=35, col=39)
+        ),
+        Definition(
+            id="function3",
+            type="function_definition",
+            start_point=Point(row=37, col=0),
+            end_point=Point(row=54, col=39)
+        ),
+        Definition(
+            id="function4",
+            type="function_definition",
+            start_point=Point(row=56, col=0),
+            end_point=Point(row=71, col=39)
+        ),
+        Definition(
+            id="function5",
+            type="function_definition",
+            start_point=Point(row=75, col=0),
+            end_point=Point(row=166, col=39)
+        ),
+        Definition(
+            id="function6",
+            type="function_definition",
+            start_point=Point(row=168, col=0),
+            end_point=Point(row=177, col=39)
+        ),
     ]
 
 
@@ -143,7 +191,7 @@ def verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_crea
 
 
 class TestFunctionChunks:
-    def test_chunks_creation_custom_config(self, make_context, function_definitions_model_tools, chunk_creator):
+    def test_function_chunks(self, make_context, function_definitions_model_tools, chunk_creator):
         # Reinicializar el mock para asegurar que no haya llamadas anteriores
         chunk_creator.create_chunk.reset_mock()
         chunk_creator.create_multiple_chunks.reset_mock()
@@ -195,7 +243,7 @@ class TestFunctionChunks:
             #Caso en el que la siguiente función no cabe en el chunk, pero se añade la última porque sino el úlitmo chunk es demasiado pequeño
             call(
                 chunk_start_line=230,
-                chunk_end_line=321,
+                chunk_end_line=322,
                 definitions=function_definitions_model_tools,
                 references=[],
                 file_id=33
@@ -203,270 +251,56 @@ class TestFunctionChunks:
         ]
 
         verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_create_multiple_chunks_calls)
-"""
+#todo: el caso del papel de que hay una función peuqeña pero suficiente antes de la clase, en lugar de partir la clase crear un chunk nuevo
+class TestClassChunks:
+    def test_class_chunks(self, make_context, function_definitions_pg_vector_tools, chunk_creator):
+        chunk_creator.create_chunk.reset_mock()
+        chunk_creator.create_multiple_chunks.reset_mock()
 
+        context = make_context(
+            definitions=function_definitions_pg_vector_tools,
+            file_line_size=181,
+            chunk_max_size=50,
+            chunk_min_proportion=0.2
+        )
 
-@pytest.fixture
-def class_definition():
-   #Crea una definición de clase para testing
-    return Definition(
-        id="class1",
-        type="class_definition",
-        start_point=Point(row=40, col=0),
-        end_point=Point(row=60, col=0)
-    )
-
-
-@pytest.fixture
-def mixed_definitions(function_definitions, class_definition):
-    #Mezcla funciones y clases
-    return function_definitions + [class_definition]
-
-
-
-
-@pytest.fixture
-def context_with_mixed(chunk_creator, mixed_definitions):
-    Contexto con funciones y clases
-    return ChunkingContext(
-        chunk_creator=chunk_creator,
-        definitions=mixed_definitions,
-        references=[],
-        code_text="# Código mixto de ejemplo\n",
-        file_id="test_mixed.py"
-    )
-
-
-
-# Tests para los diferentes estados
-class TestStartState:
-    def test_initial_transition(self, context_with_functions):
         state = StartState()
-        next_state = state.handle(context_with_functions)
+        while not isinstance(state, FinalState):
+            state = state.handle(context)
 
-        # Verifica que el estado inicial configura las líneas adecuadamente
-        assert context_with_functions.chunk_end_line == 4  # Justo antes de la primera definición
-        # Verifica la transición correcta de estado
-        assert isinstance(next_state, EmptyChunkState)
+        expected_create_chunk_calls = [
+            call(
+                chunk_start_line=0,
+                chunk_end_line=35,
+                definitions=function_definitions_pg_vector_tools,
+                references=[],
+                file_id=33
+            ),
+            call(
+                chunk_start_line=35,
+                chunk_end_line=71,
+                definitions=function_definitions_pg_vector_tools,
+                references=[],
+                file_id=33
+            ),
+            call(
+                chunk_start_line=166,
+                chunk_end_line=181,
+                definitions=function_definitions_pg_vector_tools,
+                references=[],
+                file_id=33
+            )
+        ]
 
+        expected_create_multiple_chunks_calls = [
+            # Caso en el que la función dentro de la clase es demasiado grande -> se divide la función en varias, pero sólo la función de la clase
+            call(
+                chunk_start_line=71,
+                chunk_end_line=166,
+                definitions=function_definitions_pg_vector_tools,
+                references=[],
+                file_id=33
+            ),
+        ]
 
-class TestEmptyChunkState:
-    def test_add_definition_to_chunk(self, context_with_functions):
-        # Configura el contexto como si ya hubiera pasado por StartState
-        context_with_functions.chunk_end_line = 4
-
-        state = EmptyChunkState()
-        next_state = state.handle(context_with_functions)
-
-        # Verifica que se añadió la primera definición al chunk
-        assert len(context_with_functions.current_chunk_definitions) == 1
-        assert context_with_functions.next_definition_index == 1
-        assert context_with_functions.chunk_end_line == 8  # Fin de la primera función
-
-
-class TestFullChunkState:
-    def test_transition_to_create_chunk(self, context_with_functions):
-        # Configura el contexto como si ya tuviera definiciones
-        context_with_functions.current_chunk_definitions = [context_with_functions.definitions[0]]
-
-        state = FullChunkState()
-        next_state = state.handle(context_with_functions)
-
-        # Verifica la transición correcta
-        assert isinstance(next_state, CreateChunkState)
-
-    def test_transition_to_big_chunk(self, context_with_functions):
-        # Asegura que no hay definiciones en el chunk actual
-        context_with_functions.current_chunk_definitions = []
-
-        state = FullChunkState()
-        next_state = state.handle(context_with_functions)
-
-        # Verifica la transición a BigChunkState
-        assert isinstance(next_state, BigChunkState)
-
-
-class TestCreateChunkState:
-    def test_create_single_chunk(self, context_with_functions):
-        # Configura el contexto
-        context_with_functions.chunk_start_line = 0
-        context_with_functions.chunk_end_line = 8
-        context_with_functions.current_chunk_definitions = [context_with_functions.definitions[0]]
-
-        state = CreateChunkState()
-        next_state = state.handle(context_with_functions)
-
-        # Verifica que se llamó a create_chunk con los parámetros correctos
-        context_with_functions.chunk_creator.create_chunk.assert_called_once_with(
-            chunk_start_line=0,
-            chunk_end_line=8,
-            definitions=context_with_functions.definitions,
-            references=[],
-            file_id="test_file.py"
-        )
-
-        # Verifica que se reiniciaron las variables del contexto
-        assert context_with_functions.current_chunk_definitions == []
-        assert context_with_functions.chunk_start_line == 8
-
-        # Verifica la transición correcta
-        assert isinstance(next_state, EmptyChunkState)
-
-    def test_create_multiple_chunks(self, context_with_functions):
-        # Configura el contexto con un chunk que excede el tamaño máximo
-        context_with_functions.chunk_start_line = 0
-        context_with_functions.chunk_end_line = 35  # Mayor que chunk_max_line_size (10)
-        context_with_functions.current_chunk_definitions = [context_with_functions.definitions[2]]  # Función grande
-
-        state = CreateChunkState()
-        next_state = state.handle(context_with_functions)
-
-        # Verifica que se llamó a create_multiple_chunks
-        context_with_functions.chunk_creator.create_multiple_chunks.assert_called_once_with(
-            chunk_start_line=0,
-            chunk_end_line=35,
-            definitions=context_with_functions.definitions,
-            references=[],
-            file_id="test_file.py"
-        )
-
-        # Verifica la transición correcta
-        assert isinstance(next_state, EmptyChunkState)
-
-
-class TestBigChunkState:
-    def test_handle_big_function(self, context_with_functions):
-        # Configura el contexto para apuntar a una función grande
-        context_with_functions.next_definition_index = 2  # La tercera función (grande)
-
-        state = BigChunkState()
-        next_state = state.handle(context_with_functions)
-
-        # Verifica que se añadió la función al chunk actual
-        assert len(context_with_functions.current_chunk_definitions) == 1
-        assert context_with_functions.current_chunk_definitions[0].id == "func3"
-
-        # Verifica la transición a CreateChunkState
-        assert isinstance(next_state, CreateChunkState)
-
-    def test_handle_class(self, context_with_mixed):
-        # Configura el contexto para apuntar a una clase
-        context_with_mixed.next_definition_index = 3  # La definición de clase
-
-        state = BigChunkState()
-        next_state = state.handle(context_with_mixed)
-
-        # Verifica la transición a ProcessClassState para procesar la clase
-        assert isinstance(next_state, ProcessClassState)
-
-
-# Test de integración para probar todo el flujo
-def test_complete_chunking_flow(context_with_functions):
-    # Comienza con StartState
-    state = StartState()
-
-    # Procesa hasta llegar a FinalState
-    while not isinstance(state, FinalState):
-        state = state.handle(context_with_functions)
-
-    # Verifica que se llamó a los métodos de creación de chunks
-    assert context_with_functions.chunk_creator.create_chunk.call_count > 0
-
-    # Verifica que todos los chunks fueron procesados
-    assert context_with_functions.finished is True
-
-
-# Test con un archivo "real"
-def test_with_example_file():
-    # Define un mock de ChunkCreator
-    chunk_creator = Mock(spec=ChunkCreator)
-    chunk_creator.chunk_max_line_size = 15
-    chunk_creator.create_chunk = MagicMock()
-    chunk_creator.create_multiple_chunks = MagicMock()
-
-    # Simula el proceso de parseo de un archivo real
-    # creando las definiciones manualmente
-    definitions = [
-        Definition(
-            id="sum_numbers",
-            type="function_definition",
-            start_point=Point(row=2, col=0),
-            end_point=Point(row=5, col=0)
-        ),
-        Definition(
-            id="Calculator",
-            type="class_definition",
-            start_point=Point(row=8, col=0),
-            end_point=Point(row=25, col=0)
-        ),
-        # Métodos dentro de la clase Calculator
-        Definition(
-            id="Calculator.add",
-            type="function_definition",
-            start_point=Point(row=10, col=4),
-            end_point=Point(row=12, col=4)
-        ),
-        Definition(
-            id="Calculator.subtract",
-            type="function_definition",
-            start_point=Point(row=14, col=4),
-            end_point=Point(row=16, col=4)
-        ),
-        Definition(
-            id="Calculator.multiply",
-            type="function_definition",
-            start_point=Point(row=18, col=4),
-            end_point=Point(row=20, col=4)
-        ),
-        Definition(
-            id="Calculator.divide",
-            type="function_definition",
-            start_point=Point(row=22, col=4),
-            end_point=Point(row=24, col=4)
-        ),
-        Definition(
-            id="main",
-            type="function_definition",
-            start_point=Point(row=28, col=0),
-            end_point=Point(row=35, col=0)
-        )
-    ]
-
-    # Crea el contexto
-    context = ChunkingContext(
-        chunk_creator=chunk_creator,
-        definitions=definitions,
-        references=[],  # Simplificamos sin referencias
-        code_text="# Código de ejemplo simulado\n",
-        file_id="example.py"
-    )
-
-    # Ejecuta la máquina de estados
-    state = StartState()
-    while not isinstance(state, FinalState):
-        state = state.handle(context)
-
-    # Verifica que se crearon los chunks esperados
-    expected_calls = [
-        # Primer chunk: comentarios iniciales hasta antes de la primera función
-        Mock.call(chunk_start_line=0, chunk_end_line=1, definitions=definitions, references=[], file_id="example.py"),
-        # Segundo chunk: primera función
-        Mock.call(chunk_start_line=1, chunk_end_line=5, definitions=definitions, references=[], file_id="example.py"),
-        # Siguiente chunk podría ser la clase completa o dividida en partes
-        # Las llamadas exactas dependerán de la implementación específica
-    ]
-
-    # Verifica que se han hecho al menos algunas llamadas a create_chunk
-    assert chunk_creator.create_chunk.call_count > 0
-
-    # Si la clase es demasiado grande, debería llamarse a create_multiple_chunks
-    if chunk_creator.create_multiple_chunks.call_count > 0:
-        # Verifica que se llamó con la clase
-        chunk_creator.create_multiple_chunks.assert_any_call(
-            chunk_start_line=8,
-            chunk_end_line=25,
-            definitions=definitions,
-            references=[],
-            file_id="example.py"
-        )
-"""
+        verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_create_multiple_chunks_calls)
