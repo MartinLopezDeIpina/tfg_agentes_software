@@ -14,6 +14,7 @@ from src.db.db_connection import DBConnection
 
 from src.utils import get_file_text, get_count_text_lines
 from src.db.db_utils import get_fsentry_relative_path, add_fs_entry
+from src.chunker.chunk_objects import Definition
 
 
 def analyze_file_abstract_syntaxis_tree(code_text: str, file_path: str):
@@ -75,9 +76,25 @@ class FileChunker:
 
             definitions = []
             if "definition.class" in abstract_tree_captures:
-                definitions += abstract_tree_captures["definition.class"]
+                for class_definition in abstract_tree_captures["definition.class"]:
+                    definitions.append(
+                        Definition(
+                        start_point=class_definition.start_point,
+                        end_point=class_definition.end_point,
+                        is_class=True,
+                        name=class_definition.child_by_field_name("name").text.decode("utf-8")
+                        )
+                    )
             if "definition.function" in abstract_tree_captures:
-                definitions += abstract_tree_captures["definition.function"]
+                for function_definition in abstract_tree_captures["definition.function"]:
+                    definitions.append(
+                        Definition(
+                        start_point=function_definition.start_point,
+                        end_point=function_definition.end_point,
+                        is_class=False,
+                        name=function_definition.child_by_field_name("name").text.decode("utf-8")
+                        )
+                    )
             definitions.sort(key=lambda d: d.start_point.row)
 
             references = []

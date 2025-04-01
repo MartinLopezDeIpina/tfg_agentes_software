@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import Mock, MagicMock, call
 from dataclasses import dataclass
+from src.chunker.chunk_objects import Definition
 
 from src.chunker.chunk_creator import ChunkCreator
 from src.chunker.file_chunk_state import (
@@ -15,13 +16,6 @@ class Point:
     row: int
     col: int
 
-
-@dataclass
-class Definition:
-    id: str
-    type: str
-    start_point: Point
-    end_point: Point
 
     def __str__(self):
         return f"{self.id} ({self.type})"
@@ -42,135 +36,132 @@ def chunk_creator():
 def function_definitions_model_tools():
     return [
         Definition(
-            id="function1",
-            type="function_definition",
+            name="name_function1",
             start_point=Point(row=21, col=0),
-            end_point=Point(row=23, col=39)
+            end_point=Point(row=23, col=39),
+            is_class=False
         ),
         Definition(
-            id="function2",
-            type="function_definition",
+            name="name_function2",
             start_point=Point(row=26, col=0),
-            end_point=Point(row=46, col=30)
+            end_point=Point(row=46, col=30),
+            is_class=False
         ),
         Definition(
-            id="function3",
-            type="function_definition",
+            name="name_function3",
             start_point=Point(row=48, col=0),
-            end_point=Point(row=80, col=30)
+            end_point=Point(row=80, col=30),
+            is_class=False
         ),
         Definition(
-            id="function4",
-            type="function_definition",
+            name="name_function4",
             start_point=Point(row=83, col=0),
-            end_point=Point(row=128, col=27)
+            end_point=Point(row=128, col=27),
+            is_class=False
         ),
         Definition(
-            id="function5",
-            type="function_definition",
+            name="name_function5",
             start_point=Point(row=130, col=0),
-            end_point=Point(row=132, col=15)
+            end_point=Point(row=132, col=15),
+            is_class=False
         ),
         Definition(
-            id="function6",
-            type="function_definition",
+            name="name_function6",
             start_point=Point(row=134, col=0),
-            end_point=Point(row=230, col=15)
+            end_point=Point(row=230, col=15),
+            is_class=False
         ),
         Definition(
-            id="function7",
-            type="function_definition",
+            name="name_function7",
             start_point=Point(row=232, col=0),
-            end_point=Point(row=315, col=15)
+            end_point=Point(row=315, col=15),
+            is_class=False
         ),
         Definition(
-            id="function7",
-            type="function_definition",
+            name="name_function8",
             start_point=Point(row=318, col=0),
-            end_point=Point(row=322, col=15)
+            end_point=Point(row=322, col=15),
+            is_class=False
         )
     ]
-
-
 @pytest.fixture
 def function_definitions_pg_vector_tools():
     return [
         Definition(
-            id="class1",
-            type="class_definition",
+            name="name_class1",
             start_point=Point(row=15, col=0),
-            end_point=Point(row=177, col=39)
+            end_point=Point(row=177, col=39),
+            is_class=True
         ),
         Definition(
-            id="function1",
-            type="function_definition",
+            name="name_function9",
             start_point=Point(row=16, col=0),
-            end_point=Point(row=19, col=39)
+            end_point=Point(row=19, col=39),
+            is_class=False
         ),
         Definition(
-            id="function2",
-            type="function_definition",
+            name="name_function10",
             start_point=Point(row=21, col=0),
-            end_point=Point(row=35, col=39)
+            end_point=Point(row=35, col=39),
+            is_class=False
         ),
         Definition(
-            id="function3",
-            type="function_definition",
+            name="name_function11",
             start_point=Point(row=37, col=0),
-            end_point=Point(row=54, col=39)
+            end_point=Point(row=54, col=39),
+            is_class=False
         ),
         Definition(
-            id="function4",
-            type="function_definition",
+            name="name_function12",
             start_point=Point(row=56, col=0),
-            end_point=Point(row=71, col=39)
+            end_point=Point(row=71, col=39),
+            is_class=False
         ),
         Definition(
-            id="function5",
-            type="function_definition",
+            name="name_function13",
             start_point=Point(row=75, col=0),
-            end_point=Point(row=166, col=39)
+            end_point=Point(row=166, col=39),
+            is_class=False
         ),
         Definition(
-            id="function6",
-            type="function_definition",
+            name="name_function14",
             start_point=Point(row=168, col=0),
-            end_point=Point(row=177, col=39)
+            end_point=Point(row=177, col=39),
+            is_class=False
         ),
     ]
-
 @pytest.fixture
 def function_definitions_function_before_class():
     return [
         Definition(
-            id="function1",
-            type="function_definition",
+            name="name_function15",
             start_point=Point(row=15, col=0),
-            end_point=Point(row=26, col=39)
+            end_point=Point(row=26, col=39),
+            is_class=False
         ),
         Definition(
-            id="class1",
-            type="class_definition",
+            name="name_class2",
             start_point=Point(row=26, col=0),
-            end_point=Point(row=84, col=39)
+            end_point=Point(row=84, col=39),
+            is_class=True
         ),
         Definition(
-            id="function2",
-            type="function_definition",
+            name="name_function16",
             start_point=Point(row=27, col=0),
-            end_point=Point(row=32, col=39)
+            end_point=Point(row=32, col=39),
+            is_class=False
         ),
         Definition(
-            id="function3",
-            type="function_definition",
+            name="name_function17",
             start_point=Point(row=32, col=0),
-            end_point=Point(row=48, col=39)
+            end_point=Point(row=48, col=39),
+            is_class=False
         ),
         Definition(
-            id="function4",
-            type="function_definition",
+            name="name_function18",
             start_point=Point(row=48, col=0),
-            end_point=Point(row=84, col=39)
+            end_point=Point(row=84, col=39),
+            is_class=False
         ),
     ]
 

@@ -1,9 +1,15 @@
 from abc import ABC, abstractmethod
+from typing import List, Any
 
 from src.chunker.chunk_creator import ChunkCreator
+from src.chunker.chunk_objects import Definition
 
 class ChunkingContext:
-    def __init__(self, chunk_creator: ChunkCreator, definitions, references, file_id, file_line_size):
+    chunk_creator: ChunkCreator
+    definitions: List[Definition]
+    references: List[Any]
+    file_id: int
+    def __init__(self, chunk_creator: ChunkCreator, definitions: List[Definition], references: List[Any], file_id: int, file_line_size: int):
         self.chunk_creator = chunk_creator
         self.definitions = definitions
         self.references = references
@@ -58,7 +64,9 @@ class ChunkingContext:
         return next_definition_fits_current_chunk or current_chunk_too_small or self.next_definition_is_last_and_too_small()
 
     def current_definition_is_class(self):
-        return str(self.definitions[self.next_definition_index - 1].type) == "class_definition"
+        return self.definitions[self.next_definition_index - 1].is_class
+    def next_definition_is_class(self):
+        return self.definitions[self.next_definition_index].is_class
 
     def add_next_definition_to_current_chunk(self):
         next_definition = self.definitions[self.next_definition_index]
@@ -131,7 +139,7 @@ class EmptyChunkState(ChunkingState):
             # Si es la última definición, crear el chunk
             if context.current_definition_is_last():
                 return CreateChunkState()
-                
+
             return EmptyChunkState()
         else:
             return FullChunkState()
@@ -149,18 +157,15 @@ class FullChunkState(ChunkingState):
     
 class BigChunkState(ChunkingState):
     def handle(self, context):
-        next_definition = context.definitions[context.next_definition_index]
-        
         """
         Si la definición es una función, dividirla en múltiples chunks
         Si es una clase, procesarla internamente con sus funciones
         """
-        if str(next_definition.type) == "function_definition":
+        if context.next_definition_is_class():
+            return StartClassState()
+        else:
             context.add_next_definition_to_current_chunk()
             return CreateChunkState()
-        else:
-            # Es una clase, procesarla internamente
-            return StartClassState()
 
 class CreateChunkState(ChunkingState):
     """
@@ -183,7 +188,7 @@ class StartClassState(ChunkingState):
             defi for defi in context.definitions
             if defi.start_point.row >= class_definition.start_point.row
             and defi.end_point.row <= class_definition.end_point.row
-            and defi.id != class_definition.id
+            and defi != class_definition
         ]
         # aumenetar en uno porque se va a chunkear la clase desde sus funciones -> pasar a la primera función de la clase
         context.next_definition_index += 1

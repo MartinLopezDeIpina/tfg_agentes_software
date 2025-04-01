@@ -83,8 +83,7 @@ class ChunkCreator:
         for definition in definitions:
             definition_is_inside_chunk = self.definition_is_inside_chunk(definition, chunk_start_line, chunk_end_line)
             if (definition_is_inside_chunk):
-                definition_name = definition.child_by_field_name('name').text.decode('utf-8')
-                defined_definitions.append(definition_name)
+                defined_definitions.append(definition.name)
         for definition in defined_definitions:
             if definition not in self.name_definitions:
                 self.name_definitions[definition] = []
