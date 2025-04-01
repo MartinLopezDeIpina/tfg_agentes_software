@@ -104,7 +104,8 @@ class FileChunker:
         try:
             #if file_path == "/home/martin/open_source/ia-core-tools/app/api/api.py":
             #if file_path == "/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files/example_java.java":
-            if file_path == "/home/martin/open_source/ia-core-tools/app/tools/pgVectorTools.py":
+            #if file_path == "/home/martin/open_source/ia-core-tools/app/tools/pgvectortools.py":
+            if file_path == "/home/martin/open_source/ia-core-tools/app/static/js/bootstrap.bundle.js":
                 print("debug")
             abstract_tree_captures = analyze_file_abstract_syntaxis_tree(code_text, file_path)
 

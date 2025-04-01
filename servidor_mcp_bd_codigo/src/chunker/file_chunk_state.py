@@ -119,18 +119,19 @@ class StartState(ChunkingState):
         """
         Iniciar el primer chunk con las líneas hasta la primera definición
         """
-        first_definition_start = context.definitions[0].start_point.row
-        context.chunk_end_line = first_definition_start - 1
-        
         if len(context.definitions) == 0:
             # Si no hay definiciones usar un simple chunk lanzando excepción
             raise ValueError("No definitions found in the file.")
-            
+
+        first_definition_start = context.definitions[0].start_point.row
+        context.chunk_end_line = first_definition_start - 1
+
         return EmptyChunkState()
 
 class EmptyChunkState(ChunkingState):
     def handle(self, context: ChunkingContext):
-        if (context.chunk_end_line >= context.file_line_size or context.current_definition_is_last()) and not context.current_definition_is_class():
+
+        if context.current_definition_is_last():
             return AddLastLinesState()
 
         if context.next_definition_should_be_added_to_current_chunk():
@@ -190,6 +191,12 @@ class StartClassState(ChunkingState):
             and defi.end_point.row <= class_definition.end_point.row
             and defi != class_definition
         ]
+
+        # En caso de que no se detecte ninguna función en la clase chunkear la función directamente
+        if len(context.class_definitions) == 0:
+            context.add_next_definition_to_current_chunk()
+            return CreateChunkState()
+
         # aumenetar en uno porque se va a chunkear la clase desde sus funciones -> pasar a la primera función de la clase
         context.next_definition_index += 1
         context.class_next_definition_index = 0
