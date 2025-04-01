@@ -100,10 +100,21 @@ def test_definition_extraction_python():
     actual_definitions = return_definition_extraction(file_path)
     assert_definitions_equal(actual_definitions, expected_definitions)
 
+def test_definition_extraction_java_script():
+    """
+    Comprueba la correta anotación de funciones y clases en el fichero example_files/example_javascript.py
+    """
+    file_path = "example_javascript.js"
+    expected_definitions = [
+        Definition(
+            name="PlaceholderClass",
+            start_point=Point(row=54, column=0),
+            end_point=Point(row=75, column=24),
+            is_class=True
+        ),
+        ]
 
+    actual_definitions = return_definition_extraction(file_path)
+    assert_definitions_equal(actual_definitions, expected_definitions)
 
-"""
-Comprueba la correta anotación de funciones y clases en el fichero example_files/example_java.java
-"""
-#def test_definition_extraction_java():
 
