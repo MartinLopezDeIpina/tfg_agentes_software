@@ -1,6 +1,8 @@
+import contextlib
 from typing import List
 import os
 from treelib import Tree
+import io
 
 REPO_PATH = "/home/martin/open_source/ia-core-tools"
 
@@ -77,6 +79,20 @@ def generate_repo_tree(repo_path: str, ignored_dirs: List[str] = None, ignored_f
     add_nodes(tree, repo_path, root_name, repo_path, ignored_dirs, ignored_files)
 
     return tree
+
+def generate_repo_tree_str(repo_path: str, ignored_dirs: List[str] = None, ignored_files: List[str] = None):
+    tree = generate_repo_tree(
+        repo_path,
+        ignored_dirs=ignored_dirs,
+        ignored_files=ignored_files
+    )
+    f = io.StringIO()
+    with contextlib.redirect_stdout(f):
+        tree.show()
+
+    repo_tree_str = f.getvalue()
+
+    return repo_tree_str
 
 if __name__ == "__main__":
     target_path = REPO_PATH

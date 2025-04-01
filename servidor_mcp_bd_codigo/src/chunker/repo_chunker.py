@@ -1,18 +1,16 @@
 import os
-from chunk import Chunk
 from typing import List
 
 from grep_ast.tsl import get_language, get_parser  # noqa: E402
 from grep_ast import filename_to_lang
 from importlib import resources
-from tree_sitter import Point
 
 from src.chunker.chunk_creator import ChunkCreator
 from src.chunker.file_chunk_state import ChunkingContext, FinalState, StartState
 from src.db.models import FSEntry, FileChunk
 from src.db.db_connection import DBConnection
 
-from src.utils import get_file_text, get_count_text_lines
+from utils.utils import get_file_text, get_count_text_lines
 from src.db.db_utils import get_fsentry_relative_path, add_fs_entry
 from src.chunker.chunk_objects import Definition
 
@@ -27,6 +25,7 @@ def analyze_file_abstract_syntaxis_tree(code_text: str, file_path: str):
 
     scm_file = resources.files("servidor_mcp_bd_codigo").joinpath(
         "src",
+        "chunker",
         "language_queries",
         f"{language}-tags.scm"
     )

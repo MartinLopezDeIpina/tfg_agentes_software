@@ -70,6 +70,7 @@ class FileChunk(Base):
     start_line = Column(Integer, nullable=False)
     end_line = Column(Integer, nullable=False)
     embedding = Column(Vector(1536))
+    docs = Column(Text)
     """
     chunk_x.referenced_chunks: Los chunks destino (a los que X apunta)
     chunk_x.referencing_chunks: Los chunks origen (que apuntan a X)

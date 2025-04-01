@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -27,4 +29,22 @@ def obtain_file_absolute_path(relativa_path: str):
     """
     root_dir = Path(__file__).resolve().parent.parent
     return os.path.join(root_dir, relativa_path)
+
+def execute_and_stream_command(command: str):
+    proceso = subprocess.Popen(
+        command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,  # Redirige stderr a stdout
+        text=True,
+        bufsize=1
+    )
+
+    # Lee y muestra la salida línea por línea mientras el comando se ejecuta
+    for line in proceso.stdout:
+        print(line, end='')
+        sys.stdout.flush()
+
+    exit_code = proceso.wait()
+    return exit_code
 
