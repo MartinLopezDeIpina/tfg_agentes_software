@@ -217,6 +217,13 @@ def verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_crea
 
 
 class TestFunctionChunks:
+    """
+    Test para comprobar el chunking correcto de las funciones.
+    -Se comprueba que si la siguiente definición es demasiado grande, pero el chunk actual es demasiado pequeño,
+    se añada al chunk actual dividiendo este en varios chunks.
+    -Se comprueba que si la definición siguiente no cabe en el chunk actual, pero la definición siguiente es la última
+    y es demasiado pequeña para crear un chunk, se añada al chunk actual.
+    """
     def test_function_chunks(self, make_context, function_definitions_model_tools, chunk_creator):
         # Reinicializar el mock para asegurar que no haya llamadas anteriores
         chunk_creator.create_chunk.reset_mock()
@@ -277,8 +284,13 @@ class TestFunctionChunks:
         ]
 
         verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_create_multiple_chunks_calls)
-#todo: el caso del papel de que hay una función peuqeña pero suficiente antes de la clase, en lugar de partir la clase crear un chunk nuevo
+
 class TestClassChunks:
+    """
+    Test para comprobar el chunking correcto de las clases.
+    Comprueba que en el caso que la clase sea demasiado grande, el chunking se realice teniendo en cuenta sus
+    funciones internas.
+    """
     def test_class_chunks(self, make_context, function_definitions_pg_vector_tools, chunk_creator):
         chunk_creator.create_chunk.reset_mock()
         chunk_creator.create_multiple_chunks.reset_mock()
@@ -331,6 +343,10 @@ class TestClassChunks:
 
         verificar_llamadas(chunk_creator, expected_create_chunk_calls, expected_create_multiple_chunks_calls)
 
+    """
+    Test para comprobar que en el caso de que haya una definición de una función antes de la definición de una clase,
+    y esta tiene tamaño suficiente para tener un chunk propio, se crea un chunk para la función.
+    """
     def test_class_chunks_function_before_class(self, make_context, function_definitions_function_before_class, chunk_creator):
         chunk_creator.create_chunk.reset_mock()
         chunk_creator.create_multiple_chunks.reset_mock()

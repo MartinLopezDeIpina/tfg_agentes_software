@@ -57,6 +57,40 @@ class FileChunker:
             chunk_max_line_size=self.chunk_max_line_size
         )
 
+    def get_definitions_from_tree_captures(self, abstract_tree_captures):
+        definitions = []
+        if "definition.class" in abstract_tree_captures:
+            for class_definition in abstract_tree_captures["definition.class"]:
+                definitions.append(
+                    Definition(
+                        start_point=class_definition.start_point,
+                        end_point=class_definition.end_point,
+                        is_class=True,
+                        name=class_definition.child_by_field_name("name").text.decode("utf-8")
+                    )
+                )
+        if "definition.function" in abstract_tree_captures:
+            for function_definition in abstract_tree_captures["definition.function"]:
+                definitions.append(
+                    Definition(
+                        start_point=function_definition.start_point,
+                        end_point=function_definition.end_point,
+                        is_class=False,
+                        name=function_definition.child_by_field_name("name").text.decode("utf-8")
+                    )
+                )
+        definitions.sort(key=lambda d: d.start_point.row)
+
+        return definitions
+
+    def get_references_from_tree_captures(self, abstract_tree_captures):
+        references = []
+        if "name.reference.call" in abstract_tree_captures:
+            references += abstract_tree_captures["name.reference.call"]
+        references.sort(key=lambda d: d.start_point.row)
+        return references
+
+
     def chunk_file(self, file_path: str, parent_id: int):
         file_entry = add_fs_entry(
             session=self.db_session,
@@ -68,39 +102,14 @@ class FileChunker:
         code_text = get_file_text(file_path)
 
         try:
-            #if file_path == "/home/martin/open_source/ia-core-tools/app/tools/modelTools.py":
             #if file_path == "/home/martin/open_source/ia-core-tools/app/api/api.py":
-            if file_path == "/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files/example_java.java":
+            #if file_path == "/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files/example_java.java":
+            if file_path == "/home/martin/open_source/ia-core-tools/app/tools/pgVectorTools.py":
                 print("debug")
             abstract_tree_captures = analyze_file_abstract_syntaxis_tree(code_text, file_path)
 
-            definitions = []
-            if "definition.class" in abstract_tree_captures:
-                for class_definition in abstract_tree_captures["definition.class"]:
-                    definitions.append(
-                        Definition(
-                        start_point=class_definition.start_point,
-                        end_point=class_definition.end_point,
-                        is_class=True,
-                        name=class_definition.child_by_field_name("name").text.decode("utf-8")
-                        )
-                    )
-            if "definition.function" in abstract_tree_captures:
-                for function_definition in abstract_tree_captures["definition.function"]:
-                    definitions.append(
-                        Definition(
-                        start_point=function_definition.start_point,
-                        end_point=function_definition.end_point,
-                        is_class=False,
-                        name=function_definition.child_by_field_name("name").text.decode("utf-8")
-                        )
-                    )
-            definitions.sort(key=lambda d: d.start_point.row)
-
-            references = []
-            if "name.reference.call" in abstract_tree_captures:
-                references += abstract_tree_captures["name.reference.call"]
-            references.sort(key=lambda d: d.start_point.row)
+            definitions = self.get_definitions_from_tree_captures(abstract_tree_captures)
+            references = self.get_references_from_tree_captures(abstract_tree_captures)
 
             context = ChunkingContext(
                 chunk_creator=self.chunk_creator,

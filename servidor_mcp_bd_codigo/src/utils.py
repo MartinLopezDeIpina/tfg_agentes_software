@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 
 def get_file_text(path: str) -> str:
     """
@@ -17,3 +20,11 @@ def get_count_text_lines(text: str) -> int:
     Devuelve el número de líneas en un chunk de texto.
     """
     return len(text.splitlines()) + 1
+
+def obtain_file_absolute_path(relativa_path: str):
+    """
+    Devuelve la ruta absoluta teniendo en cuenta el módulo superior del proyecto.
+    """
+    root_dir = Path(__file__).resolve().parent.parent
+    return os.path.join(root_dir, relativa_path)
+
