@@ -27,6 +27,7 @@ def return_definition_extraction(example_file_path):
         mock_files.return_value = Path('/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo')
 
         file_relative_path = os.path.join(EXAMPLE_FILES_PATH, example_file_path)
+        #todo: fix añade src al path absoluto, tests está fuera del src o meterlo dentro
         absolute_file_path = obtain_file_absolute_path(file_relative_path)
         file_content = get_file_text(absolute_file_path)
 

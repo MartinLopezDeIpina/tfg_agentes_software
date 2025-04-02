@@ -82,6 +82,7 @@ class CodeDocGenerator:
         files_to_document = self.db_session.query(FileChunk).all()
         for file in files_to_document:
             #file_code = get_file_text(file.file_path)
+            # todo: añadir al modelo un atributo del path para tener consulta rápida, añadirlo en el repo chunker.
             pass
 
 

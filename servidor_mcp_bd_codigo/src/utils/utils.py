@@ -27,7 +27,7 @@ def obtain_file_absolute_path(relativa_path: str):
     """
     Devuelve la ruta absoluta teniendo en cuenta el módulo superior del proyecto.
     """
-    root_dir = Path(__file__).resolve().parent.parent
+    root_dir = Path(__file__).resolve().parent.parent.parent
     return os.path.join(root_dir, relativa_path)
 
 def execute_and_stream_command(command: str):
