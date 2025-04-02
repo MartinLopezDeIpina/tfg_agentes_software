@@ -21,9 +21,8 @@ class FSEntry(Base):
     name = Column(Text, nullable=False)
     parent_id = Column(Integer, ForeignKey('fsentry.id'), nullable=True)
     is_directory = Column(Boolean, nullable=False)
+    path = Column(Text, nullable=False)
 
-    # Cambiamos la relación para que sea correctamente una one-to-many
-    # El cascade se configura en el lado "one" (padre)
     children = relationship(
         "FSEntry",
         backref=backref("parent", remote_side=[id]),
@@ -45,10 +44,11 @@ class FSEntry(Base):
 
     chunks = relationship("FileChunk", backref="file")
 
-    def __init__(self, name, parent_id, is_directory):
+    def __init__(self, name, parent_id, is_directory, path):
         self.name = name
         self.is_directory = is_directory
         self.parent_id = parent_id
+        self.path = path
 
 class Ancestor(Base):
     __tablename__ = 'ancestors'

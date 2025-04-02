@@ -1,8 +1,19 @@
+import os
+
 from src.db.db_connection import DBConnection
 from src.db.models import FSEntry, Ancestor
+from sqlalchemy.orm import Session
 
+def obtain_fsentry_relative_path(session: Session, fsentry_id: int) -> str:
 
-def add_fs_entry(session, name: str, parent_id: int, is_directory: bool):
+    # En caso de ser el nodo raíz, devolver cadena vacía
+    if fsentry_id is None:
+        return ""
+
+    fsentry = session.query(FSEntry).filter(FSEntry.id == fsentry_id).first()
+    return fsentry.path
+
+def add_fs_entry(session: Session, name: str, parent_id: int, is_directory: bool):
     """
     Añade un nuevo archivo o directorio al sistema de archivos y gestiona automáticamente
     todas las relaciones en la tabla de ancestros.
@@ -10,8 +21,13 @@ def add_fs_entry(session, name: str, parent_id: int, is_directory: bool):
     Returns:
         La nueva instancia de FSEntry con ID asignado
     """
+    if parent_id == None:
+        path = ""
+    else:
+        parent_path = obtain_fsentry_relative_path(session, parent_id)
+        path = os.path.join(parent_path, name)
 
-    entry = FSEntry(name=name, parent_id=parent_id, is_directory=is_directory)
+    entry = FSEntry(name=name, parent_id=parent_id, is_directory=is_directory, path=path)
     session.add(entry)
     # Necesario para obtener el ID asignado
     session.flush()

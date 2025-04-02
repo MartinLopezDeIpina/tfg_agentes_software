@@ -134,7 +134,7 @@ class FileChunker:
             session=self.db_session,
             name=os.path.basename(dir_path),
             parent_id=parent_id,
-            is_directory=True
+            is_directory=True,
         )
 
         for entry in os.listdir(dir_path):
