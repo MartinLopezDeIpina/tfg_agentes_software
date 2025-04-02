@@ -13,7 +13,7 @@ from db.db_connection import DBConnection
 from db.models import FileChunk
 
 from src.utils.proyect_tree import generate_repo_tree_str
-from src.utils.utils import execute_and_stream_command
+from src.utils.utils import execute_and_stream_command, get_file_text
 
 class CodeDocGenerator:
     db_session: Session
@@ -81,6 +81,8 @@ class CodeDocGenerator:
 
         files_to_document = self.db_session.query(FileChunk).all()
         for file in files_to_document:
+            #file_code = get_file_text(file.file_path)
+            pass
 
 
 

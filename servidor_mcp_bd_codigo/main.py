@@ -29,14 +29,16 @@ if __name__ == '__main__':
     )
     #file_chunker.chunk_repo("/home/martin/open_source/ia-core-tools", ["alembic/versions", ".git", "/home/martin/open_source/ia-core-tools/app/model/user.py"])
     #file_chunker.chunk_repo("/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files")
-    #file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")
+    file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")
     #file_chunker.visualize_chunks_with_references("/home/martin/open_source/ia-core-tools")
 
+    """
     docs_generator = CodeDocGenerator(
         repo_path="/home/martin/open_source/ia-core-tools",
         files_to_ignore=["alembic", ".git"]
     )
     docs_generator.create_repo_code_chunk_documentation()
+    """
 
 
 
