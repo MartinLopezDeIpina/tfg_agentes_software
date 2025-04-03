@@ -15,8 +15,15 @@ def get_file_text(path: str) -> str:
     Returns:
         str: The content of the file.
     """
+    max_line_length = int(os.environ.get("MAX_LINE_LENGTH"))
+    result = []
     with open(path, 'r', encoding='utf-8') as file:
-        return file.read()
+        for line in file:
+            if max_line_length:
+                result.append(line[:max_line_length])
+            else:
+                result.append(line)
+    return ''.join(result)
 
 def get_count_text_lines(text: str) -> int:
     """
