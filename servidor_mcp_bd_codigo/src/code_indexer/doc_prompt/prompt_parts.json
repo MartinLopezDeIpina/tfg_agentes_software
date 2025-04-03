@@ -1,9 +1,0 @@
-{
-  "chunk_code": "Code chunk to document",
-  "file_code": "Complete file code",
-  "extra_docs": "Extra documentation for this chunk file",
-  "repo_map": "Repository file map",
-  "referenced_chunks": "Referenced code chunks",
-  "referencing_chunks": "Code chunks that reference this chunk",
-  "referencing_chunk_path": "Chunk file path"
-}

@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import json
 import os
@@ -12,6 +13,7 @@ from treelib import Tree
 
 from sqlalchemy.orm import Session
 from langchain.prompts import PromptTemplate
+from langchain_core.messages import SystemMessage, HumanMessage, BaseMessage
 
 from db.db_connection import DBConnection
 from db.models import FileChunk, FSEntry
@@ -20,6 +22,9 @@ from src.utils.proyect_tree import generate_repo_tree_str
 from src.utils.utils import execute_and_stream_command, get_file_text, get_start_to_end_lines_from_text_code, change_path_extension_to_md, get_file_absolute_path, tab_all_lines
 from src.db.db_utils import get_chunk_code
 
+from src.code_indexer.prompts import user_prompt, system_prompt, prompt_parts_explanation
+
+from src.code_indexer.doc_llm_prompter import AsyncLLMPrompter
 
 @dataclass
 class DocPromptPart:
@@ -28,7 +33,8 @@ class DocPromptPart:
 
 class DocPromptBuilder:
     prompt_parts: List[DocPromptPart]
-    prompt_template: PromptTemplate
+    system_prompt: str
+    user_prompt_template: PromptTemplate
     prompt_parts_explanation: dict
     max_reference_chunks: int = 10
     max_file_extra_lines: int = 300
@@ -36,18 +42,14 @@ class DocPromptBuilder:
     def __init__(self, max_reference_chunks: int = 10, max_file_extra_lines: int = 300):
         self.max_reference_chunks = max_reference_chunks
         self.max_file_extra_lines = max_file_extra_lines
-        
-        prompt_file_path = os.path.join(os.path.abspath(Path(__file__).parent), "doc_prompt/prompt.txt")
-        prompt_text = get_file_text(prompt_file_path)
-        self.prompt_template = PromptTemplate(
+
+        self.system_prompt = system_prompt
+        self.user_prompt_template = PromptTemplate(
             input_variables=["input_resources"],
-            template=prompt_text
+            template=user_prompt
         )
         self.prompt_parts = []
-
-        prompt_parts_explanation_file_path = os.path.join(os.path.abspath(Path(__file__).parent), "doc_prompt/prompt_parts.json")
-        prompt_parts_explanation = get_file_text(prompt_parts_explanation_file_path)
-        self.prompt_parts_explanation = json.loads(prompt_parts_explanation)
+        self.prompt_parts_explanation = prompt_parts_explanation
 
     def restart_prompt(self):
         self.prompt_parts = []
@@ -94,7 +96,7 @@ class DocPromptBuilder:
 
             self.prompt_parts.append(DocPromptPart(self.prompt_parts_explanation["referencing_chunks"], referencing_chunks_str))
         
-    def build_prompt(self) -> str:
+    def build_prompt(self) -> List[BaseMessage]:
         """
         Construye el prompt a partir de las partes añadidas.
         """
@@ -103,9 +105,13 @@ class DocPromptBuilder:
             tabed_prompt_part = tab_all_lines(part.prompt_part)
             prompt_resources += f"{i+1}. {part.prompt_explanation}:\n{tabed_prompt_part}\n\n"
 
-        prompt_template = self.prompt_template.format(input_resources=prompt_resources)
+        user_prompt = self.user_prompt_template.format(input_resources=prompt_resources)
+        prompt = [
+            SystemMessage(content=self.system_prompt),
+            HumanMessage(content=user_prompt)
+        ]
 
-        return prompt_template
+        return prompt
 
 class CodeDocGenerator:
     db_session: Session
@@ -115,7 +121,12 @@ class CodeDocGenerator:
     extra_docs: bool
     repo_tree_str: str
     doc_prompt_builder: DocPromptBuilder
+    doc_llm_prompter: AsyncLLMPrompter
 
+    num_files_to_document: int
+    num_files_documented: int
+    num_chunks_to_document: int
+    num_chunks_documented: int
 
     def __init__(self, repo_path: str, files_to_ignore: List[str] = None, max_referenced_chunks: int = 10, max_file_extra_lines: int = 200):
         if files_to_ignore is None:
@@ -128,6 +139,7 @@ class CodeDocGenerator:
         self.db_session = DBConnection.get_session()
         self.extra_docs = False
         self.doc_prompt_builder = DocPromptBuilder()
+        self.doc_llm_prompter = AsyncLLMPrompter()
 
         self.repo_tree_str = generate_repo_tree_str(
             repo_path=self.repo_path,
@@ -138,6 +150,9 @@ class CodeDocGenerator:
             "code_indexer",
             "extra_docs"
         )
+
+        self.num_files_documented = 0
+        self.num_chunks_documented = 0
 
     def generate_extra_docs(self):
         """
@@ -155,7 +170,7 @@ class CodeDocGenerator:
             print(f"Error al generar documentación extra: {e}")
             self.extra_docs = False
 
-    def create_chunk_documentation_prompt(self, chunk: FileChunk, file_path: str, file_code: str, file_extra_docs: str, is_only_chunk_in_file: bool):
+    def create_chunk_documentation_prompt(self, chunk: FileChunk, file_path: str, file_code: str, file_extra_docs: str, is_only_chunk_in_file: bool) -> List[BaseMessage]:
         chunk_code = get_start_to_end_lines_from_text_code(file_code, chunk.start_line, chunk.end_line)
         referenced_chunks = chunk.referenced_chunks
         referencing_chunks = chunk.referencing_chunks
@@ -183,11 +198,16 @@ class CodeDocGenerator:
         chunk_doc_prompt = self.doc_prompt_builder.build_prompt()
         return chunk_doc_prompt
 
-    def create_chunk_documentation(self, chunk: FileChunk, file_path: str, file_code: str, file_extra_docs: str, is_only_chunk_in_file: bool):
+    async def create_chunk_documentation(self, chunk: FileChunk, file_path: str, file_code: str, file_extra_docs: str, is_only_chunk_in_file: bool):
         if file_path == "app/tools/modelTools.py":
             print("debug")
         chunk_doc_prompt = self.create_chunk_documentation_prompt(chunk, file_path, file_code, file_extra_docs, is_only_chunk_in_file)
-        # todo -> llamar llm y asignarlo en db
+        chunk_doc_response = await self.doc_llm_prompter.async_execute_prompt(chunk_doc_prompt)
+        chunk_doc = chunk_doc_response.content
+        chunk.docs = chunk_doc
+
+        self.num_chunks_documented += 1
+        return chunk_doc
 
     def get_file_extra_docs_if_exists(self, file_path: str) -> str:
         if self.extra_docs:
@@ -199,7 +219,7 @@ class CodeDocGenerator:
             else:
                 return ""
 
-    def create_file_chunks_documentation(self, file: FSEntry):
+    async def create_file_chunks_documentation(self, file: FSEntry):
         is_only_chunk_in_file = len(file.chunks) == 1
         file_path = file.path
         file_absolute_path = os.path.join(self.repo_path, file_path)
@@ -218,8 +238,17 @@ class CodeDocGenerator:
 
         file_chunks = file.chunks
         file_extra_docs = self.get_file_extra_docs_if_exists(file_path)
+
+        tasks = []
         for chunk in file_chunks:
-            self.create_chunk_documentation(chunk, file_path, file_code, file_extra_docs, is_only_chunk_in_file)
+            task = self.create_chunk_documentation(
+                chunk, file_path, file_code, file_extra_docs, is_only_chunk_in_file
+            )
+            tasks.append(task)
+
+        await asyncio.gather(*tasks)
+        self.num_files_documented += 1
+        print(f"{self.num_files_documented} / {self.num_files_to_document} files, {self.num_chunks_documented} / {self.num_chunks_to_document} chunks. -> Docs completas: {file_path}")
 
     def create_extra_docs_if_not_exists(self):
         extra_doc_exist = len(os.listdir(self.extra_docs_path)) > 0
@@ -228,7 +257,7 @@ class CodeDocGenerator:
         else:
             self.extra_docs = True
 
-    def create_repo_code_chunk_documentation(self):
+    async def create_repo_code_chunk_documentation(self):
         """
         Genera documentación de los chunks presentes en la base de datos.
         La documentación se almacena en la columna docs de la tabla FileChunk.
@@ -245,6 +274,24 @@ class CodeDocGenerator:
         files_to_ignore = self.db_session.query(FSEntry).filter(FSEntry.path.in_(self.files_to_ignore)).all()
         files_to_ignore_ids = [file.id for file in files_to_ignore]
 
-        files_to_document = self.db_session.query(FSEntry).filter(FSEntry.is_directory == False and FSEntry not in files_to_ignore_ids).all()
+        #files_to_document = self.db_session.query(FSEntry).filter(FSEntry.is_directory == False and FSEntry not in files_to_ignore_ids).all()
+        files_to_document = self.db_session.query(FSEntry).filter(FSEntry.is_directory == False and FSEntry not in files_to_ignore_ids).limit(10).all()
+
+        num_files = len(files_to_document)
+        num_chunks = 0
         for file in files_to_document:
-            self.create_file_chunks_documentation(file)
+            num_chunks += len(file.chunks)
+
+        print(f"Generando documentación para {num_files} ficheros")
+        print(f"Total de chunks a documentar: {num_chunks}")
+        self.num_files_to_document = num_files
+        self.num_chunks_to_document = num_chunks
+
+        tasks = [self.create_file_chunks_documentation(file) for file in files_to_document]
+        await asyncio.gather(*tasks)
+
+        print(f"Documentación generada para todos los {len(files_to_document)} archivos")
+
+    def create_repo_code_chunk_documentation_asynchronously(self):
+        asyncio.run(self.create_repo_code_chunk_documentation())
+        self.db_session.commit()

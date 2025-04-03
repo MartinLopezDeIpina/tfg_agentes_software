@@ -36,7 +36,7 @@ if __name__ == '__main__':
         repo_path="/home/martin/open_source/ia-core-tools",
         files_to_ignore=["alembic", ".git"]
     )
-    docs_generator.create_repo_code_chunk_documentation()
+    docs_generator.create_repo_code_chunk_documentation_asynchronously()
 
 
 
