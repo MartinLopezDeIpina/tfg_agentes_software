@@ -64,3 +64,10 @@ def change_path_extension_to_md(file_path: str) -> str:
     new_path = re.sub(r'\.([^\.]+)$', '.md', file_path)
     return new_path
 
+def tab_all_lines(text: str) -> str:
+    """
+    Añade tabulación a todas las líneas de un texto.
+    """
+    lines = text.splitlines()
+    tabbed_lines = ["\t" + line for line in lines]
+    return "\n".join(tabbed_lines)

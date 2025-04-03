@@ -83,9 +83,10 @@ def get_fsentry_relative_path(fsentry: FSEntry):
 
     return "/".join(path_parts)
 
-def get_chunk_code(Session: Session, chunk: FileChunk):
+def get_chunk_code(Session: Session, chunk: FileChunk, repo_path: str):
     chunk_file = Session.query(FSEntry).filter(FSEntry.id == chunk.file_id).first()
-    file_code = get_file_text(chunk_file.path)
+    chunk_file_path = os.path.join(repo_path, chunk_file.path)
+    file_code = get_file_text(chunk_file_path)
     chunk_code = get_start_to_end_lines_from_text_code(file_code, chunk.start_line, chunk.end_line)
     return chunk_code
 
