@@ -7,7 +7,7 @@ from tree_sitter import Point
 
 from chunker.chunk_objects import Definition
 from src.chunker.repo_chunker import analyze_file_abstract_syntaxis_tree
-from utils.utils import obtain_file_absolute_path, get_file_text
+from utils.utils import get_file_absolute_path, get_file_text
 from src.chunker.repo_chunker import FileChunker
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -28,7 +28,7 @@ def return_definition_extraction(example_file_path):
 
         file_relative_path = os.path.join(EXAMPLE_FILES_PATH, example_file_path)
         #todo: fix añade src al path absoluto, tests está fuera del src o meterlo dentro
-        absolute_file_path = obtain_file_absolute_path(file_relative_path)
+        absolute_file_path = get_file_absolute_path(file_relative_path)
         file_content = get_file_text(absolute_file_path)
 
         tree_captures = analyze_file_abstract_syntaxis_tree(file_content, absolute_file_path)

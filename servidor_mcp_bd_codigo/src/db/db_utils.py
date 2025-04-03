@@ -1,8 +1,9 @@
 import os
 
 from src.db.db_connection import DBConnection
-from src.db.models import FSEntry, Ancestor
+from src.db.models import FSEntry, Ancestor, FileChunk
 from sqlalchemy.orm import Session
+from src.utils.utils import get_file_text, get_start_to_end_lines_from_text_code
 
 def obtain_fsentry_relative_path(session: Session, fsentry_id: int) -> str:
 
@@ -81,3 +82,10 @@ def get_fsentry_relative_path(fsentry: FSEntry):
         current = current.parent  # Utilizamos la relación backref 'parent' para navegar hacia arriba
 
     return "/".join(path_parts)
+
+def get_chunk_code(Session: Session, chunk: FileChunk):
+    chunk_file = Session.query(FSEntry).filter(FSEntry.id == chunk.file_id).first()
+    file_code = get_file_text(chunk_file.path)
+    chunk_code = get_start_to_end_lines_from_text_code(file_code, chunk.start_line, chunk.end_line)
+    return chunk_code
+
