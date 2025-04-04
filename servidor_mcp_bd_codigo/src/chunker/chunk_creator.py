@@ -18,6 +18,7 @@ class ChunkCreator:
         self.minimum_proportion = chunk_minimum_proportion
         # si mínimo queremos 20 líneas y máximo 100, entonces la esperada será 60
         self.chunk_expected_size =int((chunk_max_line_size + chunk_max_line_size * chunk_minimum_proportion) // 2)
+        self.overlap_size = overlap_size
 
     def solve_unsolved_references(self):
         for chunk_id, ref_names in self.not_solved_references.items():

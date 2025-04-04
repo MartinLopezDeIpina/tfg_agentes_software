@@ -1,3 +1,7 @@
+import asyncio
+
+from code_indexer.llm_tools import AsyncEmbedder
+from src.code_indexer.repo_async_pipeline import run_documentation_pipeline_sync
 from src.mcp_client import MCPClient
 from dotenv import load_dotenv
 from src.agente_prueba import MCPAgent
@@ -16,6 +20,11 @@ async def run_db_agent():
     finally:
         await mcp_client.cleanup()
 
+async def prueba():
+    embedder = AsyncEmbedder()
+    texto_ejemplo = "hola"
+    resultado = await embedder.async_embed_document(texto_ejemplo)
+    print("debug")
 
 if __name__ == '__main__':
     load_dotenv()
@@ -32,11 +41,17 @@ if __name__ == '__main__':
     #file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")
     #file_chunker.visualize_chunks_with_references("/home/martin/open_source/ia-core-tools")
 
+    run_documentation_pipeline_sync("/home/martin/open_source/ia-core-tools", ["alembic/versions", ".git"])
+
+    """
     docs_generator = CodeDocGenerator(
         repo_path="/home/martin/open_source/ia-core-tools",
         files_to_ignore=["alembic", ".git"]
     )
     docs_generator.create_repo_code_chunk_documentation_asynchronously()
+    """
+    #asyncio.run(prueba())
+
 
 
 
