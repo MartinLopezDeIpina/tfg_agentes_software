@@ -3,6 +3,8 @@ from utils.utils import get_count_text_lines
 
 
 class ChunkCreator:
+    overlap_size: int
+
     # id chunk -> lista id chunks referenciados
     solved_references = dict()
     # id chunk -> lista nombres definiciones referenciadas
@@ -10,7 +12,7 @@ class ChunkCreator:
     # nombre definiciones -> lista chunks en las que se definen (puede que los chunks se solapen o que una referencia sea ambigua)
     name_definitions = dict()
 
-    def __init__(self, db_session, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2):
+    def __init__(self, db_session, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2, overlap_size: int = 10):
         self.db_session = db_session
         self.chunk_max_line_size = chunk_max_line_size
         self.minimum_proportion = chunk_minimum_proportion
@@ -125,6 +127,13 @@ class ChunkCreator:
             chunk_start_line += chunk_size
 
     def create_chunk(self, chunk_start_line: int, chunk_end_line: int, definitions: dict, references: dict, file_id: int):
+        """
+        Crea los chunk y los añade a la base de datos.
+        Aplica el overlap indicado.
+        """
+        chunk_start_line = min(0, chunk_start_line - self.overlap_size)
+        chunk_end_line = max(0, chunk_end_line + self.overlap_size)
+
         chunk = FileChunk(
             file_id=file_id,
             start_line=chunk_start_line,

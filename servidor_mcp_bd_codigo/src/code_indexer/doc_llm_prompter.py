@@ -17,9 +17,6 @@ class AsyncLLMPrompter:
             )
 
     async def async_execute_prompt(self, prompt_messages: List[BaseMessage]):
-        """
-        Executes a prompt using the LLM chat model.
-        """
         response = await self.llm_chat.ainvoke(prompt_messages)
         return response
 
