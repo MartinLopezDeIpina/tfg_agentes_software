@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 import re
 from config import MAX_LINE_LENGTH
-
+from config import ROOT_DIR
 
 def get_file_text(path: str) -> str:
     """
@@ -42,6 +42,15 @@ def get_file_absolute_path(relativa_path: str):
     """
     root_dir = Path(__file__).resolve().parent.parent.parent
     return os.path.join(root_dir, relativa_path)
+
+def get_file_absolute_path_from_proyect_relative_path(relative_path: str, proyect_path: str = ROOT_DIR):
+    """
+    Devuelve la ruta absoluta en el sistema de ficheros desde la ruta relativa respecto al
+    módulo de python.
+    """
+    file_path = os.path.join(proyect_path, relative_path)
+
+    return file_path
 
 def get_file_absolute_path_from_path(path: Path):
     return os.path.abspath(path)
