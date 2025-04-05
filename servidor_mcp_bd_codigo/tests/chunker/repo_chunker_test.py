@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from tree_sitter import Point
 
 from chunker.chunk_objects import Definition
@@ -12,8 +12,7 @@ from src.chunker.repo_chunker import FileChunker
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-
-EXAMPLE_FILES_PATH = "tests/chunker/example_files"
+from config import TEST_EXAMPLE_FILES_PATH
 
 def return_definition_extraction(example_file_path):
     """
@@ -24,9 +23,10 @@ def return_definition_extraction(example_file_path):
     """
     with patch('importlib.resources.files') as mock_files:
 
+        #todo: no depender de la ruta absoluta
         mock_files.return_value = Path('/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo')
 
-        file_relative_path = os.path.join(EXAMPLE_FILES_PATH, example_file_path)
+        file_relative_path = os.path.join(TEST_EXAMPLE_FILES_PATH, example_file_path)
         absolute_file_path = get_file_absolute_path(file_relative_path)
         file_content = get_file_text(absolute_file_path)
 
@@ -117,5 +117,6 @@ def test_definition_extraction_java_script():
 
     actual_definitions = return_definition_extraction(file_path)
     assert_definitions_equal(actual_definitions, expected_definitions)
+
 
 

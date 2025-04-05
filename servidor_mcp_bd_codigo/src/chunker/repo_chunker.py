@@ -1,6 +1,7 @@
 import os
 from typing import List
 
+from sqlalchemy.orm import Session
 from grep_ast.tsl import get_language, get_parser  # noqa: E402
 from grep_ast import filename_to_lang
 from importlib import resources
@@ -9,6 +10,7 @@ from src.chunker.chunk_creator import ChunkCreator
 from src.chunker.file_chunk_state import ChunkingContext, FinalState, StartState
 from src.db.models import FSEntry, FileChunk
 from src.db.db_connection import DBConnection
+from tests.chunker.file_chunker_state_test import chunk_creator
 
 from utils.utils import get_file_text, get_count_text_lines
 from src.db.db_utils import get_fsentry_relative_path, add_fs_entry
@@ -45,16 +47,18 @@ def analyze_file_abstract_syntaxis_tree(code_text: str, file_path: str):
 
 class FileChunker:
     chunk_creator: ChunkCreator
+    ignored_entries: List[str]
 
-    def __init__(self, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2):
+    def __init__(self, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2, session: Session = None, chunk_creator: ChunkCreator = None):
         self.chunk_max_line_size = chunk_max_line_size
         self.chunk_minimum_proportion = chunk_minimum_proportion
-        self.db_session = DBConnection().get_session()
-        self.chunk_creator = ChunkCreator(
+        self.db_session = session or DBConnection().get_session()
+        self.chunk_creator = chunk_creator or ChunkCreator(
             db_session=self.db_session,
             chunk_minimum_proportion=self.chunk_minimum_proportion,
             chunk_max_line_size=self.chunk_max_line_size
         )
+        self.ignored_entries = []
 
     def get_definitions_from_tree_captures(self, abstract_tree_captures):
         definitions = []
