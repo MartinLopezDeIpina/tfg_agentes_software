@@ -27,7 +27,6 @@ def return_definition_extraction(example_file_path):
         mock_files.return_value = Path('/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo')
 
         file_relative_path = os.path.join(EXAMPLE_FILES_PATH, example_file_path)
-        #todo: fix añade src al path absoluto, tests está fuera del src o meterlo dentro
         absolute_file_path = get_file_absolute_path(file_relative_path)
         file_content = get_file_text(absolute_file_path)
 
@@ -57,7 +56,7 @@ def test_definition_extraction_python():
         Definition(
             name="PGVectorTools",
             start_point=Point(row=13, column=0),
-            end_point=Point(row=175, column=24),
+            end_point=Point(row=174, column=24),
             is_class=True
         ),
         Definition(
@@ -86,14 +85,14 @@ def test_definition_extraction_python():
         ),
         Definition(
             name="search_similar_resources",
-            start_point=Point(row=73, column=4),
-            end_point=Point(row=164, column=22),
+            start_point=Point(row=72, column=4),
+            end_point=Point(row=163, column=22),
             is_class=False
         ),
         Definition(
             name="get_pgvector_retriever",
-            start_point=Point(row=166, column=4),
-            end_point=Point(row=175, column=24),
+            start_point=Point(row=165, column=4),
+            end_point=Point(row=174, column=24),
             is_class=False
         )
     ]
@@ -103,6 +102,8 @@ def test_definition_extraction_python():
 def test_definition_extraction_java_script():
     """
     Comprueba la correta anotación de funciones y clases en el fichero example_files/example_javascript.py
+    El parser de javascript no funciona correctamente, por lo que se ha configurado el fichero de query
+    para extraer las clases unicamente.
     """
     file_path = "example_javascript.js"
     expected_definitions = [

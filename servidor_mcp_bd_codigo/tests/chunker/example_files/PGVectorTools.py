@@ -70,7 +70,6 @@ class PGVectorTools:
         vector_store.delete(ids=ids_array)
 
 
-
     def search_similar_resources(self, repository_id, embed, RESULTS=5):
         """Searches for similar resources in the pgvector table using langchain vector store."""
         vector_store = PGVector(

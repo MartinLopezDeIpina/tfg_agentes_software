@@ -9,7 +9,7 @@ class ChunkCreator:
     solved_references = dict()
     # id chunk -> lista nombres definiciones referenciadas
     not_solved_references = dict()
-    # nombre definiciones -> lista chunks en las que se definen (puede que los chunks se solapen o que una referencia sea ambigua)
+    # nombre definiciones -> lista chunk ids en las que se definen (puede que los chunks se solapen o que una referencia sea ambigua)
     name_definitions = dict()
 
     def __init__(self, db_session, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2, overlap_size: int = 10):
@@ -25,7 +25,7 @@ class ChunkCreator:
             for ref_name in ref_names:
                 if chunk_id not in self.solved_references:
                     self.solved_references[chunk_id] = set()
-                self.solved_references[chunk_id].append(ref_name)
+                self.solved_references[chunk_id].add(ref_name)
 
     def add_chunk_references_to_db(self):
         for chunk_id, ref_names in self.solved_references.items():
@@ -132,8 +132,9 @@ class ChunkCreator:
         Crea los chunk y los añade a la base de datos.
         Aplica el overlap indicado.
         """
-        chunk_start_line = min(0, chunk_start_line - self.overlap_size)
-        chunk_end_line = max(0, chunk_end_line + self.overlap_size)
+        chunk_start_line = max(0, chunk_start_line - self.overlap_size)
+        # no se considera si el en line es mayor que el final del chunk -> más rentable ignorarlo
+        chunk_end_line = chunk_end_line + self.overlap_size
 
         chunk = FileChunk(
             file_id=file_id,
