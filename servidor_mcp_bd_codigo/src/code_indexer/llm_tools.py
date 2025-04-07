@@ -1,8 +1,11 @@
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+#from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from config import LLM_TEMPERATURE
 from langchain_core.messages import BaseMessage
 from typing import List
+from config import EMBEDDER_MODEL_INSTANCE
 
 
 class AsyncLLMPrompter:
@@ -25,12 +28,9 @@ class AsyncEmbedder:
     model: str
     embedder_instance: OpenAIEmbeddings
 
-    def __init__(self, model: str = "text-embedding-3-small", embedder_instance: OpenAIEmbeddings = None):
+    def __init__(self, model: str = "text-embedding-3-small", embedder_instance: OpenAIEmbeddings = EMBEDDER_MODEL_INSTANCE):
         self.model = model
-        if embedder_instance is None:
-            self.embedder_instance = OpenAIEmbeddings(
-                model=model
-            )
+        self.embedder_instance = embedder_instance
 
     async def async_embed_document(self, document: str):
         embedding = await self.embedder_instance.aembed_query(document)

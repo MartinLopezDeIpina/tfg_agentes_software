@@ -4,7 +4,6 @@ import os
 from treelib import Tree
 import io
 
-REPO_PATH = "/home/martin/open_source/ia-core-tools"
 
 def add_nodes(tree: Tree, directory: str, parent: str, repo_path: str, ignored_dirs: List[str] = None, ignored_files: List[str] = None):
     """
@@ -54,6 +53,7 @@ def add_nodes(tree: Tree, directory: str, parent: str, repo_path: str, ignored_d
     except PermissionError:
         print(f"Permiso denegado para acceder a {directory}")
 
+
 def generate_repo_tree(repo_path: str, ignored_dirs: List[str] = None, ignored_files: List[str] = None):
     """
     Genera un árbol de la estructura de directorios de un repositorio.
@@ -71,9 +71,13 @@ def generate_repo_tree(repo_path: str, ignored_dirs: List[str] = None, ignored_f
     if ignored_files is None:
         ignored_files = []
 
-    tree = Tree()
-    root_name = os.path.basename(os.path.abspath(repo_path))
-    tree.create_node(root_name, root_name)
+    try:
+        tree = Tree()
+        root_name = os.path.basename(os.path.abspath(repo_path))
+        tree.create_node(root_name, root_name)
+    except FileNotFoundError or PermissionError:
+        print(f"Error: No se puede acceder a la ruta {repo_path}")
+        return None
 
     # Iniciar recursión
     add_nodes(tree, repo_path, root_name, repo_path, ignored_dirs, ignored_files)
@@ -81,6 +85,7 @@ def generate_repo_tree(repo_path: str, ignored_dirs: List[str] = None, ignored_f
     return tree
 
 def generate_repo_tree_str(repo_path: str, ignored_dirs: List[str] = None, ignored_files: List[str] = None):
+
     tree = generate_repo_tree(
         repo_path,
         ignored_dirs=ignored_dirs,
@@ -95,7 +100,7 @@ def generate_repo_tree_str(repo_path: str, ignored_dirs: List[str] = None, ignor
     return repo_tree_str
 
 if __name__ == "__main__":
-    target_path = REPO_PATH
+    target_path = "/home/martin/open_source/ia-core-tools/app/static/vendor"
     print(f"Generando árbol de repositorio para: {target_path}")
 
     custom_ignored_dirs = ['.git', 'node_modules', '.venv', '__pycache__', 'dist', 'build']
@@ -109,9 +114,5 @@ if __name__ == "__main__":
     )
 
     repo_tree.show()
-
-    # Si quieres guardar el árbol en un archivo
-    # with open('repo_tree.txt', 'w', encoding='utf-8') as f:
-    #     repo_tree.show(file=f)
 
     print("\nÁrbol generado correctamente.")

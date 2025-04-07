@@ -304,7 +304,7 @@ class ContextPreparationStage(PipelinePipelineStage):
         files_query = context.db_session.query(FSEntry).filter(
             FSEntry.is_directory == False,
             ~FSEntry.path.in_(context.files_to_ignore)
-        ).limit(5)
+        )
 
         for file in files_query.all():
 

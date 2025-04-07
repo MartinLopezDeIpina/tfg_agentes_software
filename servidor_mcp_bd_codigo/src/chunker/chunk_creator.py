@@ -1,3 +1,5 @@
+from typing import List
+
 from src.db.models import FileChunk, FSEntry
 from utils.utils import get_count_text_lines
 
@@ -6,11 +8,11 @@ class ChunkCreator:
     overlap_size: int
 
     # id chunk -> lista id chunks referenciados
-    solved_references = dict()
+    solved_references: dict[int, List[int]]
     # id chunk -> lista nombres definiciones referenciadas
-    not_solved_references = dict()
+    not_solved_references: dict[int, List[str]]
     # nombre definiciones -> lista chunk ids en las que se definen (puede que los chunks se solapen o que una referencia sea ambigua)
-    name_definitions = dict()
+    name_definitions: dict[str, List[int]]
 
     def __init__(self, db_session, chunk_max_line_size: int = 100, chunk_minimum_proportion: float = 0.2, overlap_size: int = 10):
         self.db_session = db_session
@@ -20,12 +22,16 @@ class ChunkCreator:
         self.chunk_expected_size =int((chunk_max_line_size + chunk_max_line_size * chunk_minimum_proportion) // 2)
         self.overlap_size = overlap_size
 
+        self.solved_references = {}
+        self.not_solved_references = {}
+        self.name_definitions = {}
+
     def solve_unsolved_references(self):
         for chunk_id, ref_names in self.not_solved_references.items():
             for ref_name in ref_names:
                 if chunk_id not in self.solved_references:
-                    self.solved_references[chunk_id] = set()
-                self.solved_references[chunk_id].add(ref_name)
+                    self.solved_references[chunk_id] = []
+                self.solved_references[chunk_id].append(ref_name)
 
     def add_chunk_references_to_db(self):
         for chunk_id, ref_names in self.solved_references.items():

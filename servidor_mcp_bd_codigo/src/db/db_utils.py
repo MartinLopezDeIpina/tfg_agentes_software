@@ -4,6 +4,7 @@ from src.db.db_connection import DBConnection
 from src.db.models import FSEntry, Ancestor, FileChunk
 from sqlalchemy.orm import Session
 from src.utils.utils import get_file_text, get_start_to_end_lines_from_text_code
+from config import REPO_ROOT_ABSOLUTE_PATH
 
 def obtain_fsentry_relative_path(session: Session, fsentry_id: int) -> str:
 
@@ -83,10 +84,18 @@ def get_fsentry_relative_path(fsentry: FSEntry):
 
     return "/".join(path_parts)
 
-def get_chunk_code(Session: Session, chunk: FileChunk, repo_path: str):
+def get_chunk_code(Session: Session, chunk: FileChunk, repo_path: str = REPO_ROOT_ABSOLUTE_PATH):
     chunk_file = Session.query(FSEntry).filter(FSEntry.id == chunk.file_id).first()
     chunk_file_path = os.path.join(repo_path, chunk_file.path)
     file_code = get_file_text(chunk_file_path)
     chunk_code = get_start_to_end_lines_from_text_code(file_code, chunk.start_line, chunk.end_line)
     return chunk_code
+
+def get_fs_entry_from_relative_path(session: Session, relative_path: str):
+    fs_entry = session.query(FSEntry).filter(FSEntry.path == relative_path).first()
+    return fs_entry
+
+def get_root_fs_entry(session: Session):
+    root_node = session.query(FSEntry).filter(FSEntry.parent_id == None).first()
+    return root_node
 
