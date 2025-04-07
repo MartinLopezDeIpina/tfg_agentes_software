@@ -81,6 +81,16 @@ def tab_all_lines(text: str) -> str:
     """
     Añade tabulación a todas las líneas de un texto.
     """
+    return tab_all_lines_x_times(text, 1)
+
+def tab_all_lines_x_times(text: str, times: int = 1) -> str:
+    """
+    Añade x tabulaciones a cada línea de un texto.
+    """
     lines = text.splitlines()
-    tabbed_lines = ["\t" + line for line in lines]
+    tabbed_lines = ["\t" * times + line for line in lines]
     return "\n".join(tabbed_lines)
+
+def apend_with_x_tab_to_text(text: str, text_to_add: str, times_to_tab: int = 1):
+    tabbed_text = tab_all_lines_x_times(text_to_add, times_to_tab)
+    return text + tabbed_text

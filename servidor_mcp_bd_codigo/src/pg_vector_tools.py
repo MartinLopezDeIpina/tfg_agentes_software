@@ -45,3 +45,19 @@ class PGVectorTools:
 
         return similar_chunks
 
+    def get_file_chunks(self, file_path: str) -> List[FileChunk]:
+        """
+        Obtiene todos los chunks de un archivo específico.
+        :param file_path: Ruta relativa al archivo dentro del repositorio.
+        :return: Lista de objetos FileChunk.
+        """
+        fs_entry = get_fs_entry_from_relative_path(self.db_session, file_path)
+        if fs_entry is None:
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        stmt = select(FileChunk).where(FileChunk.file_id == fs_entry.id)
+        results = self.db_session.execute(stmt).scalars().all()
+        return results
+
+
+

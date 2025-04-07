@@ -91,8 +91,11 @@ def get_chunk_code(Session: Session, chunk: FileChunk, repo_path: str = REPO_ROO
     chunk_code = get_start_to_end_lines_from_text_code(file_code, chunk.start_line, chunk.end_line)
     return chunk_code
 
+# busca el fichero sin tenenr en cuenta las mayúsulas
 def get_fs_entry_from_relative_path(session: Session, relative_path: str):
-    fs_entry = session.query(FSEntry).filter(FSEntry.path == relative_path).first()
+    fs_entry = session.query(FSEntry).filter(
+        FSEntry.path.ilike(relative_path)
+    ).first()
     return fs_entry
 
 def get_root_fs_entry(session: Session):

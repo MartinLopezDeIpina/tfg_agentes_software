@@ -43,3 +43,10 @@ class DBConnection:
     def get_session(cls):
         instance = cls.get_instance()
         return instance.session
+
+    @staticmethod
+    def close_current_session():
+        """
+        Cierra la sesión asociada al hilo actual.
+        """
+        DBConnection.get_session().remove()

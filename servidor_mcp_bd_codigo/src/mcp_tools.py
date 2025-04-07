@@ -5,41 +5,25 @@ from sqlalchemy.orm import Session
 
 
 def get_code_repository_rag_docs_from_query(db_session: Session, pgvector_tools: PGVectorTools, query: str, directory: str = None) -> dict:
-    """
-    Returns chunks of code from the repository subdirectory that are similar or relevant to the provided query.
-
-    :param query: The query to search for in the code repository.
-    :param directory: Subdirectory where to perform the search. The search runs recursively,
-                 including all files in this directory and at any level of subdirectories
-                 within it. If None, the repository root directory will be used.
-    :return: dictionary with the following structure:
-        {
-            "chunk_id": chunk_id,
-            "chunk_content": chunk_content,
-            "path": absolute path of the chunk's file,
-            "referenced_chunks": list of chunks that reference this chunk
-            "referencing chunks": list of chunks that are referenced by this chunk
-        }
-    """
-
     top_similar_chunks = pgvector_tools.search_similar_chunks(
+        directory_path=directory,
         query=query,
         max_results=MAX_CHUNKS
     )
 
-    response = process_top_similar_chunks(top_similar_chunks, db_session)
+    response = process_chunks_referenced_and_referencing(top_similar_chunks, db_session)
     return response
 
-def process_top_similar_chunks(top_similar_chunks, db_session, max_chunks=MAX_CHUNKS,
-                              max_referenced=MAX_REFERENCED_CHUNKS,
-                              max_referencing=MAX_REFERENCING_CHUNKS):
+def process_chunks_referenced_and_referencing(chunks, db_session, max_chunks=MAX_CHUNKS,
+                                              max_referenced=MAX_REFERENCED_CHUNKS,
+                                              max_referencing=MAX_REFERENCING_CHUNKS):
     """
-    Procesa los chunks más similares y recopila sus chunks referenciados y referenciantes.
+    Procesa los chunks y recopila sus chunks referenciados y referenciantes.
     """
     included_chunk_ids = set()
     response = {}
 
-    for chunk in top_similar_chunks:
+    for chunk in chunks:
         if len(included_chunk_ids) >= max_chunks:
             break
 
@@ -98,9 +82,20 @@ def add_chunk_to_dict(chunk, db_session):
     Crea un diccionario con el contenido y la ruta de un chunk dado.
     """
     return {
-        "chunk_content": get_chunk_code(db_session, chunk),
-        "path": chunk.file.path
+        "path": chunk.file.path,
+        "chunk_content": get_chunk_code(db_session, chunk)
     }
+
+def get_code_from_repository_file(db_session: Session, pgvector_tools: PGVectorTools, file_path: str) -> dict:
+    chunks = pgvector_tools.get_file_chunks(file_path)
+
+    response = process_chunks_referenced_and_referencing(
+        chunks=chunks,
+        db_session=db_session
+    )
+    return response
+
+
 
 
 

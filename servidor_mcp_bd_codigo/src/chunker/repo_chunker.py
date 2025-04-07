@@ -190,6 +190,7 @@ class FileChunker:
 
         self.db_session.flush()
         self.db_session.commit()
+        self.db_session.close()
 
         print(f"\n\n\n#####\n\nTodo el repo chunkeado: {repo_path}\n\n#####")
 

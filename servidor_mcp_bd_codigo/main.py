@@ -1,10 +1,13 @@
 from dotenv import load_dotenv
+
+from db.db_connection import DBConnection
+
 load_dotenv()
 
 import asyncio
 
 from code_indexer.llm_tools import AsyncEmbedder
-from mcp_code_server import get_code_repository_rag_docs_from_query_tool
+from mcp_code_server import get_code_repository_rag_docs_from_query_tool, get_file_from_repository_tool
 from src.code_indexer.repo_async_pipeline import run_documentation_pipeline_sync
 from src.mcp_client import MCPClient
 from src.agente_prueba import MCPAgent
@@ -69,7 +72,10 @@ if __name__ == '__main__':
     #asyncio.run(prueba())
 
 
-    asyncio.run(get_code_repository_rag_docs_from_query_tool(query="Herramientas de IA para agentes LLM"))
+    #asyncio.run(get_code_repository_rag_docs_from_query_tool(query="Herramientas de IA para agentes LLM"))
+    asyncio.run(get_file_from_repository_tool(file_path="app/tools/modelTool.py"))
+
+    DBConnection.close_current_session()
 
 
 

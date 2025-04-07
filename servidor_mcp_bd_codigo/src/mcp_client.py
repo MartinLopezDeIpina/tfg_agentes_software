@@ -57,13 +57,19 @@ async def main():
     try:
         await client.connect_to_server()
 
-        tool_name="rag_code"
+        """
+        tool_name="get_code_repository_rag_docs_from_query_tool"
         tool_args = {
-            "query": "query placeholder"
+            "query": "LLM tools for pgvector"
+        }
+        """
+        tool_name = "get_file_from_repository_tool"
+        tool_args = {
+            "file_path": "READme.md"
         }
 
         result = await client.call_tool(tool_name, tool_args)
-        print(f"resultado: {result.content}")
+        print(f"resultado: {result}")
 
     finally:
         await client.cleanup()
