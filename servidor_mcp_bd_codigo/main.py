@@ -60,7 +60,7 @@ if __name__ == '__main__':
     #file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")
     #file_chunker.visualize_chunks_with_references("/home/martin/open_source/ia-core-tools")
 
-    #run_documentation_pipeline_sync("/home/martin/open_source/ia-core-tools", files_to_ignore)
+    run_documentation_pipeline_sync("/home/martin/open_source/ia-core-tools", files_to_ignore)
 
     """
     docs_generator = CodeDocGenerator(
@@ -73,7 +73,9 @@ if __name__ == '__main__':
 
 
     #asyncio.run(get_code_repository_rag_docs_from_query_tool(query="Herramientas de IA para agentes LLM"))
+    """
     asyncio.run(get_file_from_repository_tool(file_path="app/tools/modelTool.py"))
+    """
 
     DBConnection.close_current_session()
 

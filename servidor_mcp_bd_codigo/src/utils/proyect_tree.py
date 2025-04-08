@@ -3,6 +3,7 @@ from typing import List
 import os
 from treelib import Tree
 import io
+from config import TREE_STR_IGNORE_DIRS
 
 
 def add_nodes(tree: Tree, directory: str, parent: str, repo_path: str, ignored_dirs: List[str] = None, ignored_files: List[str] = None):
@@ -25,7 +26,6 @@ def add_nodes(tree: Tree, directory: str, parent: str, repo_path: str, ignored_d
     try:
         # Listar directorios y archivos
         items = os.listdir(directory)
-
         # Procesar primero directorios, luego archivos (para mejor visualización)
         dirs = [item for item in items if os.path.isdir(os.path.join(directory, item)) and item not in ignored_dirs]
         files = [item for item in items if
@@ -84,12 +84,12 @@ def generate_repo_tree(repo_path: str, ignored_dirs: List[str] = None, ignored_f
 
     return tree
 
-def generate_repo_tree_str(repo_path: str, ignored_dirs: List[str] = None, ignored_files: List[str] = None):
+def generate_repo_tree_str(repo_path: str):
 
     tree = generate_repo_tree(
         repo_path,
-        ignored_dirs=ignored_dirs,
-        ignored_files=ignored_files
+        ignored_dirs=TREE_STR_IGNORE_DIRS,
+        ignored_files=[]
     )
     f = io.StringIO()
     with contextlib.redirect_stdout(f):
@@ -103,14 +103,11 @@ if __name__ == "__main__":
     target_path = "/home/martin/open_source/ia-core-tools/app/static/vendor"
     print(f"Generando árbol de repositorio para: {target_path}")
 
-    custom_ignored_dirs = ['.git', 'node_modules', '.venv', '__pycache__', 'dist', 'build']
-    custom_ignored_files = ['.DS_Store', '.gitignore', '.pyc', '.pyo']
-
     # Generar y mostrar el árbol
     repo_tree = generate_repo_tree(
         target_path,
-        ignored_dirs=custom_ignored_dirs,
-        ignored_files=custom_ignored_files
+        ignored_dirs=[],
+        ignored_files=[]
     )
 
     repo_tree.show()

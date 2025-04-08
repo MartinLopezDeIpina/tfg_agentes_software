@@ -3,7 +3,6 @@ load_dotenv(dotenv_path="../.env")
 
 from utils.llm_strings_formatter import format_retrieved_chunks_into_string
 
-
 import os.path
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
@@ -83,7 +82,7 @@ async def get_file_from_repository_tool(file_path: str) -> TextContent:
 
 #todo: se podría hacer que este devuelva el tree con detalles de las definiciones -> no es necesario
 @mcp.tool()
-async def get_repository_tree(sub_path: str = None) -> str:
+async def get_repository_tree_tool(sub_path: str = None) -> TextContent:
     """
     Returns a tree of the files and directories in the repository.
     :param sub_path:
@@ -98,8 +97,10 @@ async def get_repository_tree(sub_path: str = None) -> str:
         sub_path = os.path.join(REPO_ROOT_ABSOLUTE_PATH, sub_path)
 
     repo_tree_str = generate_repo_tree_str(sub_path)
-
-    return repo_tree_str
+    return TextContent(
+        text=repo_tree_str,
+        type='text'
+    )
 
 
 if __name__ == "__main__":
