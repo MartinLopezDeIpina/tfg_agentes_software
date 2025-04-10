@@ -1,6 +1,7 @@
 from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from src.code_agent.code_agent_graph import create_code_agent_graph
+from src.confluence_agent.confluence_agent_graph import create_confluence_agent
 from src.mcp_client import MCPClient
 
 def print_stream(stream):
@@ -40,7 +41,6 @@ async def ejecutar_agente_codigo(query: str):
         await mcp_client.connect_to_server()
 
         tools = mcp_client.get_tools()
-        model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
         graph = create_code_agent_graph(tools)
 
@@ -50,8 +50,34 @@ async def ejecutar_agente_codigo(query: str):
             "messages": [],
         })
 
+    finally:
+        await mcp_client.cleanup()
+
+async def execute_confluence_agent(query: str):
+    mcp_client = MCPClient(
+        host_ip="localhost",
+        host_port=9000
+    )
+
+    try:
+        await mcp_client.connect_to_server()
+
+        tools = mcp_client.get_tools()
+        available_tools = []
+        for tool in tools:
+            if tool.name == "confluence_search" or tool.name == "confluence_get_page":
+                available_tools.append(tool)
+
+        graph = create_confluence_agent(available_tools)
+
+        result = await graph.ainvoke({
+            "query": query,
+            "tools": available_tools,
+            "messages": [],
+        })
 
     finally:
         await mcp_client.cleanup()
+
 
 
