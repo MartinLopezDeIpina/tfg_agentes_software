@@ -90,7 +90,7 @@ def execute_gitlab_api_request(url: str) -> Dict[str, Any]:
     gitlab_url = os.getenv('GITLAB_API_URL')
     gitlab_api_project_url = os.getenv('GITLAB_PROJECT_URL')
 
-    request_url = f"{gitlab_url}/{gitlab_api_project_url}/{url}"
+    request_url = f"{gitlab_url}/projects/{gitlab_api_project_url}/{url}"
 
     headers = {
         "PRIVATE-TOKEN": gitlab_token
