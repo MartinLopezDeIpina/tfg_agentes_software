@@ -1,0 +1,183 @@
+import asyncio
+from dotenv import load_dotenv
+import json
+import os
+from typing import Optional, List, Dict
+from contextlib import AsyncExitStack
+
+from langchain_core.tools import BaseTool
+from mcp import ClientSession, StdioServerParameters, stdio_client
+from mcp.client.sse import sse_client
+from mcp.types import Tool
+from langchain_mcp_adapters.tools import load_mcp_tools
+from config import MCP_CODE_SERVER_DIR, MCP_CODE_SERVER_PORT
+
+
+class MCPClient:
+    """Cliente MCP con capacidad para múltiples conexiones STDIO o SSE, gestionadas con un único exit_stack"""
+
+    def __init__(self):
+        self.sessions: Dict[str, ClientSession] = {}
+        self.tools: Dict[str, List[BaseTool]] = {}
+        self.stdio_transports: Dict[str, tuple] = {}
+        self.exit_stack = AsyncExitStack()
+
+    async def connect_to_gitlab_server(self):
+        server_id = "gitlab"
+
+        if server_id in self.sessions:
+            print(f"Ya existe una conexión con ID {server_id}. Usando un ID diferente o cierra la conexión primero.")
+            return
+
+        server_command = "npx"
+        server_args = ["-y", "@modelcontextprotocol/server-gitlab"]
+
+        server_env = {
+            "GITLAB_PERSONAL_ACCESS_TOKEN": os.getenv('GITLAB_PERSONAL_ACCESS_TOKEN'),
+            "GITLAB_API_URL": os.getenv('GITLAB_API_URL'),
+        }
+
+        if not server_env["GITLAB_API_URL"]:
+            raise ValueError("GITLAB_API_URL is not set in the environment variables.")
+        if not server_env["GITLAB_PERSONAL_ACCESS_TOKEN"]:
+            raise ValueError("GITLAB_PERSONAL_ACCESS_TOKEN is not set in the environment variables.")
+
+        server_params = StdioServerParameters(
+            command=server_command,
+            args=server_args,
+            env=server_env
+        )
+
+        print(f"Connecting to GitLab server with ID {server_id}")
+        await self.connect_to_stdio_server(server_id, server_params)
+
+    async def connect_to_stdio_server(self, server_id: str, stdio_params: StdioServerParameters):
+        """Conectar a un servidor MCP usando stdio."""
+
+        if server_id in self.sessions:
+            print(f"Ya existe una conexión con ID {server_id}. Usando un ID diferente o cierra la conexión primero.")
+            return
+
+        # Establecer la conexión usando el exit_stack único
+        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(stdio_params))
+        self.stdio_transports[server_id] = stdio_transport
+        stdio, write = stdio_transport
+
+        # Crear la sesión
+        self.sessions[server_id] = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
+
+        # Inicializar la sesión y cargar herramientas
+        await self.initialize_session(server_id)
+
+    async def connect_to_sse_server(self, host_ip: str, host_port: int):
+        """Conectar a un servidor MCP usando SSE."""
+
+        server_id = f"{host_ip}:{host_port}"
+        if server_id in self.sessions:
+            print(f"Ya existe una conexión con ID {server_id}. Usando un ID diferente o cierra la conexión primero.")
+            return
+
+        print(f"Connecting to SSE server at {host_ip}:{host_port}")
+
+        # Usar el exit_stack único
+        streams = await self.exit_stack.enter_async_context(
+            sse_client(f"http://{host_ip}:{host_port}/sse")
+        )
+
+        self.sessions[server_id] = await self.exit_stack.enter_async_context(
+            ClientSession(streams[0], streams[1])
+        )
+
+        await self.initialize_session(server_id)
+
+    async def initialize_session(self, server_id: str):
+        """Inicializa una sesión y carga sus herramientas."""
+
+        await self.sessions[server_id].initialize()
+
+        # Listar herramientas disponibles
+        response = await self.sessions[server_id].list_tools()
+        tools = response.tools
+
+        # Cargar herramientas de langchain
+        self.tools[server_id] = await load_mcp_tools(self.sessions[server_id])
+
+        print(f"\nConectado al servidor {server_id} con herramientas:", [tool.name for tool in tools])
+
+        for tool in tools:
+            print(f"Tool: {tool.name}, schema: {tool.inputSchema}")
+
+    async def call_tool(self, server_id: str, tool_name: str, tool_args: dict):
+
+        if server_id not in self.sessions:
+            raise ValueError(f"No hay conexión con el servidor ID {server_id}")
+
+        result = await self.sessions[server_id].call_tool(tool_name, tool_args)
+        return result
+
+    def get_tools(self) -> List[BaseTool]:
+        all_tools = []
+        for server_id, tools in self.tools.items():
+            all_tools.extend(tools)
+        return all_tools
+
+    def get_specific_server_tools(self, server_id: str) -> List[BaseTool]:
+        if server_id not in self.tools:
+            raise ValueError(f"No hay herramientas para el servidor ID {server_id}")
+        return self.tools[server_id]
+
+    def get_all_server_ids(self) -> List[str]:
+        return list(self.sessions.keys())
+
+    async def cleanup(self):
+        """Desconecta de todos los servidores cerrando el único exit_stack."""
+
+        try:
+            # Cerrar todos los recursos con una sola operación
+            await self.exit_stack.aclose()
+            print("Todos los servidores desconectados correctamente")
+        except Exception as e:
+            print(f"Error durante la limpieza global: {e}")
+        finally:
+            # Limpiar todas las colecciones
+            self.sessions.clear()
+            self.tools.clear()
+            self.stdio_transports.clear()
+
+
+async def main():
+    load_dotenv()
+    client = MCPClient()
+
+    try:
+        await client.connect_to_sse_server("localhost", 8000)
+        await client.connect_to_gitlab_server()
+
+        server_ids = client.get_all_server_ids()
+        print(f"Servidores conectados: {server_ids}")
+
+        tool_name = "get_file_from_repository_tool"
+        tool_args = {
+            "file_path": "READme.md"
+        }
+
+        result = await client.call_tool("localhost:8000", tool_name, tool_args)
+        print(result)
+
+        tool_name = "get_file_contents"
+        tool_args = {
+            "project_id": "lks/genai/ia-core-tools",
+            "file_path": "README.md",
+            "ref": "develop"
+        }
+        result = await client.call_tool("gitlab", tool_name, tool_args)
+        print(result)
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+    finally:
+        await client.cleanup()
+
+if __name__ == "__main__":
+    asyncio.run(main())
