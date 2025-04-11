@@ -1,5 +1,14 @@
 servidor_mcp_bd_codigo/.venv/*
 servidor_mcp_bd_codigo/.env
+
+servidor_mcp_confluence/.venv/*
+servidor_mcp_confluence/.env
+
+servidor_mcp_gitlab/.venv/*
+servidor_mcp_gitlab/.env
+
 sistema_agentes/.venv/*
 sistema_agentes/.env
+
+
 
