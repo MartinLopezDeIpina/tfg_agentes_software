@@ -4,6 +4,7 @@ import json
 import os
 from typing import Optional, List, Dict
 from contextlib import AsyncExitStack
+from config import REPO_ROOT_ABSOLUTE_PATH
 
 from langchain_core.tools import BaseTool
 from mcp import ClientSession, StdioServerParameters, stdio_client
@@ -50,6 +51,34 @@ class MCPClient:
 
         print(f"Connecting to GitLab server with ID {server_id}")
         await self.connect_to_stdio_server(server_id, server_params)
+
+    async def connect_to_google_drive_server(self):
+        server_id = "google_drive"
+
+        if server_id in self.sessions:
+            print(f"Ya existe una conexión con ID {server_id}. Usando un ID diferente o cierra la conexión primero.")
+            return
+
+        server_path = f"{REPO_ROOT_ABSOLUTE_PATH}/servidor_mcp_google_drive"
+
+        folder_id = os.getenv('GDRIVE_FOLDER_ID')
+        env = {
+            "GOOGLE_APPLICATION_CREDENTIALS": f"{server_path}/credentials/gcp-oauth.keys.json",
+            "MCP_GDRIVE_CREDENTIALS": f"{server_path}/credentials/.gdrive-server-credentials.json",
+            "GDRIVE_FOLDER_ID": folder_id,
+        }
+        server_script_path = f"{server_path}/index_mod.js"
+        server_command = "node"
+        server_args = [server_script_path]
+
+        server_params = StdioServerParameters(
+            command=server_command,
+            args=server_args,
+            env=env
+        )
+        print(f"Connecting to Google Drive server with ID {server_id}")
+        await self.connect_to_stdio_server(server_id, server_params)
+
 
     async def connect_to_stdio_server(self, server_id: str, stdio_params: StdioServerParameters):
         """Conectar a un servidor MCP usando stdio."""
@@ -150,6 +179,7 @@ async def main():
     client = MCPClient()
 
     try:
+        """"
         await client.connect_to_sse_server("localhost", 8000)
         await client.connect_to_gitlab_server()
 
@@ -171,6 +201,22 @@ async def main():
             "ref": "develop"
         }
         result = await client.call_tool("gitlab", tool_name, tool_args)
+        print(result)
+        """
+        await client.connect_to_google_drive_server()
+        tools = client.get_tools()
+        print(f"Tools disponibles: {[tool.name for tool in tools]}")
+
+
+        tool_name="gdrive_list_files"
+        tool_args = {}
+
+        tool_name = "gdrive_search"
+        tool_args = {
+            "query": "html file",
+        }
+
+        result = await client.call_tool("google_drive", tool_name, tool_args)
         print(result)
 
     except Exception as e:
