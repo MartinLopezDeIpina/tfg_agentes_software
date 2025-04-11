@@ -1,14 +1,17 @@
 import asyncio
+from dotenv import load_dotenv
 import json
+import os
 from typing import Optional, List
 from contextlib import AsyncExitStack
 
 from langchain_core.tools import BaseTool
-from mcp import ClientSession
+from mcp import ClientSession, StdioServerParameters, stdio_client
 from mcp.client.sse import sse_client
 from mcp.types import Tool
 from langchain_mcp_adapters.tools import load_mcp_tools
 from config import MCP_CODE_SERVER_DIR, MCP_CODE_SERVER_PORT
+from src.gitlab_agent.additional_tools import get_gitlab_issues
 
 
 class MCPClient:
@@ -25,7 +28,39 @@ class MCPClient:
         # Initialize session and client objects
         self.exit_stack = AsyncExitStack()
 
-    async def connect_to_server(self):
+    async def connect_to_gitlab_server(self):
+        server_command = "npx"
+        server_args = ["-y", "@modelcontextprotocol/server-gitlab"]
+
+        server_env = {
+            "GITLAB_PERSONAL_ACCESS_TOKEN": os.getenv('GITLAB_PERSONAL_ACCESS_TOKEN'),
+            "GITLAB_API_URL": os.getenv('GITLAB_API_URL'),
+        }
+
+        if not server_env["GITLAB_API_URL"]:
+            raise ValueError("GITLAB_API_URL is not set in the environment variables.")
+        if not server_env["GITLAB_PERSONAL_ACCESS_TOKEN"]:
+            raise ValueError("GITLAB_PERSONAL_ACCESS_TOKEN is not set in the environment variables.")
+
+        server_params = StdioServerParameters(
+            command=server_command,
+            args=server_args,
+            env=server_env
+        )
+
+        print(f"Connecting to server with command: {server_command} {' '.join(server_args)}")
+        await self.connect_to_stdio_server(server_params)
+
+
+    async def connect_to_stdio_server(self, stdio_params: StdioServerParameters):
+
+        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(stdio_params))
+        self.stdio, self.write = stdio_transport
+        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
+
+        await self.connect_to_server()
+
+    async def connect_to_sse_server(self):
 
       print("Connecting to server...")
 
@@ -35,21 +70,21 @@ class MCPClient:
       self.session = await self.exit_stack.enter_async_context(
           ClientSession(streams[0], streams[1])
       )
-       
-      await self.session.initialize()
-      print("Session initialized")
+      await self.connect_to_server()
 
-      response = await self.session.list_tools()
-      print(f"respuesta: {response}")
-      tools = response.tools
-      print(type(tools[0]))
-      self.tools = await load_mcp_tools(self.session)
-      print("\nConnected to server with tools:", [tool.name for tool in tools])
 
-    """
-      for tool in tools:
-          print(f"Tool: {tool.name}, schema: {tool.inputSchema}")
-    """
+    async def connect_to_server(self):
+        await self.session.initialize()
+
+        # Listar herramientas disponibles
+        response = await self.session.list_tools()
+        tools = response.tools
+        self.tools = await load_mcp_tools(self.session)
+        print("\nConectado al servidor con herramientas:", [tool.name for tool in tools])
+
+        for tool in tools:
+           print(f"Tool: {tool.name}, schema: {tool.inputSchema}")
+
 
 
 
@@ -67,10 +102,10 @@ class MCPClient:
 
 async def main():
 
-    client = MCPClient(host_ip="localhost", host_port=9000)
+    client = MCPClient(host_ip="localhost", host_port=9001)
 
     try:
-        await client.connect_to_server()
+        await client.connect_to_gitlab_server()
 
         """
         tool_name="get_code_repository_rag_docs_from_query_tool"
@@ -84,7 +119,6 @@ async def main():
 
         result = await client.call_tool(tool_name, tool_args)
         print(f"resultado: {result}")
-        """
 
         tool_name = "confluence_search"
         tool_args = {
@@ -99,9 +133,20 @@ async def main():
         for page in pages:
             print(page["title"])
             print(page["content"])
+            """
+
+
+        tool_args = {
+          "project_id": "lks/genai/ia-core-tools",
+          "file_path": "README.md",
+          "ref": "develop"
+        }
+        result = await client.call_tool("get_file_contents", tool_args)
+        print(result)
 
     finally:
         await client.cleanup()
 
 if __name__ == "__main__":
+    load_dotenv()
     asyncio.run(main())
