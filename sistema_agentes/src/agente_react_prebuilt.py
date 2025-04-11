@@ -94,12 +94,6 @@ async def execute_gitlab_agent(query: str):
         for tool in tools:
             if tool.name == "get_file_contents" or tool.name == "create_issue":
                 available_tools.append(tool)
-            if tool.name == "search_repositories":
-                result = await tool.ainvoke({
-                    "search": "machine learning",
-                    "page": 1,
-                    "per_page": 10
-                })
 
         available_tools.append(get_gitlab_issues)
         available_tools.append(get_gitlab_project_statistics)
