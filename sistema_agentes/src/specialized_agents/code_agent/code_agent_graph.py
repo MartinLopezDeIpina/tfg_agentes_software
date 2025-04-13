@@ -1,16 +1,11 @@
 import asyncio
-import json
-import os
 from typing import TypedDict, List
-
-from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain_core.tools import BaseTool
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
-
-from src.filesystem_agent.prompts import filesystem_agent_system_prompt
-from src.utils import tab_all_lines_x_times
+from langgraph.prebuilt import create_react_agent
+from src.specialized_agents.code_agent.prompts import system_prompt
 
 
 class State(TypedDict):
@@ -19,29 +14,29 @@ class State(TypedDict):
 
     tools: List[BaseTool]
 
-    result_message: List[BaseMessage]
-
 
 
 async def retrieve_info_for_system_message(state: State):
-    dir_tool = None
+    rag_tool = None
+    tree_tool = None
     for tool in state["tools"]:
-        if tool.name == "directory_tree":
-            dir_tool = tool
+        if tool.name == "get_code_repository_rag_docs_from_query_tool":
+            rag_tool = tool
+        elif tool.name == "get_repository_tree_tool":
+            tree_tool = tool
 
-    directory_path = os.getenv("FILESYSTEM_DOCS_FOLDER")
-    dir_task = dir_tool.ainvoke({
-        "path": directory_path
+    tree_task = tree_tool.ainvoke({})
+    rag_task = rag_tool.ainvoke({
+        "query": state["query"]
     })
 
-    dir_result = await asyncio.gather(dir_task)
-    dir_str = dir_result[0]
-
+    proyect_tree, initial_retrieved_docs = await asyncio.gather(tree_task, rag_task)
+    
     state["messages"].append(
         SystemMessage(
-            filesystem_agent_system_prompt.format(
-                available_directory=directory_path,
-                available_files=dir_str
+            system_prompt.format(
+                proyect_tree=proyect_tree,
+                initial_retrieved_docs=initial_retrieved_docs
             )
         )
     )
@@ -54,7 +49,7 @@ async def retrieve_info_for_system_message(state: State):
     return state
 
 
-def create_file_system_agent(tools: List[BaseTool]) -> CompiledGraph:
+def create_code_agent_graph(tools: List[BaseTool]) -> CompiledGraph:
 
     graph_builder = StateGraph(State)
 

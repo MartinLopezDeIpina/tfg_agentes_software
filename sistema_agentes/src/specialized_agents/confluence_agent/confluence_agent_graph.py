@@ -1,11 +1,15 @@
 import asyncio
+import json
 from typing import TypedDict, List
+
+from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain_core.tools import BaseTool
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
-from langgraph.prebuilt import create_react_agent
-from src.code_agent.prompts import system_prompt
+
+from src.specialized_agents.confluence_agent.prompts import system_prompt
+from src.utils import tab_all_lines_x_times
 
 
 class State(TypedDict):
@@ -14,29 +18,39 @@ class State(TypedDict):
 
     tools: List[BaseTool]
 
+    result_message: List[BaseMessage]
+
 
 
 async def retrieve_info_for_system_message(state: State):
-    rag_tool = None
-    tree_tool = None
+    pages_tool = None
     for tool in state["tools"]:
-        if tool.name == "get_code_repository_rag_docs_from_query_tool":
-            rag_tool = tool
-        elif tool.name == "get_repository_tree_tool":
-            tree_tool = tool
+        if tool.name == "confluence_search":
+            pages_tool = tool
 
-    tree_task = tree_tool.ainvoke({})
-    rag_task = rag_tool.ainvoke({
-        "query": state["query"]
+    pages_task = pages_tool.ainvoke({
+        "query":"type=page",
+        "limit": 500
     })
 
-    proyect_tree, initial_retrieved_docs = await asyncio.gather(tree_task, rag_task)
-    
+    pages_result = await asyncio.gather(pages_task)
+    pages = json.loads(pages_result[0])
+    pages_titles = []
+    for i, page in enumerate(pages):
+        # Si no tiene titulo añadir toda la página
+        try:
+            title = page["title"]
+            id = page["id"]
+            pages_titles.append(f"{i}. id: {id}, title: {title}")
+        except Exception:
+            pages_titles.append(page)
+
+    confluence_pages_preview = "\n".join(pages_titles)
+    confluence_pages_preview = tab_all_lines_x_times(confluence_pages_preview)
     state["messages"].append(
         SystemMessage(
             system_prompt.format(
-                proyect_tree=proyect_tree,
-                initial_retrieved_docs=initial_retrieved_docs
+                confluence_pages_preview=confluence_pages_preview
             )
         )
     )
@@ -49,7 +63,7 @@ async def retrieve_info_for_system_message(state: State):
     return state
 
 
-def create_code_agent_graph(tools: List[BaseTool]) -> CompiledGraph:
+def create_confluence_agent(tools: List[BaseTool]) -> CompiledGraph:
 
     graph_builder = StateGraph(State)
 

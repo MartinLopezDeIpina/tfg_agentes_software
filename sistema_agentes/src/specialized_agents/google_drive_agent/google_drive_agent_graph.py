@@ -1,16 +1,13 @@
 import asyncio
-import json
 from typing import TypedDict, List
 
-from IPython.core.release import author
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain_core.tools import BaseTool
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 
-from src.gitlab_agent.prompts import gitlab_agent_system_prompt
-from src.utils import tab_all_lines_x_times
+from src.specialized_agents.google_drive_agent.prompts import google_drive_system_prompt
 
 
 class State(TypedDict):
@@ -22,19 +19,20 @@ class State(TypedDict):
     result_message: List[BaseMessage]
 
 async def retrieve_info_for_system_message(state: State):
-    stats_tool = None
+    files_tool = None
     for tool in state["tools"]:
-        if tool.name == "get_gitlab_project_statistics":
-            stats_tool = tool
+        if tool.name == "gdrive_list_files":
+            files_tool = tool
 
-    stats_task = stats_tool.ainvoke({})
+    files_task = files_tool.ainvoke({})
 
-    stats_result = await asyncio.gather(stats_task)
+    files_result = await asyncio.gather(files_task)
+    files_str = files_result[0]
 
     state["messages"].append(
         SystemMessage(
-            gitlab_agent_system_prompt.format(
-                gitlab_project_statistics=stats_result
+            google_drive_system_prompt.format(
+                google_drive_files_info=files_str
             )
         )
     )
@@ -47,9 +45,7 @@ async def retrieve_info_for_system_message(state: State):
     return state
 
 
-
-
-def create_gitlab_agent(tools: List[BaseTool]) -> CompiledGraph:
+def create_google_drive_agent(tools: List[BaseTool]) -> CompiledGraph:
 
     graph_builder = StateGraph(State)
 

@@ -17,9 +17,14 @@ from config import MCP_CODE_SERVER_DIR, MCP_CODE_SERVER_PORT
 class MCPClient:
     """Cliente MCP con capacidad para múltiples conexiones STDIO o SSE, gestionadas con un único exit_stack"""
 
-    def __init__(self):
+    def __init__(self, agent_tools: List[str]):
+        """
+        Solo se cargarán las tools indicadas en agent_tools para pasarle al agente unicamente las tools necesarias.
+        Si no se indica ninguna se cargarán todas.
+        """
         self.sessions: Dict[str, ClientSession] = {}
         self.tools: Dict[str, List[BaseTool]] = {}
+        self.agent_tools = agent_tools
         self.stdio_transports: Dict[str, tuple] = {}
         self.exit_stack = AsyncExitStack()
 
@@ -144,15 +149,18 @@ class MCPClient:
 
         # Listar herramientas disponibles
         response = await self.sessions[server_id].list_tools()
-        tools = response.tools
 
         # Cargar herramientas de langchain
-        self.tools[server_id] = await load_mcp_tools(self.sessions[server_id])
+        tools = await load_mcp_tools(self.sessions[server_id])
+        if len(self.agent_tools) == 0:
+            self.tools[server_id] = tools
+        else:
+            self.tools[server_id] = [tool for tool in tools if tool.name in self.agent_tools]
 
         print(f"\nConectado al servidor {server_id} con herramientas:", [tool.name for tool in tools])
 
         for tool in tools:
-            print(f"Tool: {tool.name}, schema: {tool.inputSchema}")
+            print(f"Tool: {tool.name}, schema: {tool.input_schema}")
 
     async def call_tool(self, server_id: str, tool_name: str, tool_args: dict):
 
