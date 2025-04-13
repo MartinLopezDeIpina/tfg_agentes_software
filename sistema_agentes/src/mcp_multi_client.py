@@ -79,6 +79,24 @@ class MCPClient:
         print(f"Connecting to Google Drive server with ID {server_id}")
         await self.connect_to_stdio_server(server_id, server_params)
 
+    async def connect_to_filesystem_server(self):
+        server_id = "filesystem"
+        
+        docs_path = os.getenv("FILESYSTEM_DOCS_FOLDER")
+        if not docs_path:
+            raise ValueError("FILESYSTEM_DOCS_FOLDER is not set in the environment variables.")
+
+        server_command = "npx"
+        server_args = ["-y", "@modelcontextprotocol/server-filesystem", docs_path]
+
+        server_params = StdioServerParameters(
+            command=server_command,
+            args=server_args,
+            env={}
+        )
+
+        print(f"Connecting to filesystem server with ID {server_id}")
+        await self.connect_to_stdio_server(server_id, server_params)
 
     async def connect_to_stdio_server(self, server_id: str, stdio_params: StdioServerParameters):
         """Conectar a un servidor MCP usando stdio."""
@@ -202,6 +220,9 @@ async def main():
         }
         result = await client.call_tool("gitlab", tool_name, tool_args)
         print(result)
+        
+        """
+        # Google drive:
         """
         await client.connect_to_google_drive_server()
         tools = client.get_tools()
@@ -217,6 +238,17 @@ async def main():
         }
 
         result = await client.call_tool("google_drive", tool_name, tool_args)
+        print(result)
+        """
+        await client.connect_to_filesystem_server()
+        tools = client.get_tools()
+        print(f"Tools disponibles: {[tool.name for tool in tools]}")
+
+        tool_name = "directory_tree"
+        tool_args = {
+            "path": os.getenv("FILESYSTEM_DOCS_FOLDER")
+        }
+        result = await client.call_tool("filesystem", tool_name, tool_args)
         print(result)
 
     except Exception as e:

@@ -2,6 +2,7 @@ from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 from src.code_agent.code_agent_graph import create_code_agent_graph
 from src.confluence_agent.confluence_agent_graph import create_confluence_agent
+from src.filesystem_agent.filesystem_agent_graph import create_file_system_agent
 from src.google_drive_agent.google_drive_agent_graph import create_google_drive_agent
 from src.gitlab_agent.additional_tools import get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_braches, \
     get_gitlab_project_members, get_gitlab_project_commits
@@ -110,6 +111,29 @@ async def execute_google_drive_agent(query: str):
 
 
         graph = create_google_drive_agent(tools)
+
+        result = await graph.ainvoke({
+            "query": query,
+            "tools": tools,
+            "messages": [],
+        })
+
+    finally:
+        await mcp_client.cleanup()
+
+async def execute_filesystem_agent(query: str):
+    mcp_client = MCPClient()
+
+    try:
+        await mcp_client.connect_to_filesystem_server()
+
+        tools = mcp_client.get_tools()
+        available_tools = []
+        for tool in tools:
+            if tool.name == "read_file" or tool.name == "read_multiple_files" or tool.name == "search_files" or tool.name == "directory_tree":
+                available_tools.append(tool)
+
+        graph = create_file_system_agent(available_tools)
 
         result = await graph.ainvoke({
             "query": query,
