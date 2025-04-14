@@ -6,6 +6,9 @@ import mcp
 import requests
 from langchain_core.tools import BaseTool, tool
 
+from src.mcp_client.tool_wrapper import patch_tool_with_exception_handling
+
+
 @tool
 def get_gitlab_issues(issue_ids: List[int] = None):
     """
@@ -104,3 +107,14 @@ def execute_gitlab_api_request(url: str) -> Dict[str, Any]:
         print(f"Error en la petición: {response.status_code}")
         print(response.text)
         return {"error": response.text, "status_code": response.status_code}
+
+def get_gitlab_agent_additional_tools():
+    tools = [
+        get_gitlab_issues,
+        get_gitlab_project_statistics,
+        get_gitlab_braches,
+        get_gitlab_project_commits,
+        get_gitlab_project_members
+    ]
+    wrapped_tools = [patch_tool_with_exception_handling(tool) for tool in tools]
+    return wrapped_tools
