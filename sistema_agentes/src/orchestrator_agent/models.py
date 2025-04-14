@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class AgentName(str, Enum):
     FILE_SYSTEM = "file_system_agent"
     GOOGLE_DRIVE = "google_drive_agent"
+    GITLAB = "gitlab_agent"
 
 class AgentStep(BaseModel):
     agent_name: AgentName = Field(

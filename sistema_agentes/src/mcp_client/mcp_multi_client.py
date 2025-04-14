@@ -253,3 +253,27 @@ class MCPClient:
                 print("Todos los servidores desconectados correctamente")
         except Exception as e:
             print(f"Error durante la limpieza global: {e}")
+
+async def main():
+    mcp_client = MCPClient()
+    await MCPClient.cleanup()
+
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
