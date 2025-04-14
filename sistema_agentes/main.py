@@ -6,6 +6,7 @@ from langchain_openai import ChatOpenAI
 
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
+from src.planner_agent.planner_agent_graph import create_planner_graph
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
@@ -16,9 +17,9 @@ from src.specialized_agents.google_drive_agent.google_drive_agent_graph import G
 async def main():
 
     agents = [
-        #GoogleDriveAgent(),
+        GoogleDriveAgent(),
         FileSystemAgent(),
-        GitlabAgent(),
+        #GitlabAgent(),
         ConfluenceAgent(),
         CodeAgent()
     ]
@@ -32,6 +33,7 @@ async def main():
         except Exception as e:
             print(f"Error conectando agente {agent.name}: {e}")
 
+    """
     orchestrator_graph = create_orchestrator_graph()
     result = await orchestrator_graph.ainvoke({
         "available_agents": available_agents,
@@ -39,18 +41,23 @@ async def main():
         "model": ChatOpenAI(model="gpt-4o-mini")
     })
     print(result)
-
-    await MCPClient.cleanup()
-
     """
-    reasoner = ChatOpenAI(model="o1-mini")
-    query = "Creame un plan breve para estudiar para un examen de matemáticas"
 
-    result = await reasoner.ainvoke(
-        input=query
-    )
-    print("debug")
-    """
+    try:
+        planner_graph = create_planner_graph()
+        result = await planner_graph.ainvoke({
+            "available_agents": available_agents,
+            "query": "Qué módulos tiene el proyecto?",
+            "planner_model": ChatOpenAI(model="o1-mini"),
+            "structure_model": ChatOpenAI(model="gpt-4o-mini"),
+            "max_steps": 2,
+            "current_step": 0
+        })
+        print(result)
+
+    finally:
+        await MCPClient.cleanup()
+
 
 if __name__ == '__main__':
     load_dotenv()
