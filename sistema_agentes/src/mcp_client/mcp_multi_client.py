@@ -20,29 +20,29 @@ from mcp.client.sse import sse_client
 from mcp.types import Tool
 from langchain_mcp_adapters.tools import load_mcp_tools
 from config import MCP_CODE_SERVER_DIR, MCP_CODE_SERVER_PORT
+from src.mcp_client.tool_wrapper import patch_tool_with_exception_handling
 
-def patch_tool_with_exception_handling(tool: BaseTool) -> BaseTool:
-    original_ainvoke = tool.ainvoke
 
-    async def wrapped_ainvoke(*args, **kwargs):
-        try:
-            return await original_ainvoke(*args, **kwargs)
-        except Exception as e:
-            error =  f"Exception ocurred executing tool {tool.name}: {str(e)}"
+class SharedExitStack(AsyncExitStack):
+    """AsyncExitStack compartido como singleton"""
+    _instance = None
 
-            # Obtener id de la llamada
-            tool_call_id = args[0].get("id")
-            if not tool_call_id:
-                tool_call_id = ""
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(SharedExitStack, cls).__new__(cls)
+            AsyncExitStack.__init__(cls._instance)
+        return cls._instance
 
-            return ToolMessage(
-                content=error,
-                tool_call_id=tool_call_id,
-            )
-
-    object.__setattr__(tool, 'ainvoke', wrapped_ainvoke)
-    return tool
-
+    @classmethod
+    async def cleanup_all(cls):
+        """Cierra todos los recursos del exit_stack compartido"""
+        if cls._instance:
+            try:
+                await cls._instance.aclose()
+            except Exception as e:
+                print(f"Error durante la limpieza global: {e}")
+            finally:
+                cls._instance = None
 
 class MCPClient:
     """Cliente MCP con capacidad para múltiples conexiones STDIO o SSE, gestionadas con un único exit_stack"""
@@ -59,7 +59,7 @@ class MCPClient:
         self.tools: Dict[str, List[BaseTool]] = {}
         self.agent_tools = agent_tools
         self.stdio_transports: Dict[str, tuple] = {}
-        self.exit_stack = AsyncExitStack()
+        self.exit_stack = SharedExitStack()
 
     async def connect_to_gitlab_server(self):
         server_id = "gitlab"
@@ -216,86 +216,29 @@ class MCPClient:
     def get_all_server_ids(self) -> List[str]:
         return list(self.sessions.keys())
 
-    async def cleanup(self):
+    @staticmethod
+    async def cleanup():
         """Desconecta de todos los servidores cerrando el único exit_stack."""
-
         try:
             # Cerrar todos los recursos con una sola operación
-            await self.exit_stack.aclose()
+            await SharedExitStack.cleanup_all()
             print("Todos los servidores desconectados correctamente")
         except Exception as e:
             print(f"Error durante la limpieza global: {e}")
-        finally:
-            # Limpiar todas las colecciones
-            self.sessions.clear()
-            self.tools.clear()
-            self.stdio_transports.clear()
-
 
 async def main():
     load_dotenv()
     client = MCPClient()
+    client2 = MCPClient()
 
     try:
-        """"
-        await client.connect_to_sse_server("localhost", 8000)
-        await client.connect_to_gitlab_server()
-
-        server_ids = client.get_all_server_ids()
-        print(f"Servidores conectados: {server_ids}")
-
-        tool_name = "get_file_from_repository_tool"
-        tool_args = {
-            "file_path": "READme.md"
-        }
-
-        result = await client.call_tool("localhost:8000", tool_name, tool_args)
-        print(result)
-
-        tool_name = "get_file_contents"
-        tool_args = {
-            "project_id": "lks/genai/ia-core-tools",
-            "file_path": "README.md",
-            "ref": "develop"
-        }
-        result = await client.call_tool("gitlab", tool_name, tool_args)
-        print(result)
-        
-        """
-        # Google drive:
-        """
-        await client.connect_to_google_drive_server()
-        tools = client.get_tools()
-        print(f"Tools disponibles: {[tool.name for tool in tools]}")
-
-
-        tool_name="gdrive_list_files"
-        tool_args = {}
-
-        tool_name = "gdrive_search"
-        tool_args = {
-            "query": "html file",
-        }
-
-        result = await client.call_tool("google_drive", tool_name, tool_args)
-        print(result)
-        """
         await client.connect_to_filesystem_server()
-        tools = client.get_tools()
-        print(f"Tools disponibles: {[tool.name for tool in tools]}")
-
-        tool_name = "directory_tree"
-        tool_args = {
-            "path": os.getenv("FILESYSTEM_DOCS_FOLDER")
-        }
-        result = await client.call_tool("filesystem", tool_name, tool_args)
-        print(result)
-
+        await client2.connect_to_google_drive_server()
     except Exception as e:
         print(f"Error: {e}")
 
     finally:
-        await client.cleanup()
+        await MCPClient.cleanup()
 
 if __name__ == "__main__":
     asyncio.run(main())

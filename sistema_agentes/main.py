@@ -2,28 +2,35 @@ import asyncio
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
+from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
 
 
 async def main():
+    agents = [
+        GoogleDriveAgent(),
+        FileSystemAgent()
+    ]
+    available_agents = []
+    for agent in agents:
+        # todo: esto hacerlo asincrono
+        try:
+            await agent.connect_to_mcp()
+            available_agents.append(agent)
+        except Exception as e:
+            print(f"Error conectando agente {agent.name}: {e}")
 
-    fs_agent = FileSystemAgent()
-    await fs_agent.connect_to_mcp()
-    gd_agent = GoogleDriveAgent()
-    await gd_agent.connect_to_mcp()
-    
     orchestrator_graph = create_orchestrator_graph()
     result = await orchestrator_graph.ainvoke({
-        "available_agents": [fs_agent, gd_agent],
-        "planner_high_level_plan":"Busca información sobre la gestión del proyecto",
+        "available_agents": available_agents,
+        "planner_high_level_plan":"Busca toda la información posible sobre el proyecto",
         "model": ChatOpenAI(model="gpt-4o-mini")
     })
     print(result)
 
-    await fs_agent.cleanup()
-    await gd_agent.cleanup()
+    await MCPClient.cleanup()
 
     """
     reasoner = ChatOpenAI(model="o1-mini")
@@ -45,6 +52,5 @@ if __name__ == '__main__':
     #asyncio.run(execute_gitlab_agent("Qué ramas existen en el proyecto?"))
     #asyncio.run(execute_google_drive_agent("Existe alguna maqueta para la gestión del administrador?"))
     #asyncio.run(execute_filesystem_agent("Existe alguna maqueta para la gestión del administrador?"))
-
     asyncio.run(main())
 

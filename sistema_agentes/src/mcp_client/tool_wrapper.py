@@ -1,23 +1,25 @@
-from typing import Any, Optional, Union, Dict
-from langchain_core.tools.base import BaseTool
-from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import ToolMessage
+from langchain_core.tools import BaseTool
 
-class ToolWrapper:
-    """Wrapper class for existing BaseTool instances that adds try/catch to ainvoke."""
 
-    def __init__(self, tool: BaseTool):
-        self.tool = tool
+def patch_tool_with_exception_handling(tool: BaseTool) -> BaseTool:
+    original_ainvoke = tool.ainvoke
 
-    async def ainvoke(self, input: Any, config: Optional[RunnableConfig] = None, **kwargs: Any) -> Any:
+    async def wrapped_ainvoke(*args, **kwargs):
         try:
-            return await self.tool.ainvoke(input, config, **kwargs)
+            return await original_ainvoke(*args, **kwargs)
         except Exception as e:
-            print(f"Error in tool execution: {str(e)}")
-            return {"error": str(e), "status": "failed"}
+            error =  f"Exception ocurred executing tool {tool.name}: {str(e)}"
 
-    def __getattr__(self, name):
-        """Forward all other attribute accesses to the wrapped tool."""
-        return getattr(self.tool, name)
+            # Obtener id de la llamada
+            tool_call_id = args[0].get("id")
+            if not tool_call_id:
+                tool_call_id = ""
 
-# Uso:
-# wrapped_tool = ToolWrapper(my_existing_tool)
+            return ToolMessage(
+                content=error,
+                tool_call_id=tool_call_id,
+            )
+
+    object.__setattr__(tool, 'ainvoke', wrapped_ainvoke)
+    return tool
