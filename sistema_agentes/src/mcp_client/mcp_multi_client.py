@@ -1,9 +1,17 @@
 import asyncio
+import copy
+import types
+import uuid
+from functools import wraps
+
 from dotenv import load_dotenv
 import json
 import os
 from typing import Optional, List, Dict
 from contextlib import AsyncExitStack
+
+from langchain_core.messages import ToolMessage
+
 from config import REPO_ROOT_ABSOLUTE_PATH
 
 from langchain_core.tools import BaseTool
@@ -13,15 +21,40 @@ from mcp.types import Tool
 from langchain_mcp_adapters.tools import load_mcp_tools
 from config import MCP_CODE_SERVER_DIR, MCP_CODE_SERVER_PORT
 
+def patch_tool_with_exception_handling(tool: BaseTool) -> BaseTool:
+    original_ainvoke = tool.ainvoke
+
+    async def wrapped_ainvoke(*args, **kwargs):
+        try:
+            return await original_ainvoke(*args, **kwargs)
+        except Exception as e:
+            error =  f"Exception ocurred executing tool {tool.name}: {str(e)}"
+
+            # Obtener id de la llamada
+            tool_call_id = args[0].get("id")
+            if not tool_call_id:
+                tool_call_id = ""
+
+            return ToolMessage(
+                content=error,
+                tool_call_id=tool_call_id,
+            )
+
+    object.__setattr__(tool, 'ainvoke', wrapped_ainvoke)
+    return tool
+
 
 class MCPClient:
     """Cliente MCP con capacidad para múltiples conexiones STDIO o SSE, gestionadas con un único exit_stack"""
 
-    def __init__(self, agent_tools: List[str]):
+    def __init__(self, agent_tools: List[str] = None):
         """
         Solo se cargarán las tools indicadas en agent_tools para pasarle al agente unicamente las tools necesarias.
         Si no se indica ninguna se cargarán todas.
         """
+        if not agent_tools:
+            agent_tools = []
+
         self.sessions: Dict[str, ClientSession] = {}
         self.tools: Dict[str, List[BaseTool]] = {}
         self.agent_tools = agent_tools
@@ -147,16 +180,15 @@ class MCPClient:
 
         await self.sessions[server_id].initialize()
 
-        # Listar herramientas disponibles
-        response = await self.sessions[server_id].list_tools()
-
         # Cargar herramientas de langchain
         tools = await load_mcp_tools(self.sessions[server_id])
+        wrapped_tools = [patch_tool_with_exception_handling(tool) for tool in tools]
         if len(self.agent_tools) == 0:
-            self.tools[server_id] = tools
+            self.tools[server_id] = wrapped_tools
         else:
-            self.tools[server_id] = [tool for tool in tools if tool.name in self.agent_tools]
+            self.tools[server_id] = [tool for tool in wrapped_tools if tool.name in self.agent_tools]
 
+        # Listar herramientas disponibles para debug
         print(f"\nConectado al servidor {server_id} con herramientas:", [tool.name for tool in tools])
 
         for tool in tools:

@@ -9,7 +9,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langgraph.prebuilt import create_react_agent
 
-from src.mcp_multi_client import MCPClient
+from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
 
 

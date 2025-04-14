@@ -4,22 +4,26 @@ from langchain_openai import ChatOpenAI
 
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
+from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
 
 
 async def main():
 
     fs_agent = FileSystemAgent()
     await fs_agent.connect_to_mcp()
+    gd_agent = GoogleDriveAgent()
+    await gd_agent.connect_to_mcp()
     
     orchestrator_graph = create_orchestrator_graph()
     result = await orchestrator_graph.ainvoke({
-        "available_agents": [fs_agent],
-        "planner_high_level_plan":"Busca información sobre documentación del proyecto",
+        "available_agents": [fs_agent, gd_agent],
+        "planner_high_level_plan":"Busca información sobre la gestión del proyecto",
         "model": ChatOpenAI(model="gpt-4o-mini")
     })
     print(result)
 
     await fs_agent.cleanup()
+    await gd_agent.cleanup()
 
     """
     reasoner = ChatOpenAI(model="o1-mini")

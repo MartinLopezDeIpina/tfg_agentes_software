@@ -43,7 +43,7 @@ async def execute_orchestrator_agent(state: OrchestratorAgentState) -> Orchestra
         return state
 
 async def execute_agents(state: OrchestratorAgentState) -> OrchestratorAgentState:
-    orchestrator_plan = state["orchestrator_low_level_plan"]
+    orchestrator_plan = state.get("orchestrator_low_level_plan")
     if orchestrator_plan is None:
         return state
 

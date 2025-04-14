@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class AgentName(str, Enum):
     FILE_SYSTEM = "file_system_agent"
+    GOOGLE_DRIVE = "google_drive_agent"
 
 class AgentStep(BaseModel):
     agent_name: AgentName = Field(
@@ -18,5 +19,5 @@ class AgentStep(BaseModel):
 
 class OrchestratorPlan(BaseModel):
     steps_to_complete: List[AgentStep] = Field(
-        description="List of steps that should be completed in parallel."
+        description="List of steps that should be completed in parallel. Each step will be an agent call."
     )

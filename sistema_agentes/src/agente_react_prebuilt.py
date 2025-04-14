@@ -4,7 +4,7 @@ from src.specialized_agents.google_drive_agent.google_drive_agent_graph import c
 from src.specialized_agents.gitlab_agent.additional_tools import get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_braches, \
     get_gitlab_project_members, get_gitlab_project_commits
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import create_gitlab_agent
-from src.mcp_multi_client import MCPClient
+from src.mcp_client.mcp_multi_client import MCPClient
 
 def print_stream(stream):
     for s in stream:

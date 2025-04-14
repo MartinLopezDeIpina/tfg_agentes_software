@@ -1,64 +1,55 @@
-import asyncio
-from typing import TypedDict, List
-
-from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
-from langchain_core.tools import BaseTool
-from langgraph.graph import StateGraph
-from langgraph.graph.graph import CompiledGraph
-
+from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.google_drive_agent.prompts import google_drive_system_prompt
+import asyncio
+from typing import List
 
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
+from src.specialized_agents.BaseAgent import BaseAgent
 
-class State(TypedDict):
-    messages: list[BaseMessage]
-    query: str
+from static.agent_descriptions import GOOGLE_DRIVE_AGENT_DESCRIPTION
 
-    tools: List[BaseTool]
+class GoogleDriveAgent(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            name="google_drive_agent",
+            description=GOOGLE_DRIVE_AGENT_DESCRIPTION,
+            model=ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0,
+            ),
+            tools_str= [
+                "gdrive_list_files",
+                "gdrive_read_file"
+            ]
+        )
 
-    result_message: List[BaseMessage]
+    async def connect_to_mcp(self):
+        self.mcp_client = MCPClient(agent_tools=self.tools_str)
+        await self.mcp_client.connect_to_google_drive_server()
+        self.tools = self.mcp_client.get_tools()
 
-async def retrieve_info_for_system_message(state: State):
-    files_tool = None
-    for tool in state["tools"]:
-        if tool.name == "gdrive_list_files":
-            files_tool = tool
+    async def prepare_prompt(self, query: str) -> List[BaseMessage]:
+        files_tool = None
+        for tool in self.tools:
+            if tool.name == "gdrive_list_files":
+                files_tool = tool
 
-    files_task = files_tool.ainvoke({})
+        files_task = files_tool.ainvoke({})
 
-    files_result = await asyncio.gather(files_task)
-    files_str = files_result[0]
+        files_result = await asyncio.gather(files_task)
+        files_str = files_result[0]
 
-    state["messages"].append(
-        SystemMessage(
-            google_drive_system_prompt.format(
-                google_drive_files_info=files_str
+        messages = [
+            SystemMessage(
+                google_drive_system_prompt.format(
+                    google_drive_files_info=files_str
+                )
+            ),
+            HumanMessage(
+                content=query
             )
-        )
-    )
-    state["messages"].append(
-        HumanMessage(
-            content=state["query"]
-        )
-    )
-
-    return state
-
-
-def create_google_drive_agent(tools: List[BaseTool]) -> CompiledGraph:
-
-    graph_builder = StateGraph(State)
-
-    react_graph = create_react_agent(model="gpt-4o-mini", tools=tools)
-
-    graph_builder.add_node(retrieve_info_for_system_message)
-    graph_builder.add_node("react_graph", react_graph)
-
-    graph_builder.set_entry_point("retrieve_info_for_system_message")
-    graph_builder.add_edge("retrieve_info_for_system_message", "react_graph")
-    graph_builder.set_finish_point("react_graph")
-
-    graph = graph_builder.compile()
-    return graph
+        ]
+        return messages
 
 
