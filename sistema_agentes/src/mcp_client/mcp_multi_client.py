@@ -159,11 +159,31 @@ class MCPClient:
         # Inicializar la sesión y cargar herramientas
         await self._initialize_session(server_id)
 
-    async def connect_to_sse_server(self, host_ip: str, host_port: int):
+    async def connect_to_confluence_server(self):
+        server_id = "confluence"
+        host=os.getenv('CONFLUENCE_HOST')
+        port=os.getenv('CONFLUENCE_PORT')
+
+        if not host or not port:
+            raise ValueError("CONFLUENCE_HOST or CONFLUENCE_PORT is not set in the environment variables.")
+        port = int(port)
+
+        await self.connect_to_sse_server(server_id, host, port)
+        
+    async def connect_to_code_server(self):
+        server_id = "code_repo"
+        host=os.getenv('MCP_CODE_SERVER_HOST')
+        port=os.getenv('MCP_CODE_SERVER_PORT')
+
+        if not host or not port:
+            raise ValueError("MCP_CODE_SERVER_HOST or MCP_CODE_SERVER_PORT is not set in the environment variables.")
+        port = int(port)
+
+        await self.connect_to_sse_server(server_id, host, port)
+
+    async def connect_to_sse_server(self, server_id: str, host_ip: str, host_port: int):
         """Conectar a un servidor MCP usando SSE."""
         global _global_sessions, _global_tools, _global_exit_stack
-
-        server_id = f"{host_ip}:{host_port}"
 
         if self._check_if_session_exists(server_id):
             return

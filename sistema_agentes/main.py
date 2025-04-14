@@ -6,6 +6,8 @@ from langchain_openai import ChatOpenAI
 
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
+from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
+from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
@@ -17,6 +19,8 @@ async def main():
         #GoogleDriveAgent(),
         FileSystemAgent(),
         GitlabAgent(),
+        ConfluenceAgent(),
+        CodeAgent()
     ]
 
     # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa

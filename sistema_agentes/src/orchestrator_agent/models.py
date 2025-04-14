@@ -3,12 +3,12 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-#todo: añadir opción de enumerado dinámico en tiempo de ejecución para activar/desactivar agentes
-
 class AgentName(str, Enum):
     FILE_SYSTEM = "file_system_agent"
     GOOGLE_DRIVE = "google_drive_agent"
     GITLAB = "gitlab_agent"
+    CONFLUENCE = "confluence_agent"
+    CODE = "code_agent"
 
 class AgentStep(BaseModel):
     agent_name: AgentName = Field(

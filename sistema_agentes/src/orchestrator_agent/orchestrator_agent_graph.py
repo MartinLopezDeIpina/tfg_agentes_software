@@ -83,7 +83,7 @@ async def execute_agents(state: OrchestratorAgentState) -> OrchestratorAgentStat
 def prepare_system_message(state: OrchestratorAgentState) -> OrchestratorAgentState:
     agents_description = ""
     for agent in state["available_agents"]:
-        agents_description += f"\n{agent.to_string()}"
+        agents_description += f"\n-{agent.to_string()}"
 
     state["messages"] = [
        SystemMessage(
