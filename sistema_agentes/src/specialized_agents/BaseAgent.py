@@ -25,6 +25,7 @@ class BaseAgent(ABC):
     tools: List[BaseTool]
     model: BaseChatModel
     mcp_client: MCPClient
+    debug: bool
 
     def __init__(
             self,
@@ -32,11 +33,13 @@ class BaseAgent(ABC):
             description: str,
             model: BaseChatModel = None,
             tools_str: List[str] = None,
+            debug: bool = True
     ):
         self.name = name
         self.description = description
         self.model = model or ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
         self.tools_str = tools_str or []
+        self.debug = True
 
     @abstractmethod
     async def connect_to_mcp(self):
@@ -81,6 +84,8 @@ class BaseAgent(ABC):
         graph_builder = StateGraph(AgentState)
 
         async def prepare_node(state: AgentState) -> AgentState:
+            print(f"-->Ejecutando agente: {self.name}")
+
             state["messages"] = await self.prepare_prompt(state["query"])
             return state
 

@@ -29,3 +29,8 @@ All the agents will be executed in parallel.
 The agents are:
 {available_agents}
 """
+
+SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users questions based on the retrieved information. 
+Your task is to read the information that other agents have gathered and to structure your response in a markdown format.
+The plan should contain the answer reasoning, your only task is to structure a clear markdown response to the user's query. 
+"""

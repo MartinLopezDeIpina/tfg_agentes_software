@@ -9,8 +9,8 @@ from langgraph.graph.graph import CompiledGraph
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
 from src.planner_agent.models import PlannerResponse
 from src.specialized_agents.BaseAgent import BaseAgent
-from src.utils import tab_all_lines_x_times
-from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER
+from src.utils import tab_all_lines_x_times, print_markdown
+from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT
 
 class PlannerAgentState(TypedDict):
     query: str
@@ -25,6 +25,8 @@ class PlannerAgentState(TypedDict):
     available_agents: List[BaseAgent]
     planner_model: BaseChatModel
     structure_model: BaseChatModel
+
+    solver_result: str
 
 def format_planner_prompt(messages: List[BaseMessage], current_plan: PlannerResponse) -> str:
     initial_message = messages[0].content
@@ -44,6 +46,7 @@ def format_planner_prompt(messages: List[BaseMessage], current_plan: PlannerResp
     return prompt
     
 async def execute_planner_reasoner_agent(state: PlannerAgentState) -> PlannerAgentState:
+    print("+Ejecutando agente planner")
     messages = state["messages"]
     if len(messages) == 1:
         # si es el primer plan que se hace
@@ -125,7 +128,30 @@ def prepare_system_message(state: PlannerAgentState) -> PlannerAgentState:
     ]
     return state
 
-def finished_plan(state: PlannerAgentState) -> PlannerAgentState:
+async def finished_plan(state: PlannerAgentState) -> PlannerAgentState:
+    print(f"+Ejecutando agente solver")
+    sovler_agent_messages = [
+        SystemMessage(
+            content=SOLVER_AGENT_PROMPT
+        ),
+        HumanMessage(
+            content=state["query"]
+        )
+    ]
+    sovler_agent_messages.extend(state["messages"][1:])
+    sovler_agent_messages.append(
+        AIMessage(
+            content=state["planner_high_level_plan"].to_string()
+        )
+    )
+
+    finish_result = await state["structure_model"].ainvoke(
+        input=sovler_agent_messages
+    )
+    state["solver_result"] = finish_result.content
+
+    print_markdown(state["solver_result"])
+
     return state
 
 

@@ -24,6 +24,8 @@ class OrchestratorAgentState(TypedDict):
 
 
 async def execute_orchestrator_agent(state: OrchestratorAgentState) -> OrchestratorAgentState:
+    print("+Ejecutando agente orquestador")
+
     structured_llm = BaseChatModel.with_structured_output(state["model"], schema=OrchestratorPlan)
 
     try:

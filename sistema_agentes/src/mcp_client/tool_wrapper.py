@@ -7,6 +7,7 @@ def patch_tool_with_exception_handling(tool: BaseTool) -> BaseTool:
 
     async def wrapped_ainvoke(*args, **kwargs):
         try:
+            print(f"Llamada a la herramienta: {tool.name}")
             return await original_ainvoke(*args, **kwargs)
         except Exception as e:
             error =  f"Exception ocurred executing tool {tool.name}: {str(e)}"
