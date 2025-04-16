@@ -8,7 +8,7 @@ from langgraph.graph.graph import CompiledGraph
 
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
 from src.planner_agent.models import PlannerResponse
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.utils import tab_all_lines_x_times, print_markdown
 from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT
 
@@ -22,7 +22,7 @@ class PlannerAgentState(TypedDict):
     planner_high_level_plan: PlannerResponse
     messages: List[BaseMessage]
 
-    available_agents: List[BaseAgent]
+    available_agents: List[SpecializedAgent]
     planner_model: BaseChatModel
     structure_model: BaseChatModel
 

@@ -1,6 +1,7 @@
 import asyncio
 from typing import TypedDict, List
 
+from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
@@ -9,20 +10,17 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.gitlab_agent.additional_tools import get_gitlab_agent_additional_tools
 from src.specialized_agents.gitlab_agent.prompts import gitlab_agent_system_prompt
 from static.agent_descriptions import GITLAB_AGENT_DESCRIPTION
 
-class GitlabAgent(BaseAgent):
-    def __init__(self):
+class GitlabAgent(SpecializedAgent):
+    def __init__(self, model: BaseChatModel = None):
         super().__init__(
             name="gitlab_agent",
             description=GITLAB_AGENT_DESCRIPTION,
-            model=ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0,
-            ),
+            model=model,
             tools_str= [
                 "gdrive_list_files",
                 "gdrive_read_file"

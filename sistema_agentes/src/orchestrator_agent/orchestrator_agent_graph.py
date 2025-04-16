@@ -8,12 +8,12 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from static.prompts import ORCHESTRATOR_PROMPT
 
 
 class OrchestratorAgentState(TypedDict):
-    available_agents: List[BaseAgent]
+    available_agents: List[SpecializedAgent]
     model: BaseChatModel
 
     planner_high_level_plan: str

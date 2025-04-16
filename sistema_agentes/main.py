@@ -9,7 +9,7 @@ from langsmith import Client
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
 from src.planner_agent.planner_agent_graph import create_planner_graph
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
@@ -17,7 +17,7 @@ from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
 from src.eval_agents.dataset_utils import create_langsmith_datasets
 
-async def execute_orquestrator(available_agents: List[BaseAgent]):
+async def execute_orquestrator(available_agents: List[SpecializedAgent]):
     try:
 
         orchestrator_graph = create_orchestrator_graph()
@@ -33,7 +33,7 @@ async def execute_orquestrator(available_agents: List[BaseAgent]):
     finally:
         await MCPClient.cleanup()
 
-async def execute_planner(available_agents: List[BaseAgent]):
+async def execute_planner(available_agents: List[SpecializedAgent]):
     try:
         planner_graph = create_planner_graph()
         result = await planner_graph.ainvoke({
@@ -55,7 +55,7 @@ async def main():
     agents = [
         GoogleDriveAgent(),
         FileSystemAgent(),
-        GitlabAgent(),
+        #GitlabAgent(),
         ConfluenceAgent(),
         CodeAgent()
     ]
@@ -96,8 +96,8 @@ async def evaluate_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(main())
+    asyncio.run(main())
     #create_langsmith_datasets()
-    asyncio.run(evaluate_agent())
+    #asyncio.run(evaluate_agent())
 
 

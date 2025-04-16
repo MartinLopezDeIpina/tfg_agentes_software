@@ -1,23 +1,22 @@
 import asyncio
 from typing import TypedDict, List
+
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
 from src.mcp_client.mcp_multi_client import MCPClient
 from static.agent_descriptions import CODE_AGENT_DESCRIPTION
 
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.prompts import system_prompt
 
-class CodeAgent(BaseAgent):
-    def __init__(self):
+class CodeAgent(SpecializedAgent):
+    def __init__(self, model: BaseChatModel = None):
         super().__init__(
             name="code_agent",
             description=CODE_AGENT_DESCRIPTION,
-            model=ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0,
-            ),
+            model=model,
             tools_str= [
                 "get_code_repository_rag_docs_from_query_tool",
                 "get_file_from_repository_tool",

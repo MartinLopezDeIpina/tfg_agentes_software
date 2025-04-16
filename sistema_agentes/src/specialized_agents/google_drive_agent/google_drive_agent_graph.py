@@ -1,3 +1,5 @@
+from langchain_core.language_models import BaseChatModel
+
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.google_drive_agent.prompts import google_drive_system_prompt
 import asyncio
@@ -5,19 +7,16 @@ from typing import List
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 
 from static.agent_descriptions import GOOGLE_DRIVE_AGENT_DESCRIPTION
 
-class GoogleDriveAgent(BaseAgent):
-    def __init__(self):
+class GoogleDriveAgent(SpecializedAgent):
+    def __init__(self, model: BaseChatModel = None):
         super().__init__(
             name="google_drive_agent",
             description=GOOGLE_DRIVE_AGENT_DESCRIPTION,
-            model=ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0,
-            ),
+            model=model,
             tools_str= [
                 "gdrive_list_files",
                 "gdrive_read_file"
