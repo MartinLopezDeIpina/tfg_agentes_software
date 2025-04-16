@@ -23,6 +23,12 @@ class AgentState(TypedDict):
     messages: List[BaseMessage]
 
 class BaseAgent(ABC):
+    """
+    Combinación de grafos de Langgraph con clases de python:
+        -Se aprovecha la herencia de python para reutilizar componentes entre agentes de forma clara.
+        -Se aprovechan los grafos de langgraph para definir la lógica del agente.
+    El estado del agente contiene información de la ejecución específica, el objeto del agente contiene información que perdura entre ejecuciones.
+    """
 
     name: str
     model: BaseChatModel

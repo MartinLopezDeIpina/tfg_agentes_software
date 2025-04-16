@@ -5,28 +5,70 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AI
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
+from langsmith import Client
 
-from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
+from src.BaseAgent import BaseAgent, AgentState
+from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.planner_agent.models import PlannerResponse
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.utils import tab_all_lines_x_times, print_markdown
 from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT
 
-class PlannerAgentState(TypedDict):
-    query: str
 
-    max_steps: int
+
+class PlannerAgentState(AgentState):
     current_step: int
-    
     planner_scratchpad: str
-    planner_high_level_plan: PlannerResponse
-    messages: List[BaseMessage]
+
+
+class PlannerAgent(BaseAgent):
+    max_steps: int
 
     available_agents: List[SpecializedAgent]
+    orhestrator_agent: OrchestratorAgent
+
     planner_model: BaseChatModel
     structure_model: BaseChatModel
 
-    solver_result: str
+    def __init__(
+            self,
+            available_agents: List[SpecializedAgent],
+            orchestrator_agent: OrchestratorAgent,
+            planner_model: BaseChatModel = ChatOpenAI(model="o3-mini"),
+            max_steps: int = 2,
+            debug: bool = True
+    ):
+        super().__init__(
+            name="planner_agent",
+            model = planner_model,
+            debug = debug
+        )
+
+    def prepare_prompt(self, state: PlannerAgentState) -> PlannerAgentState:
+        project_description = "Descripción de proyecto IA-core-tools, un proyecto para crear herramientas para agentes LLM con LangChain, PGVector y Flask"
+
+        state["messages"] = [
+            SystemMessage(
+                content=PLANNER_PROMPT_INITIAL.format(
+                    proyect_context=project_description,
+                    user_query=state["query"],
+                )
+            ),
+        ]
+        return state
+
+
+    def process_result(self, agent_state: AgentState) -> AIMessage:
+        pass
+
+    async def execute_from_dataset(self, inputs: dict) -> dict:
+        pass
+
+    async def evaluate_agent(self, langsmith_client: Client):
+        pass
+
+
+
 
 def format_planner_prompt(messages: List[BaseMessage], current_plan: PlannerResponse) -> str:
     initial_message = messages[0].content
@@ -44,7 +86,7 @@ def format_planner_prompt(messages: List[BaseMessage], current_plan: PlannerResp
     )
 
     return prompt
-    
+
 async def execute_planner_reasoner_agent(state: PlannerAgentState) -> PlannerAgentState:
     print("+Ejecutando agente planner")
     messages = state["messages"]
@@ -96,37 +138,8 @@ def check_finished_plan(state: PlannerAgentState) -> str:
         return "execute_orchestrator"
     
 
-async def execute_orchestrator_agent(state: PlannerAgentState) -> PlannerAgentState:
-    state["current_step"] += 1
-    
-    next_step = state["planner_high_level_plan"].steps[-1]
-    if next_step is None:
-        return state
-
-    orchestrator_graph = create_orchestrator_graph()
-    result = await orchestrator_graph.ainvoke({
-        "available_agents": state["available_agents"],
-        "planner_high_level_plan":next_step,
-        "model": ChatOpenAI(model="gpt-4o-mini")
-    })
-    specialized_agents_responses = result.get("low_level_plan_execution_result")
-    if specialized_agents_responses:
-        state["messages"].extend([AIMessage(content=message_content) for message_content in specialized_agents_responses])
-    
-    return state
 
 def prepare_system_message(state: PlannerAgentState) -> PlannerAgentState:
-    project_description = "Descripción de proyecto IA-core-tools, un proyecto para crear herramientas para agentes LLM con LangChain, PGVector y Flask"
-
-    state["messages"] = [
-        SystemMessage(
-            content=PLANNER_PROMPT_INITIAL.format(
-                proyect_context=project_description,
-                user_query=state["query"],
-            )
-        ),
-    ]
-    return state
 
 async def finished_plan(state: PlannerAgentState) -> PlannerAgentState:
     print(f"+Ejecutando agente solver")
@@ -152,6 +165,8 @@ async def finished_plan(state: PlannerAgentState) -> PlannerAgentState:
 
     print_markdown(state["solver_result"])
 
+
+    state["current_step"] += 1
     return state
 
 
