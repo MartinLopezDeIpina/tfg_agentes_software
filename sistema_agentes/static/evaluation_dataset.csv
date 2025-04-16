@@ -1,0 +1,7 @@
+agent,query,solution,necessary_tools,unnecessary_tools,possible
+confluence_agent,¿Existe una guía de estilos para el frontend?,"""Sí existe"", ""está disponible en confluence""",confluence_get_page,confluence_search,TRUE
+confluence_agent,¿Cuáles son los colores principales y secundarios de la aplicación?,"""Color primario: Azul Bootstrap (#0d6efd, class='text-primary')"", ""Color secundario:  Gris claro (#f8f9fa, class=bg-light)""",confluence_get_page,,TRUE
+confluence_agent,Listame las funcionalidades por implementar en el Frontend,"""Crawlers"", ""API Keys"", Settings""",confluence_get_page,,TRUE
+confluence_agent,¿Qué frameworks o librerías se usan para el frontend?,"""Se usa Bootstrap""",confluence_get_page,,TRUE
+confluence_agent,Listame las funcionalidades las funcionalidades de la interfaz visual,"""Funcionalidad Playground de Agentes"", ""Funcionalidad gestión de agentes"", ""Funcionalidad Gestión de repositorios y recursos""",confluence_get_page,,TRUE
+confluence_agent,¿Quién es el encargado de desarrollar el frontend?,"""El equipo de diseño web se encarga de diseñar la interfaz"", ""El equipo de desarrollo se encarga de implementar la interfaz""","confluence_search, confluence_get_page",,FALSE

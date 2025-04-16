@@ -1,3 +1,4 @@
+import functools
 from abc import ABC, abstractmethod
 from typing import List, TypedDict
 
@@ -9,9 +10,12 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langgraph.prebuilt import create_react_agent
 
+from langsmith import Client, evaluate, aevaluate
+
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
-
+from src.eval_agents.dataset_utils import search_langsmith_dataset
+from src.eval_agents.tool_precision_evaluator import tool_precision
 
 class AgentState(TypedDict):
     query: str
@@ -111,16 +115,29 @@ class BaseAgent(ABC):
 
         compiled_graph = self.create_graph()
 
-        final_state = await compiled_graph.ainvoke(
-            query=query,
-            messages=[]
+        run = await compiled_graph.ainvoke({
+            "query":query,
+            "messages":[]
+        })
+        return run
+
+    async def evaluate_agent(self, langsmith_client: Client):
+        dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=self.name)
+        if not dataset:
+            print(f"Evaluation dataset for {self.name} not found")
+            return
+
+        run_function = self.execute_from_dataset
+        agent_tool_evaluator = functools.partial(tool_precision, num_tools=len(self.tools))
+
+        results = await aevaluate(
+            run_function,
+            data=dataset,
+            client=langsmith_client,
+            evaluators=[agent_tool_evaluator],
+            max_concurrency=6
         )
-        return final_state
+        return results
 
-    async def evaluate_agent(self, dataset):
-
-        pass
-
-    
 
         

@@ -4,6 +4,7 @@ from typing import List
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langsmith import Client
 
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
@@ -14,7 +15,7 @@ from src.specialized_agents.confluence_agent.confluence_agent_graph import Confl
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
-from src.eval_agent.dataset_utils import create_langsmith_datasets
+from src.eval_agents.dataset_utils import create_langsmith_datasets
 
 async def execute_orquestrator(available_agents: List[BaseAgent]):
     try:
@@ -73,6 +74,20 @@ async def main():
 
 
 
+async def evaluate_agent():
+    confluence_agent = ConfluenceAgent()
+    try:
+        await confluence_agent.connect_to_mcp()
+
+        langsmith_client = Client()
+
+        results = await confluence_agent.evaluate_agent(langsmith_client=langsmith_client)
+        print(results)
+
+    finally:
+        await confluence_agent.cleanup()
+
+
 
 
 
@@ -81,13 +96,8 @@ async def main():
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(ejecutar_agente_codigo("Qué es lo que explica cada notebook de jupyter?"))
-
-    #asyncio.run(execute_confluence_agent("Existe alguna guía de estilos para el proyecto?, si es así, qué color primario se utiliza?"))
-    #asyncio.run(execute_confluence_agent("Qué funcionalidades tiene el frontend?"))
-    #asyncio.run(execute_gitlab_agent("Qué ramas existen en el proyecto?"))
-    #asyncio.run(execute_google_drive_agent("Existe alguna maqueta para la gestión del administrador?"))
-    #asyncio.run(execute_filesystem_agent("Existe alguna maqueta para la gestión del administrador?"))
     #asyncio.run(main())
-    create_langsmith_datasets()
+    #create_langsmith_datasets()
+    asyncio.run(evaluate_agent())
+
 

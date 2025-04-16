@@ -9,6 +9,9 @@ from tqdm import tqdm
 
 from config import REPO_ROOT_ABSOLUTE_PATH, CSV_DATASET_RELATIVE_PATH
 
+def get_dataset_name_for_agent(agent_name: str):
+    return f"evaluate_{agent_name}"
+
 def get_dataset_csv_df(required_columns: List["str"]):
     csv_dataset_path = os.path.join(REPO_ROOT_ABSOLUTE_PATH, "sistema_agentes", CSV_DATASET_RELATIVE_PATH)
     if not os.path.exists(csv_dataset_path):
@@ -23,13 +26,26 @@ def get_dataset_csv_df(required_columns: List["str"]):
             
     return df
 
+def search_langsmith_dataset(langsmith_client: Client, dataset_name: str = None, agent_name: str = None):
+    if dataset_name is None:
+        if agent_name:
+            dataset_name = get_dataset_name_for_agent(agent_name)
+        else:
+            return None
+
+    if langsmith_client.has_dataset(dataset_name=dataset_name):
+        dataset = langsmith_client.read_dataset(dataset_name=dataset_name)
+        return dataset
+    else:
+        return None
+
 def create_or_empty_langsmith_dataset(langsmith_client: Client, dataset_name: str):
     """
     Si el dataset existe lo vacía.
     Si el dataset no existe crea uno vacío.
     """
-    if langsmith_client.has_dataset(dataset_name=dataset_name):
-        dataset = langsmith_client.read_dataset(dataset_name=dataset_name)
+    dataset = search_langsmith_dataset(langsmith_client = langsmith_client, dataset_name = dataset_name)
+    if dataset:
         langsmith_client.delete_dataset(dataset_id=dataset.id)
 
     dataset = langsmith_client.create_dataset(
@@ -40,7 +56,7 @@ def create_or_empty_langsmith_dataset(langsmith_client: Client, dataset_name: st
 
 
 def create_agent_dataset(langsmith_client: Client, agent: str, agent_df: DataFrame, agent_column: str, query_column: str):
-    dataset_name = f"evaluate_{agent}"
+    dataset_name = get_dataset_name_for_agent(agent)
     dataset = create_or_empty_langsmith_dataset(langsmith_client, dataset_name)
 
     """
