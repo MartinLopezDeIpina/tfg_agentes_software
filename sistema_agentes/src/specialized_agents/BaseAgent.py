@@ -99,11 +99,28 @@ class BaseAgent(ABC):
         graph_builder.set_finish_point("react")
 
         return graph_builder.compile()
-    
+
     def to_string(self):
         string = ""
         string += f"{self.name}:\n"
         string += tab_all_lines_x_times(self.description)
         return string
-        
+
+    async def execute_from_dataset(self, inputs: dict) -> dict:
+        query = inputs.get("query")
+
+        compiled_graph = self.create_graph()
+
+        final_state = await compiled_graph.ainvoke(
+            query=query,
+            messages=[]
+        )
+        return final_state
+
+    async def evaluate_agent(self, dataset):
+
+        pass
+
+    
+
         

@@ -14,6 +14,7 @@ from src.specialized_agents.confluence_agent.confluence_agent_graph import Confl
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
+from src.eval_agent.dataset_utils import create_langsmith_datasets
 
 async def execute_orquestrator(available_agents: List[BaseAgent]):
     try:
@@ -87,5 +88,6 @@ if __name__ == '__main__':
     #asyncio.run(execute_gitlab_agent("Qué ramas existen en el proyecto?"))
     #asyncio.run(execute_google_drive_agent("Existe alguna maqueta para la gestión del administrador?"))
     #asyncio.run(execute_filesystem_agent("Existe alguna maqueta para la gestión del administrador?"))
-    asyncio.run(main())
+    #asyncio.run(main())
+    create_langsmith_datasets()
 
