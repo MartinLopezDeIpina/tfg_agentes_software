@@ -14,3 +14,7 @@ def print_markdown(string: str):
     console = Console()
     md = Markdown(string)
     console.print(md)
+
+def get_list_from_string_comma_separated_values(values_string: str):
+    values_list = [element.strip() for element in values_string.split(',')]
+    return values_list

@@ -5,174 +5,151 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AI
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
+from langsmith import Client
 
-from src.orchestrator_agent.orchestrator_agent_graph import create_orchestrator_graph
+from src.BaseAgent import BaseAgent, AgentState
+from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.planner_agent.models import PlannerResponse
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.planner_agent.state import MainAgentState
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.utils import tab_all_lines_x_times, print_markdown
-from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT
+from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT, PLANNER_STRUCURE_PROMPT
 
-class PlannerAgentState(TypedDict):
-    query: str
 
+class PlannerAgent(BaseAgent):
     max_steps: int
-    current_step: int
-    
-    planner_scratchpad: str
-    planner_high_level_plan: PlannerResponse
-    messages: List[BaseMessage]
-
-    available_agents: List[BaseAgent]
-    planner_model: BaseChatModel
     structure_model: BaseChatModel
 
-    solver_result: str
-
-def format_planner_prompt(messages: List[BaseMessage], current_plan: PlannerResponse) -> str:
-    initial_message = messages[0].content
-    planner_current_plan = current_plan.to_string()
-
-    step_result = ""
-    for message in messages[1:]:
-        step_result+= "\n-Researcher output:"
-        step_result += f"\n{tab_all_lines_x_times(message.content)}\n"
-
-    prompt = PLANNER_PROMPT_AFTER.format(
-        initial_prompt=initial_message,
-        previous_plan=planner_current_plan,
-        step_result=step_result,
-    )
-
-    return prompt
-    
-async def execute_planner_reasoner_agent(state: PlannerAgentState) -> PlannerAgentState:
-    print("+Ejecutando agente planner")
-    messages = state["messages"]
-    if len(messages) == 1:
-        # si es el primer plan que se hace
-        planner_input = messages[0].content
-    else:
-        planner_input = format_planner_prompt(messages, state["planner_high_level_plan"])
-
-    planner_scratchpad = await state["planner_model"].ainvoke(
-        input=planner_input
-    )
-
-    state["planner_scratchpad"] = planner_scratchpad.content
-
-    return state
-
-async def execute_planner_structure_agent(state: PlannerAgentState) -> PlannerAgentState:
-    structured_llm = state["structure_model"].with_structured_output(PlannerResponse)
-    try:
-        planner_result = await structured_llm.ainvoke(
-            input=state["planner_scratchpad"]
+    def __init__(
+            self,
+            planner_model: BaseChatModel = ChatOpenAI(model="o3-mini"),
+            structure_model:BaseChatModel = ChatOpenAI(model="gpt-4o-mini"),
+            max_steps: int = 2,
+            debug: bool = True
+    ):
+        super().__init__(
+            name="planner_agent",
+            model=planner_model,
+            debug = debug
         )
-        if not isinstance(planner_result, PlannerResponse):
-            planner_result = PlannerResponse.model_validate(planner_result)
 
-        state["planner_high_level_plan"] = planner_result
-        state["messages"].append(AIMessage(
-            content=planner_result.to_string()
-        ))
+        self.structure_model = structure_model
+        self.max_steps = max_steps
 
-    except Exception as e:
-        print(f"Error en structured output: {e}")
-        #todo: gestionar parsing
+    def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
+        messages = state["messages"]
+        if not messages or len(messages) == 0:
+            project_description = "Descripción de proyecto IA-core-tools, un proyecto para crear herramientas para agentes LLM con LangChain, PGVector y Flask"
 
-    finally:
+            state["messages"] = [
+                SystemMessage(
+                    content=PLANNER_PROMPT_INITIAL.format(
+                        proyect_context=project_description,
+                        user_query=state["query"],
+                    )
+                ),
+            ]
         return state
 
+    def format_planner_prompt(self, messages: List[BaseMessage], current_plan: PlannerResponse) -> str:
+        initial_message = messages[0].content
+        planner_current_plan = current_plan.to_string()
 
-def check_finished_plan(state: PlannerAgentState) -> str: 
-    plan_max_steps_reached = state["current_step"] >= state["max_steps"]
-    
-    planner_plan = state["planner_high_level_plan"]
-    finished = planner_plan.finished
-    
-    if plan_max_steps_reached or finished:
-        return "finished_plan"
-    else:
-        return "execute_orchestrator"
-    
+        step_result = ""
+        for message in messages[1:]:
+            step_result+= "\n-Researcher output:"
+            step_result += f"\n{tab_all_lines_x_times(message.content)}\n"
 
-async def execute_orchestrator_agent(state: PlannerAgentState) -> PlannerAgentState:
-    state["current_step"] += 1
-    
-    next_step = state["planner_high_level_plan"].steps[-1]
-    if next_step is None:
+        prompt = PLANNER_PROMPT_AFTER.format(
+            initial_prompt=initial_message,
+            previous_plan=planner_current_plan,
+            step_result=step_result,
+        )
+
+        return prompt
+
+    async def execute_planner_reasoner_agent(self, state: MainAgentState) -> MainAgentState:
+        print("+Ejecutando agente planner")
+        messages = state["messages"]
+        if len(messages) == 1:
+            # si es el primer plan que se hace
+            planner_input = messages[0].content
+        else:
+            planner_input = self.format_planner_prompt(messages, state["planner_high_level_plan"])
+
+        planner_scratchpad = await self.model.ainvoke(
+            input=planner_input
+        )
+
+        state["planner_scratchpad"] = planner_scratchpad.content
+
+
+        state["planner_current_step"] += 1
         return state
 
-    orchestrator_graph = create_orchestrator_graph()
-    result = await orchestrator_graph.ainvoke({
-        "available_agents": state["available_agents"],
-        "planner_high_level_plan":next_step,
-        "model": ChatOpenAI(model="gpt-4o-mini")
-    })
-    specialized_agents_responses = result.get("low_level_plan_execution_result")
-    if specialized_agents_responses:
-        state["messages"].extend([AIMessage(content=message_content) for message_content in specialized_agents_responses])
-    
-    return state
+    def check_current_step(self, state: MainAgentState):
+        if state["planner_current_step"] >= self.max_steps:
+            state["planner_high_level_plan"].finished = True
+            return "finish"
+        else:
+            return "execute_planner_reasoner"
 
-def prepare_system_message(state: PlannerAgentState) -> PlannerAgentState:
-    project_description = "Descripción de proyecto IA-core-tools, un proyecto para crear herramientas para agentes LLM con LangChain, PGVector y Flask"
+    def end_plan_execution(self, state: MainAgentState):
+        return state
 
-    state["messages"] = [
-        SystemMessage(
-            content=PLANNER_PROMPT_INITIAL.format(
-                proyect_context=project_description,
-                user_query=state["query"],
+    async def execute_planner_structure_agent(self, state: MainAgentState) -> MainAgentState:
+        structured_llm = self.structure_model.with_structured_output(PlannerResponse)
+        try:
+            planner_result = await structured_llm.ainvoke(
+                input=PLANNER_STRUCURE_PROMPT.format(
+                    plan=state["planner_scratchpad"]
+                )
             )
-        ),
-    ]
-    return state
+            if not isinstance(planner_result, PlannerResponse):
+                planner_result = PlannerResponse.model_validate(planner_result)
 
-async def finished_plan(state: PlannerAgentState) -> PlannerAgentState:
-    print(f"+Ejecutando agente solver")
-    sovler_agent_messages = [
-        SystemMessage(
-            content=SOLVER_AGENT_PROMPT
-        ),
-        HumanMessage(
-            content=state["query"]
-        )
-    ]
-    sovler_agent_messages.extend(state["messages"][1:])
-    sovler_agent_messages.append(
-        AIMessage(
-            content=state["planner_high_level_plan"].to_string()
-        )
-    )
+            state["planner_high_level_plan"] = planner_result
+            state["messages"].append(AIMessage(
+                content=planner_result.to_string()
+            ))
 
-    finish_result = await state["structure_model"].ainvoke(
-        input=sovler_agent_messages
-    )
-    state["solver_result"] = finish_result.content
+        except Exception as e:
+            print(f"Error en structured output: {e}")
+            #todo: gestionar parsing
 
-    print_markdown(state["solver_result"])
+        finally:
 
-    return state
+            return state
 
 
-def create_planner_graph() -> CompiledGraph:
-    """
-    Devolver el grafo compilado del agente
-    """
-    graph_builder = StateGraph(PlannerAgentState)
+    def create_graph(self) -> CompiledGraph:
+        """
+        Devolver el grafo compilado del agente
+        Si se llega al máximo de iteraciones, el nodo condicional check_and_increment_current_step devolverá directamente el finish sin ejecutar el planner.
+        """
+        graph_builder = StateGraph(MainAgentState)
 
-    graph_builder.add_node("prepare", prepare_system_message)
-    graph_builder.add_node("execute_planner_reasoner", execute_planner_reasoner_agent)
-    graph_builder.add_node("execute_planner_structure", execute_planner_structure_agent)
-    graph_builder.add_node("execute_orchestrator", execute_orchestrator_agent)
-    graph_builder.add_node("finished_plan", finished_plan)
+        graph_builder.add_node("prepare", self.prepare_prompt)
+        graph_builder.add_node("execute_planner_reasoner", self.execute_planner_reasoner_agent)
+        graph_builder.add_node("execute_planner_structure", self.execute_planner_structure_agent)
+        graph_builder.add_node("finish", self.end_plan_execution)
 
-    graph_builder.add_conditional_edges("execute_planner_structure", check_finished_plan)
+        graph_builder.add_conditional_edges("prepare", self.check_current_step)
 
-    graph_builder.set_entry_point("prepare")
-    graph_builder.add_edge("prepare", "execute_planner_reasoner")
-    graph_builder.add_edge("execute_planner_reasoner", "execute_planner_structure")
-    graph_builder.add_edge("execute_orchestrator", "execute_planner_reasoner")
-    graph_builder.set_finish_point("finished_plan")
+        graph_builder.set_entry_point("prepare")
+        graph_builder.add_edge("execute_planner_reasoner", "execute_planner_structure")
+        graph_builder.add_edge("execute_planner_structure", "finish")
 
-    return graph_builder.compile()
+        return graph_builder.compile()
+
+
+    def process_result(self, agent_state: AgentState) -> AIMessage:
+        pass
+
+    async def execute_from_dataset(self, inputs: dict) -> dict:
+        pass
+
+    async def evaluate_agent(self, langsmith_client: Client):
+        pass
+
+

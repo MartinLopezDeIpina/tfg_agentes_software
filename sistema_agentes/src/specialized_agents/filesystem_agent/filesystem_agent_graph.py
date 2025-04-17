@@ -2,24 +2,23 @@ import asyncio
 import os
 from typing import List
 
+from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.BaseAgent import AgentState
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.filesystem_agent.prompts import filesystem_agent_system_prompt
 from src.mcp_client.mcp_multi_client import MCPClient
 from static.agent_descriptions import FILE_SYSTEM_AGENT_DESCRIPTION
 
 
-class FileSystemAgent(BaseAgent):
-    def __init__(self):
+class FileSystemAgent(SpecializedAgent):
+    def __init__(self, model: BaseChatModel = None):
         super().__init__(
             name="file_system_agent",
             description=FILE_SYSTEM_AGENT_DESCRIPTION,
-            model=ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0,
-            ),
+            model=model,
             tools_str= [
                 "search_files",
                 "read_file",
@@ -33,7 +32,7 @@ class FileSystemAgent(BaseAgent):
         await self.mcp_client.connect_to_filesystem_server()
         self.tools = self.mcp_client.get_tools()
 
-    async def prepare_prompt(self, query: str) -> List[BaseMessage]:
+    async def prepare_prompt(self, state: AgentState) -> AgentState:
         dir_tool = None
         for tool in self.tools:
             if tool.name == "directory_tree":
@@ -55,8 +54,9 @@ class FileSystemAgent(BaseAgent):
                 )
             ),
             HumanMessage(
-                content=query
+                content=state["query"]
             )
         ]
-        return messages
+        state["messages"] = messages
+        return state
 

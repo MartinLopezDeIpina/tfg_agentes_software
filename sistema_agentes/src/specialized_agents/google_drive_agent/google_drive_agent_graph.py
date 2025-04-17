@@ -1,3 +1,6 @@
+from langchain_core.language_models import BaseChatModel
+
+from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.google_drive_agent.prompts import google_drive_system_prompt
 import asyncio
@@ -5,19 +8,16 @@ from typing import List
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
-from src.specialized_agents.BaseAgent import BaseAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent
 
 from static.agent_descriptions import GOOGLE_DRIVE_AGENT_DESCRIPTION
 
-class GoogleDriveAgent(BaseAgent):
-    def __init__(self):
+class GoogleDriveAgent(SpecializedAgent):
+    def __init__(self, model: BaseChatModel = None):
         super().__init__(
             name="google_drive_agent",
             description=GOOGLE_DRIVE_AGENT_DESCRIPTION,
-            model=ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0,
-            ),
+            model=model,
             tools_str= [
                 "gdrive_list_files",
                 "gdrive_read_file"
@@ -29,7 +29,7 @@ class GoogleDriveAgent(BaseAgent):
         await self.mcp_client.connect_to_google_drive_server()
         self.tools = self.mcp_client.get_tools()
 
-    async def prepare_prompt(self, query: str) -> List[BaseMessage]:
+    async def prepare_prompt(self, state: AgentState) -> AgentState:
         files_tool = None
         for tool in self.tools:
             if tool.name == "gdrive_list_files":
@@ -47,9 +47,10 @@ class GoogleDriveAgent(BaseAgent):
                 )
             ),
             HumanMessage(
-                content=query
+                content=state["query"]
             )
         ]
-        return messages
+        state["messages"] = messages
+        return state
 
 
