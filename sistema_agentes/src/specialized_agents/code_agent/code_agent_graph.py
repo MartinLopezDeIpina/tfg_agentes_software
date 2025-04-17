@@ -5,6 +5,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
+from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
 from static.agent_descriptions import CODE_AGENT_DESCRIPTION
 
@@ -29,7 +30,7 @@ class CodeAgent(SpecializedAgent):
         await self.mcp_client.connect_to_code_server()
         self.tools = self.mcp_client.get_tools()
 
-    async def prepare_prompt(self, query: str) -> List[BaseMessage]:
+    async def prepare_prompt(self, state: AgentState) -> AgentState:
         rag_tool = None
         tree_tool = None
         for tool in self.tools:
@@ -40,7 +41,7 @@ class CodeAgent(SpecializedAgent):
 
         tree_task = tree_tool.ainvoke({})
         rag_task = rag_tool.ainvoke({
-            "query": query
+            "query": state["query"]
         })
 
         proyect_tree, initial_retrieved_docs = await asyncio.gather(tree_task, rag_task)
@@ -53,8 +54,9 @@ class CodeAgent(SpecializedAgent):
                 )
             ),
             HumanMessage(
-                content=query
+                content=state["query"]
             )
 
         ]
-        return messages
+        state["messages"] = messages
+        return state

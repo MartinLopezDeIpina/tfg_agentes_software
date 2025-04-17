@@ -51,7 +51,7 @@ class BaseAgent(ABC):
         self.debug = True
 
     @abstractmethod
-    async def prepare_prompt(self, query: str) -> List[BaseMessage]:
+    async def prepare_prompt(self, state: AgentState) -> AgentState:
         """
         Prepara los mensajes del sistema y usuario para este agente.
         Utiliza algunas de las tools para proporcionar información contextual al agente.

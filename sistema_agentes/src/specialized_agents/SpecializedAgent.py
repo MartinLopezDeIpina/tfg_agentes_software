@@ -76,15 +76,9 @@ class SpecializedAgent(BaseAgent):
         """
         graph_builder = StateGraph(AgentState)
 
-        async def prepare_node(state: AgentState) -> AgentState:
-            print(f"-->Ejecutando agente: {self.name}")
-
-            state["messages"] = await self.prepare_prompt(state["query"])
-            return state
-
         react_graph = create_react_agent(model=self.model, tools=self.tools)
 
-        graph_builder.add_node("prepare", prepare_node)
+        graph_builder.add_node("prepare", self.prepare_prompt)
         graph_builder.add_node("react", react_graph)
 
         graph_builder.set_entry_point("prepare")

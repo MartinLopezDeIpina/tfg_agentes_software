@@ -66,23 +66,22 @@ class MainAgent(BaseAgent):
 
         return "orchestrator"
 
+    async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
+        print(f"--> Ejecutando agente {self.name}")
+
+        state["planner_current_step"] = 0
+        state["messages"] = []
+
+        return state
+
     def create_graph(self) -> CompiledGraph:
 
         graph_builder = StateGraph(MainAgentState)
 
-        # todo: mover esto a BaseAgent
-        async def prepare_node(state: MainAgentState) -> MainAgentState:
-            print(f"--> Ejecutando agente {self.name}")
-
-            state["planner_current_step"] = 0
-
-            state["messages"] = await self.prepare_prompt(state["query"])
-            return state
-
         planner_graph = self.planner_agent.create_graph()
         formatter_graph = self.formatter_agent.create_graph()
 
-        graph_builder.add_node("prepare", prepare_node)
+        graph_builder.add_node("prepare", self.prepare_prompt)
         graph_builder.add_node("planner", planner_graph)
         graph_builder.add_node("orchestrator", self.execute_orchestrator_graph)
         graph_builder.add_node("formatter", formatter_graph)
@@ -96,9 +95,6 @@ class MainAgent(BaseAgent):
 
         return graph_builder.compile()
 
-
-    async def prepare_prompt(self, query: str) -> List[BaseMessage]:
-        return []
 
     def process_result(self, agent_state: AgentState) -> AIMessage:
         pass

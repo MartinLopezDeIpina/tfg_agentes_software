@@ -9,6 +9,7 @@ from langchain_core.tools import BaseTool
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 
+from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.gitlab_agent.additional_tools import get_gitlab_agent_additional_tools
@@ -33,7 +34,7 @@ class GitlabAgent(SpecializedAgent):
         self.tools = self.mcp_client.get_tools()
         self.tools.extend(get_gitlab_agent_additional_tools())
 
-    async def prepare_prompt(self, query: str) -> List[BaseMessage]:
+    async def prepare_prompt(self, state: AgentState) -> AgentState:
         stats_tool = None
         for tool in self.tools:
             if tool.name == "get_gitlab_project_statistics":
@@ -50,7 +51,8 @@ class GitlabAgent(SpecializedAgent):
                 )
             ),
             HumanMessage(
-                content=query
+                content=state["query"]
             )
         ]
-        return messages
+        state["messages"] = messages
+        return state
