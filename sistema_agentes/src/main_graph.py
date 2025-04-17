@@ -1,6 +1,7 @@
 from typing import List
 
 from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.runnables.graph import CurveStyle, NodeStyles, MermaidDrawMethod
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
@@ -62,8 +63,8 @@ class MainAgent(BaseAgent):
 
         if is_finished:
             return "formatter"
-        else:
-            return "orchestrator"
+
+        return "orchestrator"
 
     def create_graph(self) -> CompiledGraph:
 
@@ -91,6 +92,7 @@ class MainAgent(BaseAgent):
         graph_builder.set_entry_point("prepare")
         graph_builder.add_edge("prepare", "planner")
         graph_builder.add_edge("orchestrator", "planner")
+        graph_builder.set_finish_point("formatter")
 
         return graph_builder.compile()
 

@@ -7,3 +7,4 @@ MCP_CODE_SERVER_PORT = os.environ.get("MCP_CODE_SERVER_PORT")
 
 REPO_ROOT_ABSOLUTE_PATH = "/home/martin/tfg_agentes_software"
 CSV_DATASET_RELATIVE_PATH = "static/evaluation_dataset.csv"
+GRAPH_IMAGES_RELATIVE_PATH = "static/images"

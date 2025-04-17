@@ -36,14 +36,9 @@ class FormatterAgent(BaseAgent):
             )
         ]
         formatter_agent_messages.extend(state["messages"][1:])
-        formatter_agent_messages.append(
-            AIMessage(
-                content=state["planner_high_level_plan"].to_string()
-            )
-        )
 
         finish_result = await self.model.ainvoke(
-            input=state["messages"]
+            input=formatter_agent_messages
         )
         state["formatter_result"] = finish_result.content
 
@@ -58,7 +53,6 @@ class FormatterAgent(BaseAgent):
         graph_builder.add_node("prepare", self.prepare_prompt)
 
         graph_builder.set_entry_point("prepare")
-        graph_builder.set_finish_point("prepare")
 
         return graph_builder.compile()
 

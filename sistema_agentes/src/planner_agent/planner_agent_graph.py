@@ -139,7 +139,6 @@ class PlannerAgent(BaseAgent):
         graph_builder.set_entry_point("prepare")
         graph_builder.add_edge("execute_planner_reasoner", "execute_planner_structure")
         graph_builder.add_edge("execute_planner_structure", "finish")
-        graph_builder.set_finish_point("finish")
 
         return graph_builder.compile()
 

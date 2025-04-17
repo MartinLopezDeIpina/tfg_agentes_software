@@ -50,10 +50,17 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "Cómo funciona el frontend?",
+            "query": "Existe alguna guía de estilos para el frontend del proyecto?",
             "messages": []
         })
         print(result)
+        """
+        await main_agent.print_agent()
+        await orchestrator_agent.print_agent()
+        await available_agents[0].print_agent()
+        """
+
+
 
     finally:
         await MCPClient.cleanup()
