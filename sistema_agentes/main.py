@@ -87,8 +87,8 @@ async def evaluate_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(main())
+    #asyncio.run(main())
     #create_langsmith_datasets()
-    #asyncio.run(evaluate_agent())
+    asyncio.run(evaluate_agent())
 
 

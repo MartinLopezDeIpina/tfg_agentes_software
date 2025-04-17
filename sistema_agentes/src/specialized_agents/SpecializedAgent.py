@@ -14,6 +14,7 @@ from langsmith import Client, evaluate, aevaluate
 from langsmith.evaluation import EvaluationResults
 
 from src.BaseAgent import AgentState, BaseAgent
+from src.eval_agents.llm_as_judge_evaluator import llm_as_a_judge
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
@@ -93,21 +94,9 @@ class SpecializedAgent(BaseAgent):
         string += tab_all_lines_x_times(self.description)
         return string
 
-    async def execute_from_dataset(self, inputs: dict) -> dict:
-        query = inputs.get("query")
 
-        compiled_graph = self.create_graph()
-
-        run = await compiled_graph.ainvoke({
-            "query":query,
-            "messages":[]
-        })
-        return run
-    
     async def evaluate_agent(self, langsmith_client: Client):
-        agent_tool_evaluator = functools.partial(tool_precision, num_tools=len(self.tools))
-
-        result = await self.call_agent_evaluation(langsmith_client, [agent_tool_evaluator])
+        result = await self.call_agent_evaluation(langsmith_client, [tool_precision, llm_as_a_judge])
         return result
 
 

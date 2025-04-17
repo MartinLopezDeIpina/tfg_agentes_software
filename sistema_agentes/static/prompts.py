@@ -40,3 +40,16 @@ SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users quest
 Your task is to read the information that other agents have gathered and to structure your response in a markdown format.
 The plan should contain the answer reasoning, your only task is to structure a clear markdown response to the user's query. 
 """
+
+LLM_JUDGE_PROMPT = """You are a solution judge, your task is to determine if each concept is part of the generated solution or not.
+You will be provided with a generated solution and a ground truth consisting of a list of concepts or ideas that the solution must have. You must determine with the specified format whether the solution contains each idea. 
+Structure your response in the specified JSON format, with a boolean per solution concept.
+
+Original question:
+{query}
+
+Ground truth concepts: 
+{ground_truth}
+
+Generated solution:
+{generated_solution}"""

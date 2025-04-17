@@ -70,16 +70,23 @@ class BaseAgent(ABC):
         """
 
     @abstractmethod
-    async def execute_from_dataset(self, inputs: dict) -> dict:
-        """
-        Define la lógica de ejecución del grafo para un ejemplo del dataset de evaluación.
-        """
-
-    @abstractmethod
     async def evaluate_agent(self, langsmith_client: Client):
         """
         Define los evaluadores específicos a utilizar para la evaluación del agente.
         """
+
+    async def execute_from_dataset(self, inputs: dict) -> dict:
+        compiled_graph = self.create_graph()
+
+        run_state = await compiled_graph.ainvoke(
+            inputs
+        )
+        result = self.process_result(run_state)
+
+        return {
+            "run_state": run_state,
+            "result": result
+        }
 
     async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[Callable], max_conc: int = 10):
         dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=self.name)

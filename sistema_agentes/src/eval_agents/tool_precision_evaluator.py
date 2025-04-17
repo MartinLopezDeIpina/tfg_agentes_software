@@ -48,19 +48,19 @@ def calculate_tool_precision(
 
     return tool_precision, necessary_tools_precision, unnecessary_tools_precision
 
-def tool_precision(run: Run, example: Example, num_tools: int) -> EvaluationResult:
+def tool_precision(run: Run, example: Example) -> EvaluationResult:
     """
     Evaluador para precisión de llamadas de herramientas.
         -necessary_tool_precision: la cantidad de herramientas necesarias llamadas en relación a las anotadas
         -unnecesary_tool_precision: la cantidad de herramientas no necesarias ignoradas en relación a las anotadas
         -tool_precision: la media de las dos
     """
-    output_messages = run.outputs.get("messages")
+    output_messages = run.outputs.get("run_state").get("messages")
     necessary_tools = example.outputs.get("necessary_tools")
     unnecessary_tools = example.outputs.get("unnecessary_tools")
     if not output_messages:
         # Si no hay mensajes devolver la por precisión
-        print(f"error evalating agent: not messages found")
+        print(f"error evaluating agent: not messages found")
         return get_evaluation_result(
             tool_precision=0.0,
             necessary_tool_precision=0.0,
