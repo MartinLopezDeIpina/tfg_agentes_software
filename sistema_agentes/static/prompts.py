@@ -21,6 +21,12 @@ The execution result of the current step is:
 {step_result}
 """
 
+PLANNER_STRUCURE_PROMPT="""Structure the following plan in the required format.
+Do not make up new steps or reasonings, just structure the current plan. 
+
+{plan}
+"""
+
 ORCHESTRATOR_PROMPT = """You are an agent orchestrator. Your task is to call different specialized agents to answer a question about a software proyect.
 
 You will receive a list of agents and a query. You must call the agents that are relevant to the query with the apropiate individual query for each agent, use the specified output format.

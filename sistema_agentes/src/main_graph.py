@@ -6,29 +6,26 @@ from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
 from src.BaseAgent import AgentState, BaseAgent
+from src.formatter_agent.formatter_graph import FormatterAgent
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.planner_agent.models import PlannerResponse
 from src.planner_agent.planner_agent_graph import PlannerAgent
+from src.planner_agent.state import MainAgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 
 
-class MainAgentState(AgentState):
-    solver_result: str
-    planner_high_level_plan: PlannerResponse
 
 class MainAgent(BaseAgent):
 
-    specialized_agents: List[SpecializedAgent]
     planner_agent: PlannerAgent
     orchestrator_agent: OrchestratorAgent
-    formatter_agent: None
+    formatter_agent: FormatterAgent
 
     def __init__(
             self,
-            specialized_agents: List[SpecializedAgent],
             planner_agent: PlannerAgent,
             orchestrator_agent: OrchestratorAgent,
-            formatter_agent: None,
+            formatter_agent: FormatterAgent,
             debug=True
                  ):
 
@@ -37,7 +34,6 @@ class MainAgent(BaseAgent):
             model=None,
             debug=debug
         )
-        self.specialized_agents = specialized_agents
         self.planner_agent = planner_agent
         self.orchestrator_agent = orchestrator_agent
         self.formatter_agent = formatter_agent
@@ -58,7 +54,7 @@ class MainAgent(BaseAgent):
 
         return state
 
-    def plan_is_finished(self, state: MainAgentState):
+    def check_plan_is_finished(self, state: MainAgentState):
         is_finished = False
         plann_response = state.get("planner_high_level_plan")
         if plann_response:
@@ -69,11 +65,7 @@ class MainAgent(BaseAgent):
         else:
             return "orchestrator"
 
-
-
-
-
-    async def create_graph(self) -> CompiledGraph:
+    def create_graph(self) -> CompiledGraph:
 
         graph_builder = StateGraph(MainAgentState)
 
@@ -81,14 +73,26 @@ class MainAgent(BaseAgent):
         async def prepare_node(state: MainAgentState) -> MainAgentState:
             print(f"--> Ejecutando agente {self.name}")
 
+            state["planner_current_step"] = 0
+
             state["messages"] = await self.prepare_prompt(state["query"])
             return state
 
         planner_graph = self.planner_agent.create_graph()
+        formatter_graph = self.formatter_agent.create_graph()
 
         graph_builder.add_node("prepare", prepare_node)
         graph_builder.add_node("planner", planner_graph)
         graph_builder.add_node("orchestrator", self.execute_orchestrator_graph)
+        graph_builder.add_node("formatter", formatter_graph)
+
+        graph_builder.add_conditional_edges("planner", self.check_plan_is_finished)
+
+        graph_builder.set_entry_point("prepare")
+        graph_builder.add_edge("prepare", "planner")
+        graph_builder.add_edge("orchestrator", "planner")
+
+        return graph_builder.compile()
 
 
     async def prepare_prompt(self, query: str) -> List[BaseMessage]:
@@ -96,7 +100,6 @@ class MainAgent(BaseAgent):
 
     def process_result(self, agent_state: AgentState) -> AIMessage:
         pass
-
 
     async def execute_from_dataset(self, inputs: dict) -> dict:
         pass
