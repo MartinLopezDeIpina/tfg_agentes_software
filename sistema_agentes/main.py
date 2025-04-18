@@ -25,7 +25,7 @@ async def main():
         #GoogleDriveAgent(),
         FileSystemAgent(),
         #GitlabAgent(),
-        ConfluenceAgent(),
+        #ConfluenceAgent(),
         #CodeAgent()
     ]
 
@@ -84,16 +84,11 @@ async def evaluate_code_agent():
     await evaluate_specialized_agent(CodeAgent())
 
 
-
-
-
-
-
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(main())
+    asyncio.run(main())
     #create_langsmith_datasets()
-    asyncio.run(evaluate_confluence_agent())
+    #asyncio.run(evaluate_confluence_agent())
 
 
