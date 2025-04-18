@@ -1,7 +1,20 @@
-agent,query,solution,necessary_tools,unnecessary_tools,possible,num_tools
-confluence_agent,¿Existe una guía de estilos para el frontend?,"""Sí existe"", ""está disponible en confluence""",confluence_get_page,confluence_search,TRUE,
-confluence_agent,¿Cuáles son los colores principales y secundarios de la aplicación?,"""Color primario: Azul Bootstrap (#0d6efd class='text-primary')"", ""Color secundario:  Gris claro (#f8f9fa class=bg-light)""",confluence_get_page,,TRUE,
-confluence_agent,Listame las funcionalidades por implementar en el Frontend,"""Crawlers"", ""API Keys"", Settings""",confluence_get_page,,TRUE,
-confluence_agent,¿Qué frameworks o librerías se usan para el frontend?,"""Se usa Bootstrap""",confluence_get_page,,TRUE,
-confluence_agent,Listame las funcionalidades las funcionalidades de la interfaz visual,"""Funcionalidad Playground de Agentes"", ""Funcionalidad gestión de agentes"", ""Funcionalidad Gestión de repositorios y recursos""",confluence_get_page,,TRUE,
-confluence_agent,¿Quién es el encargado de desarrollar el frontend?,"""El equipo de diseño web se encarga de diseñar la interfaz"", ""El equipo de desarrollo se encarga de implementar la interfaz""","confluence_search, confluence_get_page",,FALSE,
+agent,query,solution,necessary_tools,unnecessary_tools,possible
+confluence_agent,"¿Existe una guía de estilos para el frontend, donde está?","""Sí existe"", ""está disponible en confluence""",confluence_get_page,confluence_search,TRUE
+confluence_agent,¿Cuáles son los colores principales y secundarios de la aplicación?,"""Color primario: Azul Bootstrap (#0d6efd class='text-primary')"", ""Color secundario:  Gris claro (#f8f9fa class=bg-light)""",confluence_get_page,,TRUE
+confluence_agent,Listame las funcionalidades por implementar en el Frontend,"""Crawlers"", ""API Keys"", Settings""",confluence_get_page,,TRUE
+confluence_agent,¿Qué frameworks o librerías se usan para el frontend?,"""Se usa Bootstrap"", ""Se usa JQuery""",confluence_get_page,,TRUE
+confluence_agent,Listame las funcionalidades de la interfaz visual,"""Funcionalidad Playground de Agentes"", ""Funcionalidad gestión de agentes"", ""Funcionalidad Gestión de repositorios y recursos""",confluence_get_page,,TRUE
+confluence_agent,¿Cómo está estructurada jerárquicamente la navegación en la interfaz?,"""Navegación Principal"", ""Navegación Contextual"", ""Navegación por Repositorio""",confluence_get_page,,TRUE
+confluence_agent,¿Quién es el encargado de desarrollar el frontend?,,"confluence_search, confluence_get_page",,FALSE
+confluence_agent,¿Qué mecanismo o herramienta utiliza el equipo para comunicarse sobre el desarrollo del frontend?,,"confluence_search, confluence_get_page",,FALSE
+confluence_agent,¿Existe alguna maqueta disponible como referencia para el frontend?,,"confluence_search, confluence_get_page",,FALSE
+code_agent,"¿Cuáles son todas las tecnologías, frameworks y lenguajes utilizados en el proyecto?","""Flask"", ""LangChain"", ""PGVector, ""PostgreSQL"", ""Bootstrap"", ""JQuery"", ""Docker""",,,TRUE
+code_agent,¿Qué herramientas específicas se utilizan para gestionar las migraciones de esquemas de base de datos?,"""Se usa alembic para las migraciones""",,,TRUE
+code_agent,¿Qué sistemas externos se integran o comunican con este sistema?,"""APIs de OpenAI"", ""APIs de Anthropic""",,,TRUE
+code_agent,"¿Qué patrones de diseño, estructuras de herencia o composición se implementan en el código?","""Patrón MVC entre modelos templates y blueprints"", ""Factory method en getLLM de modelTools.py""",,,TRUE
+code_agent,"¿Mediante qué protocolos, estándares o interfaces se conectan los sistemas externos?","""APIs REST sobre HTTPS para las conexiones con OpenAI y Anthropic"", """,,,TRUE
+code_agent,¿Cuál es la arquitectura de integración entre los diferentes servicios o componentes del sistema?,"""Integración directa a través de importaciones""",,,TRUE
+code_agent,¿Qué sistemas de despliegue son posibles?,"""Despliegue con Docker"", ""Ejecución directa en entorno de desarrollo""",,,TRUE
+code_agent,"¿Qué plataformas o herramientas de soporte están disponibles para el proyecto (diseño, colaboración, monitoreo)?",,,,FALSE
+code_agent,¿Cuáles son los niveles de permiso o roles definidos para cada tipo de actor en el sistema?,,,,FALSE
+code_agent,¿De qué manera específica interactúa cada tipo de actor con el sistema?,,,,FALSE

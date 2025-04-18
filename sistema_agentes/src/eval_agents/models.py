@@ -13,3 +13,4 @@ class JudgeLLMResponse(BaseModel):
     corrections: List[Correction] = Field(
         description="A list of corrections that determines whether each concept is included in the generated response"
     )
+    tried_to_respond: bool = Field(description="Whether the question was actually responded or it was stated that not enough information is provided")

@@ -45,6 +45,8 @@ LLM_JUDGE_PROMPT = """You are a solution judge, your task is to determine if eac
 You will be provided with a generated solution and a ground truth consisting of a list of concepts or ideas that the solution must have. You must determine with the specified format whether the solution contains each idea. 
 Structure your response in the specified JSON format, with a boolean per solution concept.
 
+If the solution does not try to answer the question and instead states that not enough information is available, indicate it in the corresponding attribute of your response.
+
 Original question:
 {query}
 
