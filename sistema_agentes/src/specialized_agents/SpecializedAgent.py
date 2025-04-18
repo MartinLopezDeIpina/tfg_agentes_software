@@ -101,9 +101,8 @@ class SpecializedAgent(BaseAgent):
             ToolPrecisionEvaluator(),
             JudgeLLMEvaluator()
         ]
-        evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
 
-        result = await self.call_agent_evaluation(langsmith_client, evaluator_functions)
+        result = await self.call_agent_evaluation(langsmith_client, evaluators)
         return result
 
 

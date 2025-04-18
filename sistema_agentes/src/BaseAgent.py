@@ -18,6 +18,7 @@ from langgraph.prebuilt import create_react_agent
 
 from langsmith import Client, evaluate, aevaluate, EvaluationResult
 
+from src.eval_agents.base_evaluator import BaseEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
@@ -85,7 +86,6 @@ class BaseAgent(ABC):
             return {
                 "run_state": run_state,
                 "result": result,
-                "error": False
             }
 
         except Exception as e:
@@ -93,9 +93,8 @@ class BaseAgent(ABC):
                "error": True
             }
 
-
-
-    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[Callable], max_conc: int = 10):
+    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10):
+        evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
         dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=self.name)
         if not dataset:
             print(f"Evaluation dataset for {self.name} not found")
@@ -107,7 +106,7 @@ class BaseAgent(ABC):
             run_function,
             data=dataset,
             client=langsmith_client,
-            evaluators=evaluators,
+            evaluators=evaluator_functions,
             max_concurrency=max_conc
         )
         return results
