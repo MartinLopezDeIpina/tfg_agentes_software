@@ -14,11 +14,12 @@ from langsmith import Client, evaluate, aevaluate
 from langsmith.evaluation import EvaluationResults
 
 from src.BaseAgent import AgentState, BaseAgent
-from src.eval_agents.llm_as_judge_evaluator import llm_as_a_judge
+from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
-from src.eval_agents.tool_precision_evaluator import tool_precision
+from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
+
 
 class SpecializedAgent(BaseAgent):
 
@@ -39,7 +40,7 @@ class SpecializedAgent(BaseAgent):
             model = model or ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
             debug=True
         )
-    
+
         self.description = description
         self.tools_str = tools_str or []
 
@@ -96,7 +97,13 @@ class SpecializedAgent(BaseAgent):
 
 
     async def evaluate_agent(self, langsmith_client: Client):
-        result = await self.call_agent_evaluation(langsmith_client, [tool_precision, llm_as_a_judge])
+        evaluators = [
+            ToolPrecisionEvaluator(),
+            JudgeLLMEvaluator()
+        ]
+        evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
+
+        result = await self.call_agent_evaluation(langsmith_client, evaluator_functions)
         return result
 
 

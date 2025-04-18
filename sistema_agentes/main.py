@@ -65,18 +65,23 @@ async def main():
     finally:
         await MCPClient.cleanup()
 
-async def evaluate_agent():
-    confluence_agent = ConfluenceAgent()
+async def evaluate_specialized_agent(agent: SpecializedAgent):
     try:
-        await confluence_agent.connect_to_mcp()
-
+        await agent.connect_to_mcp()
         langsmith_client = Client()
 
-        results = await confluence_agent.evaluate_agent(langsmith_client=langsmith_client)
+        results = await agent.evaluate_agent(langsmith_client=langsmith_client)
         print(results)
 
     finally:
-        await confluence_agent.cleanup()
+        await agent.cleanup()
+
+
+async def evaluate_confluence_agent():
+    await evaluate_specialized_agent(ConfluenceAgent())
+
+async def evaluate_code_agent():
+    await evaluate_specialized_agent(CodeAgent())
 
 
 
@@ -89,6 +94,6 @@ if __name__ == '__main__':
 
     #asyncio.run(main())
     #create_langsmith_datasets()
-    asyncio.run(evaluate_agent())
+    asyncio.run(evaluate_code_agent())
 
 
