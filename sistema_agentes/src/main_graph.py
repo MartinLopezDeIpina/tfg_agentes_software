@@ -49,9 +49,9 @@ class MainAgent(BaseAgent):
         result = await orchestrator_graph.ainvoke({
             "planner_high_level_plan":next_step,
         })
-        specialized_agents_responses = result.get("low_level_plan_execution_result")
+        specialized_agents_responses = self.orchestrator_agent.process_result(result)
         if specialized_agents_responses:
-            state["messages"].extend([AIMessage(content=message_content) for message_content in specialized_agents_responses])
+            state["messages"].extend(specialized_agents_responses)
 
         return state
 

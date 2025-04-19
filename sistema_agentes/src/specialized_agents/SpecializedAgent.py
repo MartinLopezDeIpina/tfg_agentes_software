@@ -2,6 +2,7 @@ import functools
 from abc import ABC, abstractmethod
 from typing import List, TypedDict
 
+from langchain.chains.question_answering.map_reduce_prompt import messages
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.tools import BaseTool
@@ -95,10 +96,18 @@ class SpecializedAgent(BaseAgent):
         string += tab_all_lines_x_times(self.description)
         return string
 
+    @staticmethod
+    def get_tools_from_run_state(state: AgentState) -> List[str]:
+        messages = state["messages"]
+        called_tools = []
+        for message in messages[1:]:
+            if message.type == "tool":
+                called_tools.append(message.name)
+        return called_tools
 
     async def evaluate_agent(self, langsmith_client: Client):
         evaluators = [
-            ToolPrecisionEvaluator(),
+            ToolPrecisionEvaluator(self.get_tools_from_run_state),
             JudgeLLMEvaluator()
         ]
 

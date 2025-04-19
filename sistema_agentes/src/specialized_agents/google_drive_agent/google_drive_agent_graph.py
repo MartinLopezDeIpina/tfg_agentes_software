@@ -20,7 +20,8 @@ class GoogleDriveAgent(SpecializedAgent):
             model=model,
             tools_str= [
                 "gdrive_list_files",
-                "gdrive_read_file"
+                "gdrive_read_file",
+                "gdrive_search"
             ]
         )
 

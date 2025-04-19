@@ -1,4 +1,4 @@
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Callable
 
 from langsmith import EvaluationResult
 from langsmith.evaluation import EvaluationResults
@@ -55,6 +55,12 @@ def calculate_tool_precision(
     return tool_precision, necessary_tools_precision, unnecessary_tools_precision
 
 class ToolPrecisionEvaluator(BaseEvaluator):
+
+    get_tools_from_run_state: Callable
+
+    def __init__(self, get_tools_from_run_state: Callable):
+        self.get_tools_from_run_state=get_tools_from_run_state
+
     async def evaluate(self, run: Run, example: Example) -> EvaluationResults:
         """
         Evaluador para precisión de llamadas de herramientas.
@@ -82,10 +88,7 @@ class ToolPrecisionEvaluator(BaseEvaluator):
         else:
             unnecessary_tools = get_list_from_string_comma_separated_values(unnecessary_tools)
 
-        called_tools = []
-        for message in output_messages[1:]:
-            if message.type == "tool":
-                called_tools.append(message.name)
+        called_tools = self.get_tools_from_run_state(run.outputs.get("run_state"))
 
         called_tools = set(called_tools)
         num_necessary_tools = len(necessary_tools)
