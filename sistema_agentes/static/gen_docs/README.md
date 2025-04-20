@@ -22,11 +22,12 @@ Esta documentación proporciona información detallada sobre todos los aspectos 
 4. [Sistema de Gestión de Tareas](./sistema-gestion-tareas.md) - Información sobre cómo se gestionan las tareas
 5. [Estándares de Código](./estandares-codigo.md) - Estándares de código y buenas prácticas
 6. [Arquitectura de Software](./arquitectura-software.md) - Descripción detallada de la arquitectura del sistema
-7. [Flujos de Trabajo](./flujos-trabajo.md) - Flujos detallados de trabajo
-8. [Onboarding](./onboarding.md) - Guía de inicio para nuevos miembros del equipo
-9. [Despliegue](./despliegue.md) - Guía de despliegue
-10. [Referencias Técnicas](./referencias-tecnicas.md) - Referencias técnicas y documentación de soporte
-11. [Información del Cliente](./informacion-cliente.md) - Información sobre el cliente y stakeholders
+8. [Modelo de Negocio](./modelo_negocio.md) - Descripción detallada del dominio de Negocio.
+ [Flujos de Trabajo](./flujos-trabajo.md) - Flujos detallados de trabajo
+9. [Onboarding](./onboarding.md) - Guía de inicio para nuevos miembros del equipo
+10. [Despliegue](./despliegue.md) - Guía de despliegue
+11. [Referencias Técnicas](./referencias-tecnicas.md) - Referencias técnicas y documentación de soporte
+12. [Información del Cliente](./informacion-cliente.md) - Información sobre el cliente y stakeholders
 
 ## Tecnologías Principales
 

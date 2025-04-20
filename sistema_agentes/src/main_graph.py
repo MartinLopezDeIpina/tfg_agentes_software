@@ -7,6 +7,7 @@ from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
 from src.BaseAgent import AgentState, BaseAgent
+from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.planner_agent.models import PlannerResponse
@@ -96,11 +97,11 @@ class MainAgent(BaseAgent):
         return graph_builder.compile()
 
 
-    def process_result(self, agent_state: AgentState) -> AIMessage:
-        pass
-
-    async def execute_from_dataset(self, inputs: dict) -> dict:
-        pass
+    def process_result(self, agent_state: MainAgentState) -> str:
+        return agent_state.get("formatter_result")
 
     async def evaluate_agent(self, langsmith_client: Client):
-        pass
+        evaluators = [
+            JudgeLLMEvaluator()
+        ]
+        return await self.call_agent_evaluation(langsmith_client, evaluators)

@@ -125,6 +125,33 @@ async def evaluate_planner_agent():
 
     await planner_agent.evaluate_agent(langsmith_client=lansmith_client)
 
+async def evaluate_main_agent():
+    specialized_agents = [
+        #GoogleDriveAgent(),
+        FileSystemAgent(),
+        #GitlabAgent(),
+        ConfluenceAgent(),
+        CodeAgent()
+    ]
+
+    try:
+        # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
+        available_agents = await connect_specialized_agents_to_mcp(specialized_agents)
+
+        planner_agent = PlannerAgent()
+        orchestrator_agent = OrchestratorAgent(available_agents)
+        formatter_agent = FormatterAgent()
+        main_agent = MainAgent(
+            planner_agent=planner_agent,
+            orchestrator_agent=orchestrator_agent,
+            formatter_agent=formatter_agent
+        )
+
+        langsmith_client = Client()
+        await main_agent.evaluate_agent(langsmith_client=langsmith_client)
+    finally:
+        await specialized_agents[0].cleanup()
+
 
 
 
@@ -132,7 +159,7 @@ if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(main())
-    #create_langsmith_datasets()
-    asyncio.run(evaluate_file_system_agent())
+    create_langsmith_datasets()
+    asyncio.run(evaluate_main_agent())
 
 

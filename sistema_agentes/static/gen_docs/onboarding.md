@@ -12,7 +12,9 @@ IA Core Tools es una plataforma interna de LKS Next diseñada para crear, config
 
 Para comenzar, necesitarás acceso a:
 
-- **Repositorio de código**: Solicita acceso al repositorio GitHub del proyecto
+- **Cuenta de Gitlab de LKS NEXT**: Necesitarás una cuenta de GitLab proporcionada por LKS NEXT para poder acceder al repositorio.
+- **Conexión VPN**: Necesitarás estar conectado a la red privada virtual de LKS Next para poder acceder al repositorio. Conectate a la url: https://ssl.lks.es:8443/
+- **Permisos de repositorio **: Solicita acceso al repositorio GitLab del proyecto
 - **Documentación en Confluence**: Pide acceso a la documentación técnica del frontend
 - **Google Drive compartido**: Para acceder a maquetas y recursos de diseño
 - **Canales de comunicación**: Chats de Gmail y Microsoft Teams utilizados por el equipo
