@@ -141,7 +141,7 @@ class OrchestratorAgent(BaseAgent):
         """
         try:
             state = OrchestratorAgentState(
-                planner_high_level_plan=inputs["query"],
+                planner_high_level_plan=inputs["current_plan"],
             )
             state = await self.prepare_prompt(state)
             run_state = await self.execute_orchestrator_agent(state)
