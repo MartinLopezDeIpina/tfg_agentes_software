@@ -14,6 +14,7 @@ from langgraph.prebuilt import create_react_agent
 from langsmith import Client, evaluate, aevaluate
 from langsmith.evaluation import EvaluationResults
 
+from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
@@ -33,12 +34,12 @@ class SpecializedAgent(BaseAgent):
         self,
         name: str,
         description: str,
-        model: BaseChatModel = None,
+        model: BaseChatModel = default_llm,
         tools_str: List[str] = None,
     ):
         super().__init__(
             name=name,
-            model = model or ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
+            model = model,
             debug=True
         )
 
@@ -65,7 +66,7 @@ class SpecializedAgent(BaseAgent):
         ai_messages = [msg for msg in agent_state["messages"] if isinstance(msg, AIMessage)]
 
         if ai_messages:
-            final_result = ai_messages[-1].content
+            final_result = ai_messages[-1]
         else:
             final_result = AIMessage(
                 content="An error occurred while processing the request"

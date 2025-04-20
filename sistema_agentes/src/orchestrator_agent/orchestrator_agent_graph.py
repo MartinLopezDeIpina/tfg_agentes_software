@@ -8,6 +8,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
+from config import default_llm
 from src.BaseAgent import BaseAgent, AgentState
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
@@ -27,7 +28,7 @@ class OrchestratorAgent(BaseAgent):
     def __init__(
             self,
             available_agents: List[SpecializedAgent],
-            model: BaseChatModel = None,
+            model: BaseChatModel = default_llm,
             debug: bool = True
                  ):
         super().__init__(

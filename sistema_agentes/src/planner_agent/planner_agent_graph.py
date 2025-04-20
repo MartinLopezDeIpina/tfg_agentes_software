@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
+from config import default_reasoner_llm, default_llm
 from src.BaseAgent import BaseAgent, AgentState
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
@@ -23,8 +24,8 @@ class PlannerAgent(BaseAgent):
 
     def __init__(
             self,
-            planner_model: BaseChatModel = ChatOpenAI(model="o3-mini"),
-            structure_model:BaseChatModel = ChatOpenAI(model="gpt-4o-mini"),
+            planner_model: BaseChatModel = default_reasoner_llm,
+            structure_model:BaseChatModel = default_llm,
             max_steps: int = 2,
             debug: bool = True
     ):

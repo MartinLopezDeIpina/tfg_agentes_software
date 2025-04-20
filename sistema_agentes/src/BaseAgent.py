@@ -22,7 +22,8 @@ from src.eval_agents.base_evaluator import BaseEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
-from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
+from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, default_llm
+
 
 class AgentState(TypedDict):
     query: str
@@ -47,7 +48,7 @@ class BaseAgent(ABC):
             debug: bool = True
     ):
         self.name = name
-        self.model = model or ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
+        self.model = model or default_llm
         self.debug = True
 
     @abstractmethod

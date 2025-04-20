@@ -1,5 +1,6 @@
 from typing import List
 
+from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 from langsmith import EvaluationResult
 from langsmith.evaluation import EvaluationResults
@@ -38,6 +39,8 @@ class JudgeLLMEvaluator(BaseEvaluator):
         """
 
         run_result = run.outputs.get("result")
+        if isinstance(run_result, BaseMessage):
+            run_result = run_result.content
         run_state = run.outputs.get("run_state")
         run_solution = example.outputs.get("solution")
         solution_possible = example.outputs.get("possible")

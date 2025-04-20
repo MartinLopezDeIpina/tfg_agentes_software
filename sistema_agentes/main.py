@@ -41,7 +41,6 @@ async def main():
             orchestrator_agent=orchestrator_agent,
             formatter_agent=formatter_agent
         )
-        """
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
@@ -53,6 +52,7 @@ async def main():
         result = await orchestrator_graph.ainvoke({
             "planner_high_level_plan": "Obten información sobre el frontend de la aplicación"
         })
+        """
         
 
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(main())
-    create_langsmith_datasets()
-    asyncio.run(evaluate_orchestrator_agent())
+    #create_langsmith_datasets()
+    asyncio.run(evaluate_file_system_agent())
 
 
