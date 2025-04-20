@@ -22,7 +22,8 @@ The execution result of the current step is:
 """
 
 PLANNER_STRUCURE_PROMPT="""Structure the following plan in the required format.
-Do not make up new steps or reasonings, just structure the current plan. 
+Do not make up new steps or new reasonings, just format the input in the required output format. 
+If the input only mentions one single step, do not make new steps. If it mentions various steps, format in various steps.
 
 {plan}
 """
@@ -31,6 +32,8 @@ ORCHESTRATOR_PROMPT = """You are an agent orchestrator. Your task is to call dif
 
 You will receive a list of agents and a query. You must call the agents that are relevant to the query with the apropiate individual query for each agent, use the specified output format.
 All the agents will be executed in parallel.
+
+Structure your response in the specified JSON format, with each agent and its query in a step of the JSON object.
 
 The agents are:
 {available_agents}

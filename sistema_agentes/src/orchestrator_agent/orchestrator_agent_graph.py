@@ -146,7 +146,6 @@ class OrchestratorAgent(BaseAgent):
             state = await self.prepare_prompt(state)
             run_state = await self.execute_orchestrator_agent(state)
 
-
             result = ""
             for agent_step in run_state["orchestrator_low_level_plan"].steps_to_complete:
                 result += f"{agent_step.agent_name}: {agent_step.query}\n\n"

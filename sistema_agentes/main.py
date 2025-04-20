@@ -95,31 +95,44 @@ async def evaluate_google_drive_agent():
     await evaluate_specialized_agent(GoogleDriveAgent())
 
 async def evaluate_orchestrator_agent(agents: List[SpecializedAgent] = None):
-    agents = [
-        GoogleDriveAgent(),
-        FileSystemAgent(),
-        GitlabAgent(),
-        ConfluenceAgent(),
-        CodeAgent()
-    ]
+    try:
 
-    available_agents = await connect_specialized_agents_to_mcp(agents)
-    orchestrator_agent = OrchestratorAgent(available_agents)
+        agents = [
+            GoogleDriveAgent(),
+            FileSystemAgent(),
+            GitlabAgent(),
+            ConfluenceAgent(),
+            CodeAgent()
+        ]
 
-    agents = ""
-    for agent in available_agents:
-        agents += f"{agent.name}\n"
-    print(f"Evaluando agente orquestador con agentes: \n{agents}")
+        available_agents = await connect_specialized_agents_to_mcp(agents)
+        orchestrator_agent = OrchestratorAgent(available_agents)
 
-    langsmith_client = Client()
-    await orchestrator_agent.evaluate_agent(langsmith_client=langsmith_client)
+        agents_str = ""
+        for agent in available_agents:
+            agents_str += f"{agent.name}\n"
+        print(f"Evaluando agente orquestador con agentes: \n{agents}")
+
+        langsmith_client = Client()
+        await orchestrator_agent.evaluate_agent(langsmith_client=langsmith_client)
+
+    finally:
+        await agents[0].cleanup()
+
+async def evaluate_planner_agent():
+    planner_agent = PlannerAgent()
+    lansmith_client = Client()
+
+    await planner_agent.evaluate_agent(langsmith_client=lansmith_client)
+
+
 
 
 if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(main())
-    #create_langsmith_datasets()
-    asyncio.run(evaluate_orchestrator_agent())
+    create_langsmith_datasets()
+    asyncio.run(evaluate_planner_agent())
 
 

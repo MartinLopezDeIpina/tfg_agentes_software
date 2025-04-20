@@ -1,48 +1,188 @@
-agent,query,solution,necessary_tools,unnecessary_tools,possible
-confluence_agent,"¿Existe una guía de estilos para el frontend, donde está?","""Sí existe"", ""está disponible en confluence""",confluence_get_page,confluence_search,TRUE
-confluence_agent,¿Cuáles son los colores principales y secundarios de la aplicación?,"""Color primario: Azul Bootstrap (#0d6efd class='text-primary')"", ""Color secundario:  Gris claro (#f8f9fa class=bg-light)""",confluence_get_page,,TRUE
-confluence_agent,Listame las funcionalidades por implementar en el Frontend,"""Crawlers"", ""API Keys"", Settings""",confluence_get_page,,TRUE
-confluence_agent,¿Qué frameworks o librerías se usan para el frontend?,"""Se usa Bootstrap"", ""Se usa JQuery""",confluence_get_page,,TRUE
-confluence_agent,Listame las funcionalidades de la interfaz visual,"""Funcionalidad Playground de Agentes"", ""Funcionalidad gestión de agentes"", ""Funcionalidad Gestión de repositorios y recursos""",confluence_get_page,,TRUE
-confluence_agent,¿Cómo está estructurada jerárquicamente la navegación en la interfaz?,"""Navegación Principal"", ""Navegación Contextual"", ""Navegación por Repositorio""",confluence_get_page,,TRUE
-confluence_agent,¿Quién es el encargado de desarrollar el frontend?,,"confluence_search, confluence_get_page",,FALSE
-confluence_agent,¿Qué mecanismo o herramienta utiliza el equipo para comunicarse sobre el desarrollo del frontend?,,"confluence_search, confluence_get_page",,FALSE
-confluence_agent,¿Existe alguna maqueta disponible como referencia para el frontend?,,"confluence_search, confluence_get_page",,FALSE
-code_agent,"¿Cuáles son todas las tecnologías, frameworks y lenguajes utilizados en el proyecto?","""Flask"", ""LangChain"", ""PGVector, ""PostgreSQL"", ""Bootstrap"", ""JQuery"", ""Docker""",,,TRUE
-code_agent,¿Qué herramientas específicas se utilizan para gestionar las migraciones de esquemas de base de datos?,"""Se usa alembic para las migraciones""",,,TRUE
-code_agent,¿Qué sistemas externos se integran o comunican con este sistema?,"""APIs de OpenAI"", ""APIs de Anthropic""",,,TRUE
-code_agent,"¿Qué patrones de diseño, estructuras de herencia o composición se implementan en el código?","""Patrón MVC entre modelos templates y blueprints"", ""Factory method en getLLM de modelTools.py""",,,TRUE
-code_agent,"¿Mediante qué protocolos, estándares o interfaces se conectan los sistemas externos?","""APIs REST sobre HTTPS para las conexiones con OpenAI y Anthropic"", """,,,TRUE
-code_agent,¿Cuál es la arquitectura de integración entre los diferentes servicios o componentes del sistema?,"""Integración directa a través de importaciones""",,"get_code_repository_rag_docs_from_query_tool, get_file_from_repository_tool, get_repository_tree_tool",TRUE
-code_agent,¿Qué sistemas de despliegue son posibles?,"""Despliegue con Docker"", ""Ejecución directa en entorno de desarrollo""",,"get_code_repository_rag_docs_from_query_tool, get_file_from_repository_tool, get_repository_tree_tool",TRUE
-code_agent,"¿Qué plataformas o herramientas de soporte están disponibles para el proyecto (diseño, colaboración, monitoreo)?",,get_code_repository_rag_docs_from_query_tool,,FALSE
-code_agent,¿Cuáles son los niveles de permiso o roles definidos para cada tipo de actor en el sistema?,,get_code_repository_rag_docs_from_query_tool,,FALSE
-code_agent,¿De qué manera específica interactúa cada tipo de actor con el sistema?,,get_code_repository_rag_docs_from_query_tool,,FALSE
-file_system_agent,¿Quiénes conforman el equipo de desarrollo y cuáles son sus roles?,"""Aritz Galdos es el desarrollador líder"", ""Mikel Lonbide es el desarrollador principal"", ""Raúl es contribuidor"", ""Juanjo es contribuidor""",read_file,"read_multiple_files, directory_tree, search_files",TRUE
-file_system_agent,¿Cuáles son los canales oficiales de comunicación del equipo?,"""El equipo usa chats de gmail"", ""El equipo usa email para comunicaciones formales"", ""El equipo usa Microsoft Teams para reuniones virtuales""",read_file,"read_multiple_files, directory_tree, search_files",TRUE
-file_system_agent,¿Cuál es el cliente del proyecto y cuáles son sus objetivos?,"""El cliente es LKS Next mismo""",read_file,"read_multiple_files, directory_tree, search_files",TRUE
-file_system_agent,¿Cuáles son los estándares de código definidos para el proyecto?,"""Estructura del proyecto organizada con carpetas coherentes"", ""nomenclatura snake_case para archivos y directorios"", ""nomenclatura snake_case para funciones y variables"", ""nomenclatura CamelCase para clases"", ""constantes en mayúscula"", ""blueprints de flask con la estructura nombre_blueprint""  ",read_file,"read_multiple_files, directory_tree, search_files",TRUE
-file_system_agent,¿Cuál es la metodología de trabajo utilizada en el proyecto?,"""Se usa un enfoque ágil adaptado a las necesidades del equipo"", ""reuniones semanales""",read_file,,TRUE
-file_system_agent,Listame las fuentes externas de documentación para el proyecto,"""Confluence para documentación de frontend"", ""Google Drive para maquetas HTML""","read_file, search_files",,TRUE
-file_system_agent,¿Se utiliza algún sistema de gestión de tareas por completar?,"""Se usan las issues / incidencias de GitLab para la gestión de tareas pendientes""",read_file,,TRUE
-file_system_agent,¿En qué sistema o plataforma se documentan y gestionan los requisitos del proyecto?,,"read_file, search_files",,FALSE
-file_system_agent,¿Cómo funciona detalladamente el proceso de integración continua y qué validaciones incluye?,,"read_file, search_files",,FALSE
-file_system_agent,¿Qué dice la guía de estilos?,,"read_file, search_files",,FALSE
-google_drive_agent,¿Existe alguna plantilla para el panel de administrador? ¿Qué funcionalidades ofrece?,"""Sí existe"", ""Ofrece ver perfiles de héroes"", ""Ofrece ver equipos"", ""Ofrece crear""",gdrive_read_file,gdrive_search,TRUE
-google_drive_agent,¿Cuáles son los paneles a los que se puede navegar en las maquetas HTML mediante la barra de navegación lateral izquierda?,"""Panel dashboard"", ""Panel heroes"", ""Panel admin"", ""panel contact""",gdrive_read_file,,TRUE
-google_drive_agent,¿Existe alguna plantilla para el login? ¿Qué datos requiere para el inicio de sesión?,"""Sí login.html"", ""Requiere el nombre de usuario y contraseña""",gdrive_read_file,gdrive_search,TRUE
-google_drive_agent,¿Dónde se debe poner el botón para ver información del perfil de la cuenta del usuario según las plantillas html?,"""En la parte superior derecha de la pantalla""",gdrive_read_file,,TRUE
-google_drive_agent,Listame las plantillas que consideren la reserva o pago del producto,,search_files,,FALSE
-google_drive_agent,Listame las plantillas que ofrezcan la funcionalidad de enviar mensajes a gente,,search_files,,FALSE
-gitlab_agent,¿Cuáles ramas existen en el proyecto de git?7,,get_gitlab_braches,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_commits, get_gitlab_project_members",TRUE
-gitlab_agent,¿Quien es el desarrollador con más commits de 2025?,,get_gitlab_project_commits,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_members, get_gitlab_braches",TRUE
-gitlab_agent,¿Existe algún issue para arreglar el bug de pgvector?,,get_gitlab_issues,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_members, get_gitlab_braches, get_gitlab_project_commits",TRUE
-gitlab_agent,¿Cuál es el email de Aritz Galdos?,,get_gitlab_project_members,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches, get_gitlab_project_commits",TRUE
-gitlab_agent, Listame todos los commits de Mikel Lonbide a partir del 5 de enero de 2025,,"get_gitlab_project_members, get_gitlab_project_commits","get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches",TRUE
-gitlab_agent,Listame todos los commits de Ángel García a partir del 5 de enero de 2025,,get_gitlab_project_members,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches, get_gitlab_project_commits",FALSE
-gitlab_agent,Listame todas las issues que Mikel Lonbide ha creado,,"get_gitlab_project_members, get_gitlab_issues","get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_braches, get_gitlab_project_commits",TRUE
-gitlab_agent,¿Cuantos forks se le ha hecho al proyecto?,,,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_commits, get_gitlab_project_members, get_gitlab_braches",TRUE
-gitlab_agent,¿Cuando fue creada la rama feature/add_pgvector_tools?,,get_gitlab_braches,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_commits, get_gitlab_project_members",FALSE
-gitlab_agent,¿Cuál es el issue que exige el arreglo de la feature pgvector?,,get_gitlab_issues,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_members, get_gitlab_braches, get_gitlab_project_commits",FALSE
-gitlab_agent,¿Cuál es el id del últmo commit de Mikel Lonbide?,,"get_gitlab_project_members, get_gitlab_project_commits","get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches",TRUE
-orchestrator_agent,Busca información sobre el panel de login,"""Pregunta al agente google_drive_agent sobre maquetas del login"", ""Pregunta al file_system_agent sobre el login"", ""Pregunta al code_agent sobre la implementación del login""  ","google_drive_agent, file_system_agent, code_agent","confluence_agent, gitlab_agent",TRUE
+agent,query,solution,necessary_tools,unnecessary_tools,possible,current_plan,messages
+confluence_agent,"¿Existe una guía de estilos para el frontend, donde está?","""Sí existe"", ""está disponible en confluence""",confluence_get_page,confluence_search,TRUE,,
+confluence_agent,¿Cuáles son los colores principales y secundarios de la aplicación?,"""Color primario: Azul Bootstrap (#0d6efd class='text-primary')"", ""Color secundario:  Gris claro (#f8f9fa class=bg-light)""",confluence_get_page,,TRUE,,
+confluence_agent,Listame las funcionalidades por implementar en el Frontend,"""Crawlers"", ""API Keys"", Settings""",confluence_get_page,,TRUE,,
+confluence_agent,¿Qué frameworks o librerías se usan para el frontend?,"""Se usa Bootstrap"", ""Se usa JQuery""",confluence_get_page,,TRUE,,
+confluence_agent,Listame las funcionalidades de la interfaz visual,"""Funcionalidad Playground de Agentes"", ""Funcionalidad gestión de agentes"", ""Funcionalidad Gestión de repositorios y recursos""",confluence_get_page,,TRUE,,
+confluence_agent,¿Cómo está estructurada jerárquicamente la navegación en la interfaz?,"""Navegación Principal"", ""Navegación Contextual"", ""Navegación por Repositorio""",confluence_get_page,,TRUE,,
+confluence_agent,¿Quién es el encargado de desarrollar el frontend?,,"confluence_search, confluence_get_page",,FALSE,,
+confluence_agent,¿Qué mecanismo o herramienta utiliza el equipo para comunicarse sobre el desarrollo del frontend?,,"confluence_search, confluence_get_page",,FALSE,,
+confluence_agent,¿Existe alguna maqueta disponible como referencia para el frontend?,,"confluence_search, confluence_get_page",,FALSE,,
+code_agent,"¿Cuáles son todas las tecnologías, frameworks y lenguajes utilizados en el proyecto?","""Flask"", ""LangChain"", ""PGVector, ""PostgreSQL"", ""Bootstrap"", ""JQuery"", ""Docker""",,,TRUE,,
+code_agent,¿Qué herramientas específicas se utilizan para gestionar las migraciones de esquemas de base de datos?,"""Se usa alembic para las migraciones""",,,TRUE,,
+code_agent,¿Qué sistemas externos se integran o comunican con este sistema?,"""APIs de OpenAI"", ""APIs de Anthropic""",,,TRUE,,
+code_agent,"¿Qué patrones de diseño, estructuras de herencia o composición se implementan en el código?","""Patrón MVC entre modelos templates y blueprints"", ""Factory method en getLLM de modelTools.py""",,,TRUE,,
+code_agent,"¿Mediante qué protocolos, estándares o interfaces se conectan los sistemas externos?","""APIs REST sobre HTTPS para las conexiones con OpenAI y Anthropic"", """,,,TRUE,,
+code_agent,¿Cuál es la arquitectura de integración entre los diferentes servicios o componentes del sistema?,"""Integración directa a través de importaciones""",,"get_code_repository_rag_docs_from_query_tool, get_file_from_repository_tool, get_repository_tree_tool",TRUE,,
+code_agent,¿Qué sistemas de despliegue son posibles?,"""Despliegue con Docker"", ""Ejecución directa en entorno de desarrollo""",,"get_code_repository_rag_docs_from_query_tool, get_file_from_repository_tool, get_repository_tree_tool",TRUE,,
+code_agent,"¿Qué plataformas o herramientas de soporte están disponibles para el proyecto (diseño, colaboración, monitoreo)?",,get_code_repository_rag_docs_from_query_tool,,FALSE,,
+code_agent,¿Cuáles son los niveles de permiso o roles definidos para cada tipo de actor en el sistema?,,get_code_repository_rag_docs_from_query_tool,,FALSE,,
+code_agent,¿De qué manera específica interactúa cada tipo de actor con el sistema?,,get_code_repository_rag_docs_from_query_tool,,FALSE,,
+file_system_agent,¿Quiénes conforman el equipo de desarrollo y cuáles son sus roles?,"""Aritz Galdos es el desarrollador líder"", ""Mikel Lonbide es el desarrollador principal"", ""Raúl es contribuidor"", ""Juanjo es contribuidor""",read_file,"read_multiple_files, directory_tree, search_files",TRUE,,
+file_system_agent,¿Cuáles son los canales oficiales de comunicación del equipo?,"""El equipo usa chats de gmail"", ""El equipo usa email para comunicaciones formales"", ""El equipo usa Microsoft Teams para reuniones virtuales""",read_file,"read_multiple_files, directory_tree, search_files",TRUE,,
+file_system_agent,¿Cuál es el cliente del proyecto y cuáles son sus objetivos?,"""El cliente es LKS Next mismo""",read_file,"read_multiple_files, directory_tree, search_files",TRUE,,
+file_system_agent,¿Cuáles son los estándares de código definidos para el proyecto?,"""Estructura del proyecto organizada con carpetas coherentes"", ""nomenclatura snake_case para archivos y directorios"", ""nomenclatura snake_case para funciones y variables"", ""nomenclatura CamelCase para clases"", ""constantes en mayúscula"", ""blueprints de flask con la estructura nombre_blueprint""  ",read_file,"read_multiple_files, directory_tree, search_files",TRUE,,
+file_system_agent,¿Cuál es la metodología de trabajo utilizada en el proyecto?,"""Se usa un enfoque ágil adaptado a las necesidades del equipo"", ""reuniones semanales""",read_file,,TRUE,,
+file_system_agent,Listame las fuentes externas de documentación para el proyecto,"""Confluence para documentación de frontend"", ""Google Drive para maquetas HTML""","read_file, search_files",,TRUE,,
+file_system_agent,¿Se utiliza algún sistema de gestión de tareas por completar?,"""Se usan las issues / incidencias de GitLab para la gestión de tareas pendientes""",read_file,,TRUE,,
+file_system_agent,¿En qué sistema o plataforma se documentan y gestionan los requisitos del proyecto?,,"read_file, search_files",,FALSE,,
+file_system_agent,¿Cómo funciona detalladamente el proceso de integración continua y qué validaciones incluye?,,"read_file, search_files",,FALSE,,
+file_system_agent,¿Qué dice la guía de estilos?,,"read_file, search_files",,FALSE,,
+google_drive_agent,¿Existe alguna plantilla para el panel de administrador? ¿Qué funcionalidades ofrece?,"""Sí existe"", ""Ofrece ver perfiles de héroes"", ""Ofrece ver equipos"", ""Ofrece crear""",gdrive_read_file,gdrive_search,TRUE,,
+google_drive_agent,¿Cuáles son los paneles a los que se puede navegar en las maquetas HTML mediante la barra de navegación lateral izquierda?,"""Panel dashboard"", ""Panel heroes"", ""Panel admin"", ""panel contact""",gdrive_read_file,,TRUE,,
+google_drive_agent,¿Existe alguna plantilla para el login? ¿Qué datos requiere para el inicio de sesión?,"""Sí login.html"", ""Requiere el nombre de usuario y contraseña""",gdrive_read_file,gdrive_search,TRUE,,
+google_drive_agent,¿Dónde se debe poner el botón para ver información del perfil de la cuenta del usuario según las plantillas html?,"""En la parte superior derecha de la pantalla""",gdrive_read_file,,TRUE,,
+google_drive_agent,Listame las plantillas que consideren la reserva o pago del producto,,search_files,,FALSE,,
+google_drive_agent,Listame las plantillas que ofrezcan la funcionalidad de enviar mensajes a gente,,search_files,,FALSE,,
+gitlab_agent,¿Cuáles ramas existen en el proyecto de git?7,,get_gitlab_braches,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_commits, get_gitlab_project_members",TRUE,,
+gitlab_agent,¿Quien es el desarrollador con más commits de 2025?,,get_gitlab_project_commits,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_members, get_gitlab_braches",TRUE,,
+gitlab_agent,¿Existe algún issue para arreglar el bug de pgvector?,,get_gitlab_issues,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_members, get_gitlab_braches, get_gitlab_project_commits",TRUE,,
+gitlab_agent,¿Cuál es el email de Aritz Galdos?,,get_gitlab_project_members,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches, get_gitlab_project_commits",TRUE,,
+gitlab_agent, Listame todos los commits de Mikel Lonbide a partir del 5 de enero de 2025,,"get_gitlab_project_members, get_gitlab_project_commits","get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches",TRUE,,
+gitlab_agent,Listame todos los commits de Ángel García a partir del 5 de enero de 2025,,get_gitlab_project_members,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches, get_gitlab_project_commits",FALSE,,
+gitlab_agent,Listame todas las issues que Mikel Lonbide ha creado,,"get_gitlab_project_members, get_gitlab_issues","get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_braches, get_gitlab_project_commits",TRUE,,
+gitlab_agent,¿Cuantos forks se le ha hecho al proyecto?,,,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_commits, get_gitlab_project_members, get_gitlab_braches",TRUE,,
+gitlab_agent,¿Cuando fue creada la rama feature/add_pgvector_tools?,,get_gitlab_braches,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_commits, get_gitlab_project_members",FALSE,,
+gitlab_agent,¿Cuál es el issue que exige el arreglo de la feature pgvector?,,get_gitlab_issues,"get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_project_members, get_gitlab_braches, get_gitlab_project_commits",FALSE,, 
+gitlab_agent,¿Cuál es el id del últmo commit de Mikel Lonbide?,,"get_gitlab_project_members, get_gitlab_project_commits","get_gitlab_issues, get_gitlab_project_statistics, get_gitlab_issues, get_gitlab_braches",TRUE,,
+orchestrator_agent,Busca información sobre el panel de login,"""Pregunta al agente google_drive_agent sobre maquetas del login"", ""Pregunta al file_system_agent sobre el login"", ""Pregunta al code_agent sobre la implementación del login""  ","google_drive_agent, file_system_agent, code_agent","confluence_agent, gitlab_agent",TRUE,,
+orchestrator_agent,Busca información sobre la arquitectura del software,"""Pregunta al file_system_agent sobre documentación de la arquitectura del software del proyecto"", ""Pregunta code_agent sobre la arquitectura del código del proyecto""","file_system_agent, code_agent","confluence_agent, gitlab_agent, google_drive_agent",TRUE,,
+orchestrator_agent,Busca información sobre la gestión del proyecto,"""Pregúntale al file_system_agent sobre la gestión del proyecto"", ""Pregúntale al confluence_agent sobre la gestión del frontend del proyecto""","file_system_agent, confluence_agent","gitlab_agent, google_drive_agent, code_agent",TRUE,,
+orchestrator_agent,Obtén información sobre cuál es la intención del proyecto,"""Pregutale a file_system_agent sobre la intención / rol / función del proyecto""",file_system_agent,"gitlab_agent, google_drive_agent, code_agent, confluence_agent",TRUE,,
+orchestrator_agent,Obtén información sobre cómo desplegar el proyecto,"""Pregúntale a file_system_agent sobre los métodos de despliegue"", ""Pregúntale a code_agent sobre cómo desplegar el proyecto""","file_system_agent, code_agent","confluence_agent, gitlab_agent, google_drive_agent",TRUE,,
+orchestrator_agent,Obtén información sobre cómo se gestionan las tareas en el proyecto,"""Pregúntale a file_system_agent sobre la gestión de tareas""",file_system_agent,"gitlab_agent, google_drive_agent, code_agent, confluence_agent",TRUE,,
+orchestrator_agent,Busca información sobre cuáles son todas las fuentes de documentación existentes,"""Pregúntale a file_system_agent sobre cuáles son / dónde están las fuentes de documentación del proyecto""",file_system_agent,"gitlab_agent, google_drive_agent, code_agent, confluence_agent",TRUE,,
+orchestrator_agent,Busca información sbore el stack tecnológico del proyecto,"""Pregúntale al file_system_agent sobre todas las tecnologías / frameworks utilizadas"", ""Pregúntale a confluence_agent sobre las tecnologías / frameworks de frontend utilizadas""","file_system_agent, confluence_agent","gitlab_agent, google_drive_agent, code_agent",TRUE,,
+orchestrator_agent,Busca información sobre los diferentes contenedores existentes en el sistema,"""Pregúntale al file_system_agent sobre qué contenedores existen en el proyecto"", ""Pregúntale al code_agent sobre los contenedores existentes en el proyecto""","file_system_agent, code_agent","confluence_agent, gitlab_agent, google_drive_agent",TRUE,,
+orchestrator_agent,Busca información sobre el contenedor de base de datos,"""Pregúntale al flle_system_agent sobre el contenedor de base de datos"", ""Pregúntale al code_agent sobre el contenedor de base de datos""","file_system_agent, code_agent","confluence_agent, gitlab_agent, google_drive_agent",TRUE,,
+orchestrator_agent,Busca información sobre el diagrama de clases para los agentes del proyecto,"""Pregúntale al file_system_agent sobre el diagrama de clases / estructura de clases para los agentes del proyecto"", ""Pregúntale al code_agent sobre información del diagrama de clases para los agentes del proyecto""","file_system_agent, code_agent","confluence_agent, gitlab_agent, google_drive_agent",TRUE,,
+planner_agent,¿Cómo funciona el frontend del proyecto?,"""El plan no está finalizado"", ""El siguiente step es obtener información relacionada con el frontend del proyecto"", ""Obtener información relacionada con el frontend es el único step listado""",,,TRUE,,
+planner_agent,¿Qué tecnologías se utilizan en el proyecto?,"""El plan no está finalizado"", ""El siguiente step es obtener información relacionada con las tecnologías utilizadas"", ""Obtener información relacionada con las tecnologías utilizadas es el único step listado""",,,TRUE,,
+planner_agent,¿Cómo funciona la gestión del proyecto?,"""El plan no está finalizado"", ""El siguiete step es obtener información relacionada con la gestión del proyecto"", ""Obtener información relacionada con la gestión del proyecto es el único step listado""",,,TRUE,,
+planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos visual en el proyecto,"""El plan no está finalizado"", ""El siguiente step es obtener información relacionada con la guía de estilos visual del proyecto"", ""El plan listado contiene más de un step""",,,TRUE,,
+planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos en el proyecto,"""El plan no está finalizado"", ""El siguiente step es obtener ejemplos de código de frontend donde se apliquen los principios de la guía de estilos"", ""Obtener los ejemplos de código frontend donde se apliquen los principios de la guía de estilos es el último step listado"", ""el step listado contiene información sobre las características de la guía de estilos del código a buscar""",,,TRUE,"""Para buscar ejemplos donde se aplica la guía de estilos visual primero hay que buscar la guía de estilos visual del proyecto "",""Obtener la guía de estilos visual del proyecto""","""Guía de estilos visual: Primario: Azul Bootstrap (#0d6efd class=text-primary) Secundario: Gris claro (#f8f9fa class=bg-light) Fuentes Web:
+
+DM Sans: Para textos generales (weights: 400 500 700)
+
+Poppins: Para títulos y elementos destacados (weights: 400 500 700)
+
+Carga: Mediante Google Fonts
+
+Sistema de Grid:
+
+Basado en Bootstrap con 12 columnas
+
+Responsive con breakpoints estándar de Bootstrap
+
+Clases principales: .row .col-[tamaño] .col-[tamaño]-[número]"""
+planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos en el proyecto,"""El plan sí está finalizado"", ""Se ha obtenido información suficiente sobre la guía de estilos y el código en el que se aplica""",,,TRUE,"""Para buscar ejemplos donde se aplica la guía de estilos visual primero hay que buscar la guía de estilos visual del proyecto"", ""Primero se debe obtener la guía de estilos del proyecto"", ""Después se deben obtener ejemplos de código donde se aplique esta guía de estilos""","""Guía de estilos visual: Primario: Azul Bootstrap (#0d6efd class=text-primary) Secundario: Gris claro (#f8f9fa class=bg-light) Fuentes Web:
+
+DM Sans: Para textos generales (weights: 400 500 700)
+
+Poppins: Para títulos y elementos destacados (weights: 400 500 700)
+
+Carga: Mediante Google Fonts
+
+Sistema de Grid:
+
+Basado en Bootstrap con 12 columnas
+
+Responsive con breakpoints estándar de Bootstrap
+
+Clases principales: .row .col-[tamaño] .col-[tamaño]-[número]"",
+
+""<div class=col-12>
+    <input type=submit class=btn btn-primary value=Save />
+    <a href={{ url_for(agents.app_agents app_id=session[app_id]) }}
+        class=btn btn-primary-soft>Cancel</a>
+</div>"",
+
+""<div class=bg-light border border-secondary border-opacity-25 p-3 rounded mt-4 id=referenece>
+    <div class=d-sm-flex align-items-center>
+        <div class=avatar avatar-xs flex-shrink-0>
+            <img class=avatar-img rounded-circle src=/static/img/logo-lks.svg alt=avatar>
+        </div>
+        <h6 class=mb-0 ms-2 id=ref-name>{{agent.name}}</h6>
+    </div>
+    <div class=hstack gap-4 gap-md-5 flex-wrap mt-2>
+        <div>
+            <p class=mb-0 id=ref-text>Hello I am {{agent.name}} agent... May I help you?</p>
+        </div>
+    </div>
+</div>"",
+
+""<div class=row>
+    <div class=col-2>
+        {% include repositories/repo_menu.html %}
+    </div>
+    <div class=col-10>
+        <div class=card shadow mb-4>
+            <div class=card-header border-bottom>
+                <h5 class=mb-0>Repository: {{repo.name}}</h5>
+            </div>
+            <form
+                action={{ url_for(repositories.repository app_id=session[app_id] repository_id=repo.repository_id) }}
+                method=POST>
+                <input type=hidden name=app_id value={{app_id}}>
+                <div class=card-body>
+                    <div class=row>
+                        <div class=col-md-6 mb-4>
+                            <label class=form-label>Name<span class=text-danger>*</span></label>
+                            <input type=text class=form-control placeholder=Name... value={{repo.name}}
+                                name=name>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>"",
+
+""<div class=d-sm-flex justify-content-between align-items-center>
+    <h1 class=h4 mb-2 mb-sm-0>Agents</h1>
+    <a href={{ url_for(agents.app_agent app_id=session[app_id] agent_id=0) }} class=btn btn-primary mt-3>
+        <i class=bi bi-plus></i>
+    </a>
+</div>"""
+planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,"""El plan no está finalizado"", ""El siguiente step está relacionado con obtener las funcionalidades de la documentación marcadas como por implementar"", ""El plan listado contiene más de un step""",,,TRUE,,
+planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,"""El plan no está finalizado"", ""El siguiente step está relacionado con obtener las issues del proyecto"", ""Obtener las issues del proyecto es el último paso listado""",,,TRUE,"""Para determinar si las funcionalidades por implementar están listadas en alguna issue primero se deben obtener la documentación correspondiente a dichas funcionalidades y para ver si las issues contienen información sobre dichas funcionalidades"", ""Primero se debe buscar información en la documentación sobre las funcionalidades por implementar"", ""Después se deben buscar las issues del proyecto""","""Funcionalidades No Implementadas
+
+Crawlers: Mencionados en el menú pero aún no implementados
+API Keys: Aparecen en el menú pero no están completamente implementados
+Settings: Página marcada como DELETE ME (en desarrollo)
+
+Mejoras Potenciales
+
+Validación de Formularios: Implementar validación client-side más robusta
+Feedback Visual: Mejorar los mensajes de éxito/error tras acciones
+UX del Playground: Mejorar visualización e interacción con la conversación
+
+Elementos para Revisión
+
+Menú de Repositorio: Contiene elemento marcado como TASK: delete
+Consistencia de Confirmaciones: Algunas acciones de eliminación tienen confirmación y otras no
+Implementación Completa: Finalizar elementos marcados como pendientes"""
+planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,"""El plan sí está finalizado"", ""Se ha obtenido suficiente información como para determinar si existen issues para las funcionalidades no implementadas""",,,TRUE,"""Para determinar si las funcionalidades por implementar están listadas en alguna issue primero se deben obtener la documentación correspondiente a dichas funcionalidades y para ver si las issues contienen información sobre dichas funcionalidades"", ""Primero se debe buscar información en la documentación sobre las funcionalidades por implementar"", ""Después se deben buscar las issues del proyecto""","""Funcionalidades No Implementadas
+
+Crawlers: Mencionados en el menú pero aún no implementados
+API Keys: Aparecen en el menú pero no están completamente implementados
+Settings: Página marcada como DELETE ME (en desarrollo)
+
+Mejoras Potenciales
+
+Validación de Formularios: Implementar validación client-side más robusta
+Feedback Visual: Mejorar los mensajes de éxito/error tras acciones
+UX del Playground: Mejorar visualización e interacción con la conversación
+
+Elementos para Revisión
+
+Menú de Repositorio: Contiene elemento marcado como TASK: delete
+Consistencia de Confirmaciones: Algunas acciones de eliminación tienen confirmación y otras no
+Implementación Completa: Finalizar elementos marcados como pendientes"",
+
+""Issue 123: Es necesario implementar validación de formularios clinet-side
+responsable: Aritz Galdos"",
+
+"
+planner_agent,¿Cómo despliego el proyecto en AWS?,,,,FALSE,"""Para explicar cómo desplegar el proyecto en AWS primero debo buscar documentación sobre esto"", ""Buscar información sobre despliegue en AWS""","""No se ha obtenido información sobre AWS"", ""Los métodos de despliegue son Docker y modo desarrollador"""
+planner_agent,¿Quién es el CEO de la empresa del proyecto?,,,,FALSE,"""Para encontrar el CEO de la empresa, primero debo buscar cuál empresa desarrolla el proyecto y después buscar información sobre el CEO de esta"", ""Buscar la empresa que desarrolla el proyecto"", ""Buscar el CEO de la empresa""","""La empresa que desarrolla el proyecto es LKS NEXT"", ""No se ha encontrado información relacionada con el CEO de LKS NEXT"""
