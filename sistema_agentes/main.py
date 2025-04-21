@@ -25,8 +25,8 @@ async def main():
         #GoogleDriveAgent(),
         #FileSystemAgent(),
         #GitlabAgent(),
-        ConfluenceAgent(),
-        #CodeAgent()
+        #ConfluenceAgent(),
+        CodeAgent()
     ]
 
     try:
@@ -44,7 +44,7 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "Cuál es el color primario de la app según la guía de estilos?",
+            "query": "en qué fichero se gestiona las utilidades de pgvector?",
             "messages": []
         })
         """

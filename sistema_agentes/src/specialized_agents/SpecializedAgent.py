@@ -2,9 +2,11 @@ import functools
 from abc import ABC, abstractmethod
 from typing import List, TypedDict
 
+from jedi.inference.recursion import recursion_limit
 from langchain.chains.question_answering.map_reduce_prompt import messages
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
@@ -33,6 +35,8 @@ class SpecializedAgent(BaseAgent):
     tools: List[BaseTool]
     mcp_client: MCPClient
     data_sources: List[DataSource]
+    #todo + checkear frontend en agente código
+    config: RunnableConfig
 
     def __init__(
         self,
@@ -114,7 +118,10 @@ class SpecializedAgent(BaseAgent):
         """
         graph_builder = StateGraph(AgentState)
 
-        react_graph = create_react_agent(model=self.model, tools=self.tools)
+        react_graph = create_react_agent(
+            model=self.model,
+            tools=self.tools,
+        )
 
         graph_builder.add_node("prepare", self.prepare_prompt)
         graph_builder.add_node("react", react_graph)

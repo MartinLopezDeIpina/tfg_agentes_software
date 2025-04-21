@@ -9,7 +9,7 @@ from mcp.types import CallToolResult, TextContent
 from config import REPO_ROOT_ABSOLUTE_PATH, MAX_CHUNKS, MAX_REFERENCED_CHUNKS, MAX_REFERENCING_CHUNKS
 from db.db_connection import DBConnection
 from db.db_utils import get_chunk_code
-from mcp_tools import get_code_repository_rag_docs_from_query, get_code_from_repository_file
+from mcp_tools import get_code_repository_rag_docs_from_query, get_code_from_repository_file, get_all_files_list
 from utils.proyect_tree import generate_repo_tree_str
 
 from src.pg_vector_tools import PGVectorTools
@@ -80,7 +80,6 @@ async def get_file_from_repository_tool(file_path: str) -> TextContent:
         type='text'
     )
 
-#todo: se podría hacer que este devuelva el tree con detalles de las definiciones -> no es necesario
 @mcp.tool()
 async def get_repository_tree_tool(sub_path: str = None) -> TextContent:
     """
@@ -99,6 +98,18 @@ async def get_repository_tree_tool(sub_path: str = None) -> TextContent:
     repo_tree_str = generate_repo_tree_str(sub_path)
     return TextContent(
         text=repo_tree_str,
+        type='text'
+    )
+
+@mcp.tool()
+async def get_all_respository_files_list() -> TextContent:
+    """
+    Devuelve una lista en formato string serializable a JSON de todos los ficheros en el repositorio respecto a su ruta relativa
+    """
+    files_list = get_all_files_list(db_session=db_session)
+    files_list_str=str(files_list)
+    return TextContent(
+        text=files_list_str,
         type='text'
     )
 

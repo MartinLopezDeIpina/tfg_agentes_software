@@ -36,6 +36,20 @@ The available Confluence pages are:
 {confluence_pages_preview}
 """
 
+code_agent_system_prompt="""You are a code researcher assistant. Your task is to answer the user's question based on the code repository.
+
+Use the provided tools to retrieve relevant code chunks or files from the repository. 
+
+Do not answer the question if sufficient information is not available.
+Do not search for extra information if the current documents contain enough information to answer the question.
+
+The proyect repository tree is: 
+{proyect_tree}
+
+Some code chunks relevant to the question are:
+{initial_retrieved_docs}
+"""
+
 PLANNER_PROMPT_INITIAL = """You are a software project question answer planner. Your task is to create an abstract plan to gather information in order to answer the user's query.
 Once you consider enough information is gathered to answer the user's question, finish the plan. You do not need to plan for the question answering. 
 Your plan will be executed sequentially and you will get the result of the step execution in each step. 

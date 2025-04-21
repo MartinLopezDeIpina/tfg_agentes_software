@@ -1,3 +1,4 @@
+import ast
 import json
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
@@ -93,9 +94,6 @@ class FileSystemResponseParser(ResponseParser):
         return available_documents
 
 class ConfluenceResponseParser(ResponseParser):
-    def __init__(self):
-        super().__init__()
-
     def parse_tool_response(self, response: str) -> dict:
         available_documents = {}
         try:
@@ -112,6 +110,21 @@ class ConfluenceResponseParser(ResponseParser):
         except Exception as e:
             print(f"Error parseando respuesta de documentos Confluence: {e}")
             return {}
+
+class CodeResponseParser(ResponseParser):
+    def parse_tool_response(self, response: str) -> dict:
+        available_documents = {}
+        try:
+            file_list = ast.literal_eval(response)
+            for doc in file_list:
+                relative_path = doc
+                available_documents[relative_path] = ""
+
+            return available_documents
+        except Exception as e:
+            print(f"Error parseando respuesta de documentos del respositorio de código: {e}")
+            return {}
+
 
 
 class DataSource(ABC):
@@ -164,7 +177,9 @@ class DataSource(ABC):
         resource_url = self.url
         if document_name != self.docs_id:
             doc_extra_url = self.available_documents[document_name]
-            resource_url += f"/{doc_extra_url}/{document_name}"
+            if doc_extra_url != "":
+                doc_extra_url = f"/{doc_extra_url}"
+            resource_url += f"{doc_extra_url}/{document_name}"
             
         return Citation(
             doc_name=document_name,
@@ -217,10 +232,10 @@ class CodeDataSource(DataSource):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
             tool_args=tool_args,
-            url=f"{CODE_REPO_ROOT_ABSOLUTE_PATH}",
+            url=f"file://{CODE_REPO_ROOT_ABSOLUTE_PATH}",
             docs_id="code_repository",
-            use_example="",
-            response_parser=None
+            use_example="If you want to cite the document notebook1.pynb: doc_name=notebooks/notebook1.pynb",
+            response_parser=CodeResponseParser()
         )
 
 
