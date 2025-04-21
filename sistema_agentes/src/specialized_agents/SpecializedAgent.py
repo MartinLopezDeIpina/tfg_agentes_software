@@ -19,7 +19,8 @@ from src.BaseAgent import AgentState, BaseAgent
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
-from src.specialized_agents.citations_tool.models import DataSource
+from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
+from src.specialized_agents.citations_tool.models import DataSource, CitedAIMessage
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
 from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
@@ -37,6 +38,7 @@ class SpecializedAgent(BaseAgent):
         self,
         name: str,
         description: str,
+        prompt: str = "",
         model: BaseChatModel = default_llm,
         tools_str: List[str] = None,
         data_sources: List[DataSource] = None,
@@ -44,12 +46,14 @@ class SpecializedAgent(BaseAgent):
         super().__init__(
             name=name,
             model = model,
-            debug=True
+            debug=True,
+            prompt = prompt
         )
 
         self.description = description
         self.tools_str = tools_str or []
         self.data_sources = data_sources or []
+
 
     @abstractmethod
     async def connect_to_mcp(self):
@@ -68,6 +72,13 @@ class SpecializedAgent(BaseAgent):
                 )
             )
 
+    async def init_agent(self):
+        """
+        Conecta el agente al servidor MCP e inicializa el sistema de referenciado de citas
+        """
+        await self.connect_to_mcp()
+        await self.create_citation_data_source()
+
     async def cleanup(self):
         """
         Limpiar la conexión al cliente mcp
@@ -75,17 +86,24 @@ class SpecializedAgent(BaseAgent):
         if self.mcp_client:
             await self.mcp_client.cleanup()
 
-    def process_result(self, agent_state: AgentState) -> AIMessage:
+    def process_result(self, agent_state: AgentState) -> CitedAIMessage:
         """
         Una vez ejecutado el grafo del agente, obtener el resultado final.
         """
-        ai_messages = [msg for msg in agent_state["messages"] if isinstance(msg, AIMessage)]
+        ai_messages = agent_state.get("messages")
 
         if ai_messages:
-            final_result = ai_messages[-1]
+            response_message = ai_messages[-1]
+            citations = get_citations_from_conversation_messages(ai_messages) or []
+
+            return CitedAIMessage(
+                message=response_message,
+                citations=citations
+            )
         else:
-            final_result = AIMessage(
-                content="An error occurred while processing the request"
+            final_result = CitedAIMessage(
+                message=AIMessage(content="Error procesando respuesta"),
+                citations = []
             )
 
         return final_result

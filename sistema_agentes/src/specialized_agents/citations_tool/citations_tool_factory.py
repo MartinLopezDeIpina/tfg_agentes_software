@@ -1,6 +1,7 @@
 from langchain_core.tools import tool, BaseTool
 from typing import Callable, Any, Dict, Optional, List, Union
 
+from src.mcp_client.tool_wrapper import patch_tool_with_exception_handling
 from src.specialized_agents.citations_tool.models import DataSource, Citation
 
 
@@ -16,16 +17,30 @@ def create_citation_tool(data_sources: List[DataSource]) -> BaseTool:
         Una herramienta de LangChain configurada
     """
 
-    @tool
-    async def cite_document(doc_id: str, explanation: str) -> Citation or str:
-        """
-        Cita un documento específico de una o más fuentes de datos.
-
+    base_docstring = """
+        Cite a specific document from one or more data sources.
         Args:
-            doc_id: El identificador del documento a citar
-            explanation: Explicación de por qué se cita este documento
+            doc_name: The identifier of the document to cite.
+            explanation: Explanation of why this document is being cited, referencing the section of the document used.
         Returns:
-            Confirmación de la cita o mensaje de error si no se encuentra
+            Confirmation of the citation or error message if not found
+            
+        If you want to cite the data source, use doc_name = {source_doc_name}
+            
+        Usage example:
+        {tool_use_example}
+    """
+    source_doc_name = " ".join(data_source.docs_id for data_source in data_sources)
+    tool_use_example = "\n".join(data_source.use_example for data_source in data_sources)
+
+    docstring = base_docstring.format(
+        source_doc_name=source_doc_name,
+        tool_use_example=tool_use_example,
+    )
+
+    async def cite_document(doc_name: str, explanation: str) -> Citation or str:
+        """
+        Utilizar doc_string dinámico en función de qué fuente de datos se utilice para ajustar la tool a su agente.
         """
         # Si no hay fuentes de datos configuradas
         if not data_sources:
@@ -34,10 +49,14 @@ def create_citation_tool(data_sources: List[DataSource]) -> BaseTool:
         # Buscar la fuente de datos por nombre
         for source in data_sources:
             # Verificar si el recurso existe en esta fuente
-            exists = source.resource_exists(doc_id)
+            exists = source.resource_exists(doc_name)
             if exists:
-                return source.format_citation(doc_id, explanation)
+                return source.format_citation(doc_name, explanation)
 
-        return f"No se encontró '{doc_id}' en las fuentes de datos disponibles"
+        return f"No se encontró '{doc_name}' en las fuentes de datos disponibles"
 
-    return cite_document
+    cite_document.__doc__ = docstring
+    # decorar con tool después de haber cambiado el docstring
+    cite_document = tool(cite_document)
+
+    return patch_tool_with_exception_handling(cite_document)

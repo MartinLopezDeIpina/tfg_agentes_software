@@ -14,12 +14,13 @@ from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
+from src.specialized_agents.citations_tool.models import CitedAIMessage
 from static.prompts import ORCHESTRATOR_PROMPT
 
 class OrchestratorAgentState(AgentState):
     planner_high_level_plan: str
     orchestrator_low_level_plan: OrchestratorPlan
-    low_level_plan_execution_result: List[AIMessage]
+    low_level_plan_execution_result: List[CitedAIMessage]
 
 class OrchestratorAgent(BaseAgent):
 
@@ -90,8 +91,7 @@ class OrchestratorAgent(BaseAgent):
                 if agent.name == agent_name:
                     step_agent = agent
             if step_agent:
-                agent_graph = step_agent.create_graph()
-                task = agent_graph.ainvoke({
+                task = step_agent.execute_agent_graph_with_exception_handling({
                     "query":step.query,
                     "messages": []
                 })

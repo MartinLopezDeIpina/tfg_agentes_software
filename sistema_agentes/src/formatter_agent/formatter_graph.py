@@ -10,6 +10,7 @@ from langsmith import Client
 from src.BaseAgent import AgentState, BaseAgent
 from src.planner_agent.models import PlannerResponse
 from src.planner_agent.state import MainAgentState
+from src.specialized_agents.citations_tool.models import CitedAIMessage
 from src.utils import tab_all_lines_x_times, print_markdown
 from static.prompts import SOLVER_AGENT_PROMPT
 from config import default_llm
@@ -36,7 +37,11 @@ class FormatterAgent(BaseAgent):
                 content=state["query"]
             )
         ]
-        formatter_agent_messages.extend(state["messages"][1:])
+        for message in state["messages"][1:]:
+            if isinstance(message, CitedAIMessage):
+                formatter_agent_messages.append(message.format_to_ai_message())
+            else:
+                formatter_agent_messages.append(message)
 
         finish_result = await self.model.ainvoke(
             input=formatter_agent_messages

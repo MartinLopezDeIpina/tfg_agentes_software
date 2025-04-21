@@ -2,7 +2,7 @@ from langchain_core.language_models import BaseChatModel
 
 from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.specialized_agents.google_drive_agent.prompts import google_drive_system_prompt
+from src.specialized_agents.citations_tool.models import GoogleDriveDataSource
 import asyncio
 from typing import List
 
@@ -11,6 +11,7 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 
 from static.agent_descriptions import GOOGLE_DRIVE_AGENT_DESCRIPTION
+from static.prompts import CITE_REFERENCES_PROMPT, google_drive_system_prompt
 
 class GoogleDriveAgent(SpecializedAgent):
     def __init__(self, model: BaseChatModel = None):
@@ -21,8 +22,13 @@ class GoogleDriveAgent(SpecializedAgent):
             tools_str= [
                 "gdrive_list_files",
                 "gdrive_read_file",
-                "gdrive_search"
-            ]
+                "gdrive_search",
+                "gdrive_list_files_json"
+            ],
+            data_sources=[GoogleDriveDataSource("gdrive_list_files_json")],
+            prompt=CITE_REFERENCES_PROMPT.format(
+                agent_prompt=google_drive_system_prompt
+            )
         )
 
     async def connect_to_mcp(self):
@@ -43,7 +49,7 @@ class GoogleDriveAgent(SpecializedAgent):
 
         messages = [
             SystemMessage(
-                google_drive_system_prompt.format(
+                self.prompt.format(
                     google_drive_files_info=files_str
                 )
             ),

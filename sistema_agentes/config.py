@@ -15,9 +15,9 @@ OFICIAL_DOCS_RELATIVE_PATH = "/sistema_agentes/static/gen_docs"
 CODE_REPO_ROOT_ABSOLUTE_PATH = "/home/martin/open_source/ia-core-tools"
 
 default_llm = ChatOpenAI(
-    model="gpt-4o-mini"
+    model="gpt-4.1-mini"
 )
 default_reasoner_llm = ChatOpenAI(
-    model="o3-mini"
+    model="o4-mini"
 )
 

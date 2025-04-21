@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 from config import REPO_ROOT_ABSOLUTE_PATH, OFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool
 
 
@@ -14,13 +14,40 @@ class Citation:
     doc_url: str
     doc_explanation: str
 
-class CitedAIMessage(AIMessage):
+    def __str__(self):
+        return json.dumps({
+            "type": "Citation",
+            "data": {
+                "doc_name": self.doc_name,
+                "doc_url": self.doc_url,
+                "doc_explanation": self.doc_explanation
+            }
+        })
+
+    @classmethod
+    def from_string(cls, s):
+        try:
+            data = json.loads(s)
+            if data.get("type") == "Citation":
+                return cls(**data["data"])
+        except Exception as e:
+            pass
+
+class CitedAIMessage(BaseMessage):
     citations: List[Citation]
 
-    def __init__(self, message: AIMessage, citations: List[Citation]):
-        super().__init__(content=message.content)
+    def __init__(self, message: BaseMessage, citations: List[Citation]):
+        super().__init__(
+            type="ai_cited",
+            content=message.content,
+            citations=citations
+        )
 
-        self.citations = citations
+    def format_to_ai_message(self) -> AIMessage:
+        citations_str = "\n".join(citation.__str__() for citation in self.citations)
+        return AIMessage(
+            content=f"{self.content}\nCitations:\n{citations_str}"
+        )
 
 
 class DataSource(ABC):
@@ -31,11 +58,11 @@ class DataSource(ABC):
     # La id del DataSource para citar a la propia fuente de datos
     docs_id: str
 
-    def __init__(self, get_documents_tool_name: str, url: str, docs_id: str):
+    def __init__(self, get_documents_tool_name: str, url: str, docs_id: str, use_example: str):
         self.get_documents_tool_name = get_documents_tool_name
         self.url = url
         self.docs_id = docs_id
-        self.set_available_documents()
+        self.use_example = use_example
 
     async def set_available_documents(self, agent_tools: List[BaseTool]) -> None:
         """
@@ -51,8 +78,7 @@ class DataSource(ABC):
                 raise Exception("No se ha encontrado la herramienta para listar los documentos")
 
             tool_response = await get_documents_tool.ainvoke({})
-            tools_str = tool_response.content[0].text
-            tools_json = json.loads(tools_str)
+            tools_json = json.loads(tool_response)
             tool_list = tools_json["documents"]
 
             self.available_documents = {}
@@ -65,7 +91,7 @@ class DataSource(ABC):
         finally:
             self.available_documents[self.docs_id] =  ""
         
-    async def resource_exists(self, document_name: str) -> bool:
+    def resource_exists(self, document_name: str) -> bool:
         return document_name in self.available_documents
 
     def format_citation(self, document_name: str, doc_explanation: str) -> Citation:
@@ -86,35 +112,40 @@ class GoogleDriveDataSource(DataSource):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
             url="https://drive.google.com/drive/u/0/folders/1axp3gAWo6VeAFq16oj1B5Nm06us2FBdR",
-            docs_id="google_drive_documents"
+            docs_id="google_drive_documents",
+            use_example="if there is a file named file.html: doc_name = file.html"
         )
 class FileSystemDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
             url=f"file://{REPO_ROOT_ABSOLUTE_PATH}/{OFICIAL_DOCS_RELATIVE_PATH}",
-            docs_id="oficial_documentation"
+            docs_id="oficial_documentation",
+            use_example=""
         )
 class ConfluenceDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
             url=f"https://martin-tfg.atlassian.net/wiki/spaces/~7120204ae5fbc225414096ab7a3348546ff647/",
-            docs_id="oficial_documentation"
+            docs_id="oficial_documentation",
+            use_example=""
         )
 class GitLabDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
             url=f"https://gitlab.devops.lksnext.com/lks/genai/ia-core-tools",
-            docs_id="gitlab_repository"
+            docs_id="gitlab_repository",
+            use_example=""
         )
 class CodeDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
             url=f"{CODE_REPO_ROOT_ABSOLUTE_PATH}",
-            docs_id="code_repository"
+            docs_id="code_repository",
+            use_example=""
         )
 
 

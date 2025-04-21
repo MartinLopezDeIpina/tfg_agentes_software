@@ -40,16 +40,19 @@ class BaseAgent(ABC):
     name: str
     model: BaseChatModel
     debug: bool
+    prompt: str
 
     def __init__(
             self,
             name: str,
             model: BaseChatModel = None,
-            debug: bool = True
+            debug: bool = True,
+            prompt: str = ""
     ):
         self.name = name
         self.model = model or default_llm
         self.debug = True
+        self.prompt = prompt
 
     @abstractmethod
     async def prepare_prompt(self, state: AgentState) -> AgentState:
@@ -75,6 +78,15 @@ class BaseAgent(ABC):
         """
         Define los evaluadores específicos a utilizar para la evaluación del agente.
         """
+
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        agent_graph = self.create_graph()
+        try:
+            result = await agent_graph.ainvoke(input=input)
+            return result
+        except Exception as e:
+            print(f"Excepción ejecutando agente {self.name}: {e}")
+            return input
 
     async def execute_from_dataset(self, inputs: dict) -> dict:
         compiled_graph = self.create_graph()

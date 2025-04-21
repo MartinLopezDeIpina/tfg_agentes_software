@@ -46,8 +46,7 @@ class MainAgent(BaseAgent):
         else:
             return state
 
-        orchestrator_graph = self.orchestrator_agent.create_graph()
-        result = await orchestrator_graph.ainvoke({
+        result = await self.orchestrator_agent.execute_agent_graph_with_exception_handling({
             "planner_high_level_plan":next_step,
         })
         specialized_agents_responses = self.orchestrator_agent.process_result(result)
