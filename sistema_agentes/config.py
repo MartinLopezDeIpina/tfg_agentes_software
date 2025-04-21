@@ -10,6 +10,9 @@ MCP_CODE_SERVER_PORT = os.environ.get("MCP_CODE_SERVER_PORT")
 REPO_ROOT_ABSOLUTE_PATH = "/home/martin/tfg_agentes_software"
 CSV_DATASET_RELATIVE_PATH = "static/evaluation_dataset.csv"
 GRAPH_IMAGES_RELATIVE_PATH = "static/images"
+OFICIAL_DOCS_RELATIVE_PATH = "/sistema_agentes/static/gen_docs"
+
+CODE_REPO_ROOT_ABSOLUTE_PATH = "/home/martin/open_source/ia-core-tools"
 
 default_llm = ChatOpenAI(
     model="gpt-4o-mini"

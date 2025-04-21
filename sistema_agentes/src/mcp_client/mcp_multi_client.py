@@ -276,6 +276,12 @@ class MCPClient:
 
 async def main():
     mcp_client = MCPClient()
+    await mcp_client.connect_to_google_drive_server()
+
+    result = await mcp_client.call_tool(tool_name="gdrive_list_files_json", tool_args={}, server_id="google_drive")
+    print(result)
+
+
     await MCPClient.cleanup()
 
 
