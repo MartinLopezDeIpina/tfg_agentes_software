@@ -276,9 +276,13 @@ class MCPClient:
 
 async def main():
     mcp_client = MCPClient()
-    await mcp_client.connect_to_google_drive_server()
+    await mcp_client.connect_to_filesystem_server()
 
-    result = await mcp_client.call_tool(tool_name="gdrive_list_files_json", tool_args={}, server_id="google_drive")
+    arguments = {
+        "pattern": "",
+        "path": "/home/martin/tfg_agentes_software/sistema_agentes/static/gen_docs"
+    }
+    result = await mcp_client.call_tool(tool_name="search_files", tool_args=arguments, server_id="filesystem")
     print(result)
 
 

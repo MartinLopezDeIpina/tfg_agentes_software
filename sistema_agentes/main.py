@@ -23,7 +23,7 @@ async def main():
 
     specialized_agents = [
         GoogleDriveAgent(),
-        #FileSystemAgent(),
+        FileSystemAgent(),
         #GitlabAgent(),
         #ConfluenceAgent(),
         #CodeAgent()
@@ -44,7 +44,7 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "Explicame el funcionamiento de la plantilla del admin",
+            "query": "Cada cuanto se hacen reuniones para el proyecto?",
             "messages": []
         })
         """

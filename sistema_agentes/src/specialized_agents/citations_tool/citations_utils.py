@@ -11,7 +11,8 @@ def get_citations_from_conversation_messages(messages: List[BaseMessage]) -> Lis
         if isinstance(message, ToolMessage) and message.name=="cite_document":
             try:
                 citation = Citation.from_string(message.content)
-                citations.append(citation)
+                if citation:
+                    citations.append(citation)
             except Exception as e:
                 print(f"Error serializando citación: {e}")
 

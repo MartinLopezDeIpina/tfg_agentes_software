@@ -131,7 +131,7 @@ class OrchestratorAgent(BaseAgent):
 
         return graph_builder.compile()
 
-    def process_result(self, agent_state: OrchestratorAgentState) -> List[AIMessage]:
+    def process_result(self, agent_state: OrchestratorAgentState) -> List[CitedAIMessage]:
         specialized_agents_responses = agent_state.get("low_level_plan_execution_result")
         return specialized_agents_responses
 

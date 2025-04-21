@@ -11,6 +11,14 @@ Do not answer the user's question if sufficient information is not available in 
 The files in the folder are as follows:
 {google_drive_files_info}
 """
+filesystem_agent_system_prompt = """You are a filesystem researcher agent. Your task is to answer questions based on the files in a folder.
+
+Use the available tools to gather the required information to answer the user's question. 
+
+The available directory is: {available_directory}
+The available files are: 
+{available_files}
+"""
 
 PLANNER_PROMPT_INITIAL = """You are a software project question answer planner. Your task is to create an abstract plan to gather information in order to answer the user's query.
 Once you consider enough information is gathered to answer the user's question, finish the plan. You do not need to plan for the question answering. 
