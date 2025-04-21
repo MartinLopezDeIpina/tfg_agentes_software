@@ -2,9 +2,9 @@
 
 Este documento describe el sistema utilizado para gestionar las tareas y el flujo de trabajo en el proyecto IA Core Tools.
 
-## Gestión de Issues en GitHub
+## Gestión de Issues en GitLab
 
-El proyecto utiliza el sistema de issues de GitHub como principal herramienta para el seguimiento y la gestión de tareas.
+El proyecto utiliza el sistema de issues de GitLab como principal herramienta para el seguimiento y la gestión de tareas.
 
 ### Tipos de Issues
 
@@ -65,15 +65,6 @@ Los issues pueden estar en uno de los siguientes estados:
 
 ## Seguimiento del Progreso
 
-### Tablero de Proyecto
-
-El proyecto utiliza el tablero de proyectos de GitHub para visualizar el estado de las tareas en curso:
-
-- **To Do**: Issues pendientes priorizados
-- **In Progress**: Issues actualmente en desarrollo
-- **Review**: Issues pendientes de revisión
-- **Done**: Issues completados recientemente
-
 ### Reuniones de Seguimiento
 
 Durante las reuniones semanales, el equipo revisa:
@@ -130,7 +121,7 @@ El proyecto sigue un esquema de versionado semántico (SemVer):
 
 ## Herramientas Complementarias
 
-Además del sistema de issues de GitHub, el equipo utiliza:
+Además del sistema de issues de GitLab, el equipo utiliza:
 
 - **Chats de Gmail y Microsoft Teams**: Para discusiones rápidas sobre tareas
 - **Reuniones presenciales en Zuatzu**: Para planificación y resolución de problemas complejos

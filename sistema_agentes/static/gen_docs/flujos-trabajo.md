@@ -48,10 +48,10 @@ Los problemas pueden ser identificados por:
 - Retroalimentación de usuarios
 - Revisión de código
 
-### 2. Creación de Issues en GitHub
+### 2. Creación de Issues en GitLab
 
 Para cada problema identificado:
-- Se crea un issue en GitHub
+- Se crea un issue en GitLab
 - Se asigna una etiqueta apropiada (bug, enhancement, feature)
 - Se proporciona una descripción detallada
 - Se asigna una prioridad

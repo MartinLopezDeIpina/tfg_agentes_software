@@ -22,7 +22,7 @@ El proyecto IA Core Tools sigue un enfoque metodológico ágil adaptado a las ne
 
 - **Participantes**: Desarrolladores del equipo
 - **Frecuencia**: Bajo demanda, antes de la integración de nuevas funcionalidades
-- **Formato**: Revisión de pull requests en GitHub
+- **Formato**: Revisión de pull requests en GitLab
 - **Objetivo**: Asegurar la calidad del código, consistencia y adherencia a estándares
 
 ### Sesiones de Resolución de Problemas
@@ -58,7 +58,7 @@ Durante las reuniones semanales, Aritz Galdos y Mikel Lonbide evalúan estas dim
 
 El progreso del proyecto se registra y monitorea mediante:
 
-- **Issues de GitHub**: Cada tarea se documenta como un issue con etiquetas, asignados y criterios de aceptación
+- **Issues de GitLab**: Cada tarea se documenta como un issue con etiquetas, asignados y criterios de aceptación
 - **Estado del tablero de issues**: Visualización del trabajo en progreso, pendiente y completado
 - **Actualizaciones en las reuniones semanales**: Revisión verbal del avance y ajuste de expectativas
 
@@ -82,4 +82,4 @@ Una tarea se considera completada cuando:
 4. Se ha integrado en la rama principal sin conflictos
 5. Funciona correctamente en el entorno de pruebas
 6. La documentación asociada está actualizada (si aplica)
-7. Se ha cerrado el issue correspondiente en GitHub
+7. Se ha cerrado el issue correspondiente en GitLab

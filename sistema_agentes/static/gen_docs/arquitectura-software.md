@@ -99,34 +99,151 @@ Cada contenedor principal se descompone en componentes más específicos:
 
 ### Aplicación Web Flask
 
-- **Blueprints**:
-  - `agents_blueprint`: Gestión de agentes de IA
-  - `repositories_blueprint`: Gestión de repositorios de conocimiento
-  - `resources_blueprint`: Gestión de recursos dentro de repositorios
-  - `api_blueprint`: Endpoints de API para interactuar con agentes
+La aplicación web está estructurada siguiendo el patrón de módulos de Flask, con una clara separación de responsabilidades:
 
-- **Modelo de Datos**:
-  - `App`: Aplicación contenedora de agentes y repositorios
-  - `Agent`: Configura un asistente de IA específico
-  - `Repository`: Colección de recursos/documentos
-  - `Resource`: Documento individual (PDF, etc.)
-  - `Model`: Configuración de modelos de LLM disponibles
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Aplicación Web Flask                            │
+│                                                                         │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────┐ │
+│  │               │  │               │  │               │  │           │ │
+│  │    Views      │  │     Model     │  │     Tools     │  │    API    │ │
+│  │  (Blueprints) │  │  (Entidades)  │  │ (Utilidades)  │  │ (Endpoints)│ │
+│  │               │  │               │  │               │  │           │ │
+│  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘  └─────┬─────┘ │
+│          │                  │                  │                │       │
+│          ▼                  ▼                  ▼                ▼       │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                                                                  │  │
+│  │                 App y Extensions (Núcleo Flask)                  │  │
+│  │                                                                  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                                                                  │  │
+│  │                  Templates y Static (Frontend)                   │  │
+│  │                                                                  │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Views (Blueprints)
+
+Módulos que manejan las rutas y la lógica de presentación:
+
+- **agents_blueprint**: Gestión de agentes de IA
+    - Rutas para listar, crear, editar y eliminar agentes
+    - Playground para probar agentes
+- **repositories_blueprint**: Gestión de repositorios de conocimiento
+    - Rutas para listar, crear, editar y eliminar repositorios
+    - Gestión de recursos dentro de repositorios
+- **resources_blueprint**: Gestión de recursos
+    - Rutas para recursos individuales fuera del contexto de repositorios
+
+#### Model (Entidades)
+
+Definiciones de modelos de datos usando SQLAlchemy:
+
+- **App**: Aplicación contenedora (app/model/app.py)
+- **Agent**: Configuración de un asistente de IA (app/model/agent.py)
+- **Repository**: Colección de recursos (app/model/repository.py)
+- **Resource**: Documento individual (app/model/resource.py)
+- **Model**: Configuración de modelos de LLM (app/model/model.py)
+- **User**: Usuario del sistema (app/model/user.py)
+
+#### Tools (Utilidades)
+
+Servicios y utilidades para operaciones específicas:
+
+- **PGVectorTools**: Gestiona la indexación y búsqueda de contenido en pgvector
+    
+    - Creación de tablas vectoriales
+    - Indexación de recursos
+    - Búsqueda por similitud
+    - Creación de retrievers para RAG
+- **ModelTools**: Orquesta interacciones con modelos de lenguaje
+    
+    - Invocación de modelos
+    - Implementación de RAG
+    - Gestión de memoria conversacional
+    - Selección de modelos apropiados
+
+#### API (Endpoints)
+
+Endpoints REST para interacción programática:
+
+- **api_blueprint**: Define rutas API para interactuar con agentes
+    - Endpoint para enviar consultas a agentes
+    - Gestión de sesiones y memoria conversacional
+
+#### Núcleo Flask (App y Extensions)
+
+Componentes centrales de la aplicación:
+
+- **app.py**: Aplicación principal Flask
+- **extensions.py**: Extensiones Flask (SQLAlchemy, etc.)
+- **db**: Configuración de base de datos
+
+#### Frontend (Templates y Static)
+
+Interfaz de usuario:
+
+- **Templates**: Plantillas HTML con Jinja2
+    - Organizadas por funcionalidad (agents, repositories, etc.)
+- **Static**: Recursos estáticos (CSS, JS, imágenes)
 
 ### Servicio de Vectorización
 
-- **PGVectorTools**: Gestiona la indexación y búsqueda de contenido
-  - Creación de tablas vectoriales
-  - Indexación de recursos
-  - Búsqueda por similitud
-  - Creación de retrievers para RAG
+Componente que gestiona la interacción con la base de datos vectorial:
+
+```
+┌────────────────────────────────────────────────────────┐
+│                 Servicio de Vectorización              │
+│                                                        │
+│  ┌─────────────────────┐      ┌─────────────────────┐  │
+│  │                     │      │                     │  │
+│  │  Procesamiento      │      │  Indexación         │  │
+│  │  de Documentos      │─────►│  Vectorial          │  │
+│  │                     │      │                     │  │
+│  └─────────────────────┘      └─────────────────────┘  │
+│            │                            │              │
+│            ▼                            ▼              │
+│  ┌─────────────────────┐      ┌─────────────────────┐  │
+│  │                     │      │                     │  │
+│  │  Búsqueda           │◄─────┤  Gestión de         │  │
+│  │  Semántica          │      │  Embeddings         │  │
+│  │                     │      │                     │  │
+│  └─────────────────────┘      └─────────────────────┘  │
+│                                                        │
+└────────────────────────────────────────────────────────┘
+```
 
 ### Administrador de Modelos
 
-- **ModelTools**: Orquesta interacciones con modelos de lenguaje
-  - Invocación de modelos
-  - Implementación de RAG
-  - Gestión de memoria conversacional
-  - Selección de modelos apropiados
+Este componente gestiona la interacción con modelos de lenguaje:
+
+```
+┌────────────────────────────────────────────────────────┐
+│                Administrador de Modelos                │
+│                                                        │
+│  ┌─────────────────────┐      ┌─────────────────────┐  │
+│  │                     │      │                     │  │
+│  │  Selección de       │      │  Gestión de         │  │
+│  │  Modelos            │─────►│  Prompts            │  │
+│  │                     │      │                     │  │
+│  └─────────────────────┘      └─────────────────────┘  │
+│            │                            │              │
+│            ▼                            ▼              │
+│  ┌─────────────────────┐      ┌─────────────────────┐  │
+│  │                     │      │                     │  │
+│  │  Invocación de      │◄─────┤  Gestión de         │  │
+│  │  Modelos            │      │  Memoria            │  │
+│  │                     │      │                     │  │
+│  └─────────────────────┘      └─────────────────────┘  │
+│                                                        │
+└────────────────────────────────────────────────────────┘
+```
 
 ## Nivel 4: Código y Flujos de Datos
 
@@ -135,20 +252,20 @@ A este nivel, exploramos componentes específicos con mayor detalle:
 ### Ejemplo: Flujo de Procesamiento RAG
 
 ```
-┌───────────────────┐     ┌─────────────────────┐     ┌────────────────────┐
-│                   │     │                     │     │                    │
-│  Recurso (PDF)    │────►│  PyPDFLoader        │────►│  Segmentación      │
-│                   │     │                     │     │  (text_splitter)   │
-│                   │     │                     │     │                    │
-└───────────────────┘     └─────────────────────┘     └────────┬───────────┘
-                                                               │
-                                                               ▼
-┌───────────────────┐     ┌─────────────────────┐     ┌────────────────────┐
-│                   │     │                     │     │                    │
-│  Almacenamiento   │◄────┤  Creación de        │◄────┤  Generación de     │
-│  en pgvector      │     │  Embeddings         │     │  Chunks            │
-│                   │     │                     │     │                    │
-└───────────────────┘     └─────────────────────┘     └────────────────────┘
+┌───────────────┐     ┌─────────────────────┐     ┌────────────────────┐
+│               │     │                     │     │                    │
+│  Recurso (PDF)│────►│  PyPDFLoader        │────►│  Segmentación      │
+│               │     │                     │     │  (text_splitter)   │
+│               │     │                     │     │                    │
+└───────────────┘     └─────────────────────┘     └────────┬───────────┘
+                                                           │
+                                                           ▼
+┌───────────────┐     ┌─────────────────────┐     ┌────────────────────┐
+│               │     │                     │     │                    │
+│  Almacenamiento    │◄────┤  Creación de        │◄────┤  Generación de     │
+│  en pgvector  │     │  Embeddings         │     │  Chunks            │
+│               │     │                     │     │                    │
+└───────────────┘     └─────────────────────┘     └────────────────────┘
 ```
 
 ### Ejemplo: Flujo de Consulta a un Agente
@@ -237,6 +354,7 @@ def invoke_ConversationalRetrievalChain(agent, input, session):
 ### Extensibilidad
 
 La arquitectura está diseñada para facilitar la adición de:
+
 - Nuevos modelos de LLM
 - Diferentes tipos de repositorios y formatos de documentos
 - Funcionalidades adicionales mediante blueprints de Flask

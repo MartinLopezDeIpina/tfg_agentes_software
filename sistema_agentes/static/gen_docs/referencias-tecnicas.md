@@ -365,7 +365,7 @@ class AgentApi(Resource):
 
 ### Herramientas de Desarrollo
 
-- **GitHub**: Repositorio de código y gestión de issues
+- **GitLab**: Repositorio de código y gestión de issues
 - **Confluence**: Documentación técnica de frontend
 - **Google Drive**: Compartición de maquetas HTML
 
