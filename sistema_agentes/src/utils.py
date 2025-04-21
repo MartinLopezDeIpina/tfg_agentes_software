@@ -1,3 +1,5 @@
+from typing import List
+
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -18,3 +20,13 @@ def print_markdown(string: str):
 def get_list_from_string_comma_separated_values(values_string: str):
     values_list = [element.strip() for element in values_string.split(',')]
     return values_list
+
+def get_list_string_with_indexes(list: List[str]) -> str:
+    string_result = ""
+    for i, element in enumerate(list):
+        string_result += f"{i}. {element}\n\n"
+
+    return string_result
+
+
+

@@ -2,6 +2,7 @@ import functools
 from abc import ABC, abstractmethod
 from typing import List, TypedDict
 
+from langchain.chains.question_answering.map_reduce_prompt import messages
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.tools import BaseTool
@@ -13,11 +14,14 @@ from langgraph.prebuilt import create_react_agent
 from langsmith import Client, evaluate, aevaluate
 from langsmith.evaluation import EvaluationResults
 
+from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
+from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
-from src.eval_agents.tool_precision_evaluator import tool_precision
+from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
+
 
 class SpecializedAgent(BaseAgent):
 
@@ -30,15 +34,15 @@ class SpecializedAgent(BaseAgent):
         self,
         name: str,
         description: str,
-        model: BaseChatModel = None,
+        model: BaseChatModel = default_llm,
         tools_str: List[str] = None,
     ):
         super().__init__(
             name=name,
-            model = model or ChatOpenAI(model="gpt-4o-mini", temperature=0.0),
+            model = model,
             debug=True
         )
-    
+
         self.description = description
         self.tools_str = tools_str or []
 
@@ -62,7 +66,7 @@ class SpecializedAgent(BaseAgent):
         ai_messages = [msg for msg in agent_state["messages"] if isinstance(msg, AIMessage)]
 
         if ai_messages:
-            final_result = ai_messages[-1].content
+            final_result = ai_messages[-1]
         else:
             final_result = AIMessage(
                 content="An error occurred while processing the request"
@@ -93,21 +97,22 @@ class SpecializedAgent(BaseAgent):
         string += tab_all_lines_x_times(self.description)
         return string
 
-    async def execute_from_dataset(self, inputs: dict) -> dict:
-        query = inputs.get("query")
+    @staticmethod
+    def get_tools_from_run_state(state: AgentState) -> List[str]:
+        messages = state["messages"]
+        called_tools = []
+        for message in messages[1:]:
+            if message.type == "tool":
+                called_tools.append(message.name)
+        return called_tools
 
-        compiled_graph = self.create_graph()
-
-        run = await compiled_graph.ainvoke({
-            "query":query,
-            "messages":[]
-        })
-        return run
-    
     async def evaluate_agent(self, langsmith_client: Client):
-        agent_tool_evaluator = functools.partial(tool_precision, num_tools=len(self.tools))
+        evaluators = [
+            ToolPrecisionEvaluator(self.get_tools_from_run_state),
+            JudgeLLMEvaluator()
+        ]
 
-        result = await self.call_agent_evaluation(langsmith_client, [agent_tool_evaluator])
+        result = await self.call_agent_evaluation(langsmith_client, evaluators)
         return result
 
 

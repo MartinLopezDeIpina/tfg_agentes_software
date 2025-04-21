@@ -7,12 +7,14 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
+from config import default_reasoner_llm, default_llm
 from src.BaseAgent import BaseAgent, AgentState
+from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.planner_agent.models import PlannerResponse
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
-from src.utils import tab_all_lines_x_times, print_markdown
+from src.utils import tab_all_lines_x_times, print_markdown, get_list_from_string_comma_separated_values
 from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT, PLANNER_STRUCURE_PROMPT
 
 
@@ -22,8 +24,8 @@ class PlannerAgent(BaseAgent):
 
     def __init__(
             self,
-            planner_model: BaseChatModel = ChatOpenAI(model="o3-mini"),
-            structure_model:BaseChatModel = ChatOpenAI(model="gpt-4o-mini"),
+            planner_model: BaseChatModel = default_reasoner_llm,
+            structure_model:BaseChatModel = default_llm,
             max_steps: int = 2,
             debug: bool = True
     ):
@@ -143,13 +145,59 @@ class PlannerAgent(BaseAgent):
         return graph_builder.compile()
 
 
-    def process_result(self, agent_state: AgentState) -> AIMessage:
-        pass
+    def process_result(self, agent_state: MainAgentState) -> str:
+        return agent_state.get("planner_high_level_plan").model_dump_json()
 
     async def execute_from_dataset(self, inputs: dict) -> dict:
-        pass
+        """
+        Si no hay mensajes en el dataset entonces es la primera iteración en el plan.
+        Si hay mensajes nuevos preparar el estado con estos para ejecutar el paso a evaluar.
+        """
+        try:
+            messages_str = inputs.get("messages")
+            messages = []
+            if messages_str:
+                # Incluir el mensaje del sistema en caso de no ser la primera vez que se ejecuta el plan
+                system_message = self.prepare_prompt({"query": inputs.get("query"), "messages": []})["messages"][0]
+                messages.append(system_message)
+                messages.extend([AIMessage(content=message) for message in get_list_from_string_comma_separated_values(messages_str)])
+
+            current_plan_str = inputs.get("current_plan")
+            current_high_level_plan = None
+            if current_plan_str:
+                current_plan_list = get_list_from_string_comma_separated_values(current_plan_str)
+                current_high_level_plan = PlannerResponse(
+                    finished=False,
+                    plan_reasoning=current_plan_list[0],
+                    steps=current_plan_list[1:],
+                )
+
+            run_state = await self.create_graph().ainvoke({
+                "query": inputs["query"],
+                "messages": messages,
+                "planner_high_level_plan": current_high_level_plan,
+                "planner_current_step": 0
+            })
+            result = self.process_result(run_state)
+
+            return {
+                "run_state": run_state,
+                "result": result
+            }
+        except Exception as e:
+            return{
+                "error": True
+            }
+
+
+
 
     async def evaluate_agent(self, langsmith_client: Client):
-        pass
+        evaluators=[
+            JudgeLLMEvaluator()
+        ]
+
+        result = await self.call_agent_evaluation(langsmith_client, evaluators)
+        return result
 
 

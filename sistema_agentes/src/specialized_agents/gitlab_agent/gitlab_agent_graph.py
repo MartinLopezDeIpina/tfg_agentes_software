@@ -23,8 +23,9 @@ class GitlabAgent(SpecializedAgent):
             description=GITLAB_AGENT_DESCRIPTION,
             model=model,
             tools_str= [
-                "gdrive_list_files",
-                "gdrive_read_file"
+                """
+                Obtenerlas manualmente en lugar de MCP
+                """
             ]
         )
 

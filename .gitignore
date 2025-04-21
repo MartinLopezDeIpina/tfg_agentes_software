@@ -15,6 +15,7 @@ servidor_mcp_gitlab/.idea/*
 sistema_agentes/.venv/*
 sistema_agentes/.env
 sistema_agentes/.idea/*
+sistema_agentes/static/.obsidian
 
 servidor_mcp_google_drive/credentials/*
 servidor_mcp_google_drive/node_modules/*

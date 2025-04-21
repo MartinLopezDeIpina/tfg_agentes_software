@@ -55,17 +55,17 @@ def create_or_empty_langsmith_dataset(langsmith_client: Client, dataset_name: st
     return dataset
 
 
-def create_agent_dataset(langsmith_client: Client, agent: str, agent_df: DataFrame, agent_column: str, query_column: str):
+def create_agent_dataset(langsmith_client: Client, agent: str, agent_df: DataFrame, agent_column: str, query_column: str, messages_column: str, plan_column: str):
     dataset_name = get_dataset_name_for_agent(agent)
     dataset = create_or_empty_langsmith_dataset(langsmith_client, dataset_name)
 
     """
-    Inputs son la columna query.
+    Inputs son la columna query, messages y current plan si estos existen.
     Outputs son todas las demás columnas que no son la del nombre del agente.
     """
     examples = []
     for _, row in agent_df.iterrows():
-        inputs = {"query": row[query_column]}
+        inputs = {"query": row[query_column], "messages": row[messages_column], "current_plan": row[plan_column]}
 
         outputs = {}
         for col in agent_df.columns:
@@ -89,6 +89,8 @@ def create_langsmith_datasets():
 
     agent_column = 'agent'
     query_column = 'query'
+    messages_column = 'messages'
+    plan_column = 'current_plan'
     df = None
     try:
         df = get_dataset_csv_df([agent_column, query_column])
@@ -101,4 +103,4 @@ def create_langsmith_datasets():
         if len(agent_df) == 0:
             print(f"⚠️ Advertencia: No hay filas para el agente '{agent}', saltando...")
             continue
-        create_agent_dataset(langsmith_client, agent, agent_df, agent_column, query_column)
+        create_agent_dataset(langsmith_client, agent, agent_df, agent_column, query_column, messages_column, plan_column)

@@ -16,13 +16,14 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langgraph.prebuilt import create_react_agent
 
-from langsmith import Client, evaluate, aevaluate
+from langsmith import Client, evaluate, aevaluate, EvaluationResult
 
+from src.eval_agents.base_evaluator import BaseEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
-from src.eval_agents.tool_precision_evaluator import tool_precision
-from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
+from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, default_llm
+
 
 class AgentState(TypedDict):
     query: str
@@ -47,7 +48,7 @@ class BaseAgent(ABC):
             debug: bool = True
     ):
         self.name = name
-        self.model = model or ChatOpenAI(model="gpt-4o-mini", temperature=0.0)
+        self.model = model or default_llm
         self.debug = True
 
     @abstractmethod
@@ -70,18 +71,31 @@ class BaseAgent(ABC):
         """
 
     @abstractmethod
-    async def execute_from_dataset(self, inputs: dict) -> dict:
-        """
-        Define la lógica de ejecución del grafo para un ejemplo del dataset de evaluación.
-        """
-
-    @abstractmethod
     async def evaluate_agent(self, langsmith_client: Client):
         """
         Define los evaluadores específicos a utilizar para la evaluación del agente.
         """
 
-    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[Callable], max_conc: int = 10):
+    async def execute_from_dataset(self, inputs: dict) -> dict:
+        compiled_graph = self.create_graph()
+
+        try:
+            run_state = await compiled_graph.ainvoke(
+                inputs
+            )
+            result = self.process_result(run_state)
+            return {
+                "run_state": run_state,
+                "result": result,
+            }
+
+        except Exception as e:
+            return {
+               "error": True
+            }
+
+    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10):
+        evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
         dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=self.name)
         if not dataset:
             print(f"Evaluation dataset for {self.name} not found")
@@ -93,7 +107,7 @@ class BaseAgent(ABC):
             run_function,
             data=dataset,
             client=langsmith_client,
-            evaluators=evaluators,
+            evaluators=evaluator_functions,
             max_concurrency=max_conc
         )
         return results

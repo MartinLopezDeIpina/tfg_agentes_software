@@ -8,7 +8,10 @@ from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
+from config import default_llm
 from src.BaseAgent import BaseAgent, AgentState
+from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
+from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from static.prompts import ORCHESTRATOR_PROMPT
@@ -25,7 +28,7 @@ class OrchestratorAgent(BaseAgent):
     def __init__(
             self,
             available_agents: List[SpecializedAgent],
-            model: BaseChatModel = None,
+            model: BaseChatModel = default_llm,
             debug: bool = True
                  ):
         super().__init__(
@@ -128,14 +131,51 @@ class OrchestratorAgent(BaseAgent):
 
         return graph_builder.compile()
 
-    def process_result(self, agent_state: AgentState) -> AIMessage:
-        pass
+    def process_result(self, agent_state: OrchestratorAgentState) -> List[AIMessage]:
+        specialized_agents_responses = agent_state.get("low_level_plan_execution_result")
+        return specialized_agents_responses
 
     async def execute_from_dataset(self, inputs: dict) -> dict:
-        pass
+        """
+        Para evaluar el agente orquestador solo ejecutar el agente encargado de decidir
+        cuáles agentes especializados elegir, no ejecutar los especializados.
+        """
+        try:
+            state = OrchestratorAgentState(
+                planner_high_level_plan=inputs["current_plan"],
+            )
+            state = await self.prepare_prompt(state)
+            run_state = await self.execute_orchestrator_agent(state)
+
+            result = ""
+            for agent_step in run_state["orchestrator_low_level_plan"].steps_to_complete:
+                result += f"{agent_step.agent_name}: {agent_step.query}\n\n"
+
+            return {
+                "run_state": run_state,
+                "result": result
+            }
+        except Exception as e:
+            return {
+                "error": True
+            }
+
+    @staticmethod
+    def get_tools_from_run_state(state: OrchestratorAgentState) -> List[str]:
+        tools = []
+        orchestrator_response = state["orchestrator_low_level_plan"]
+        for agent_step in orchestrator_response.steps_to_complete:
+            tools.append(agent_step.agent_name.value)
+        return tools
 
     async def evaluate_agent(self, langsmith_client: Client):
-        pass
+        evaluators = [
+            ToolPrecisionEvaluator(self.get_tools_from_run_state),
+            JudgeLLMEvaluator()
+        ]
+
+        result = await self.call_agent_evaluation(langsmith_client, evaluators)
+        return result
 
 
 

@@ -22,7 +22,8 @@ The execution result of the current step is:
 """
 
 PLANNER_STRUCURE_PROMPT="""Structure the following plan in the required format.
-Do not make up new steps or reasonings, just structure the current plan. 
+Do not make up new steps or new reasonings, just format the input in the required output format. 
+If the input only mentions one single step, do not make new steps. If it mentions various steps, format in various steps.
 
 {plan}
 """
@@ -32,6 +33,8 @@ ORCHESTRATOR_PROMPT = """You are an agent orchestrator. Your task is to call dif
 You will receive a list of agents and a query. You must call the agents that are relevant to the query with the apropiate individual query for each agent, use the specified output format.
 All the agents will be executed in parallel.
 
+Structure your response in the specified JSON format, with each agent and its query in a step of the JSON object.
+
 The agents are:
 {available_agents}
 """
@@ -40,3 +43,18 @@ SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users quest
 Your task is to read the information that other agents have gathered and to structure your response in a markdown format.
 The plan should contain the answer reasoning, your only task is to structure a clear markdown response to the user's query. 
 """
+
+LLM_JUDGE_PROMPT = """You are a solution judge, your task is to determine if each concept is part of the generated solution or not.
+You will be provided with a generated solution and a ground truth consisting of a list of concepts or ideas that the solution must have. You must determine with the specified format whether the solution contains each idea. 
+Structure your response in the specified JSON format, with a boolean per solution concept.
+
+If the solution does not try to answer the question and instead states that not enough information is available, indicate it in the corresponding attribute of your response.
+
+Original question:
+{query}
+
+Ground truth concepts: 
+{ground_truth}
+
+Generated solution:
+{generated_solution}"""

@@ -12,11 +12,12 @@ from src.planner_agent.models import PlannerResponse
 from src.planner_agent.state import MainAgentState
 from src.utils import tab_all_lines_x_times, print_markdown
 from static.prompts import SOLVER_AGENT_PROMPT
+from config import default_llm
 
 class FormatterAgent(BaseAgent):
     def __init__(
             self,
-            model: BaseChatModel= ChatOpenAI(model="gpt-4o-mini"),
+            model: BaseChatModel= default_llm,
             debug: bool = True
                  ):
         super().__init__(
