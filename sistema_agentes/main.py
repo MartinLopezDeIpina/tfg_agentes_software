@@ -22,10 +22,10 @@ from src.eval_agents.dataset_utils import create_langsmith_datasets
 async def main():
 
     specialized_agents = [
-        GoogleDriveAgent(),
-        FileSystemAgent(),
+        #GoogleDriveAgent(),
+        #FileSystemAgent(),
         #GitlabAgent(),
-        #ConfluenceAgent(),
+        ConfluenceAgent(),
         #CodeAgent()
     ]
 
@@ -44,7 +44,7 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "Cada cuanto se hacen reuniones para el proyecto?",
+            "query": "Cuál es el color primario de la app según la guía de estilos?",
             "messages": []
         })
         """

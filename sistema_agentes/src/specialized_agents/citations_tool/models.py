@@ -92,6 +92,28 @@ class FileSystemResponseParser(ResponseParser):
             available_documents[relative_path] = ""
         return available_documents
 
+class ConfluenceResponseParser(ResponseParser):
+    def __init__(self):
+        super().__init__()
+
+    def parse_tool_response(self, response: str) -> dict:
+        available_documents = {}
+        try:
+            json_response = json.loads(response)
+            for doc in json_response:
+                id = doc.get("id")
+                title = doc.get("title")
+                type = doc.get("type")
+
+                available_documents[title] = f"{type}s/{id}"
+
+            return available_documents
+
+        except Exception as e:
+            print(f"Error parseando respuesta de documentos Confluence: {e}")
+            return {}
+
+
 class DataSource(ABC):
     url: str
     get_documents_tool_name: str
@@ -142,7 +164,7 @@ class DataSource(ABC):
         resource_url = self.url
         if document_name != self.docs_id:
             doc_extra_url = self.available_documents[document_name]
-            resource_url += f"/{doc_extra_url}{document_name}"
+            resource_url += f"/{doc_extra_url}/{document_name}"
             
         return Citation(
             doc_name=document_name,
@@ -172,13 +194,14 @@ class FileSystemDataSource(DataSource):
             response_parser=FileSystemResponseParser(path_to_cut=tool_args["path"])
         )
 class ConfluenceDataSource(DataSource):
-    def __init__(self, get_documents_tool_name: str):
+    def __init__(self, get_documents_tool_name: str, tools_args: dict):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
-            url=f"https://martin-tfg.atlassian.net/wiki/spaces/~7120204ae5fbc225414096ab7a3348546ff647/",
-            docs_id="oficial_documentation",
-            use_example="",
-            response_parser=None
+            tool_args=tools_args,
+            url=f"https://martin-tfg.atlassian.net/wiki/spaces/~7120204ae5fbc225414096ab7a3348546ff647",
+            docs_id="confluence_documentation",
+            use_example="If you want to reference the page with title page_title: doc_name=page_title",
+            response_parser=ConfluenceResponseParser()
         )
 class GitLabDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str):
