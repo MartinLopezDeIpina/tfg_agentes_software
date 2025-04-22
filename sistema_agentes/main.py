@@ -91,6 +91,9 @@ async def evaluate_file_system_agent():
 async def evaluate_google_drive_agent():
     await evaluate_specialized_agent(GoogleDriveAgent())
 
+async def evaluate_gitlab_agent():
+    await evaluate_specialized_agent(GitlabAgent())
+
 async def evaluate_orchestrator_agent(agents: List[SpecializedAgent] = None):
     try:
 
@@ -155,8 +158,8 @@ async def evaluate_main_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(main())
+    #asyncio.run(main())
     #create_langsmith_datasets()
-    #asyncio.run(evaluate_google_drive_agent())
+    asyncio.run(evaluate_gitlab_agent())
 
 

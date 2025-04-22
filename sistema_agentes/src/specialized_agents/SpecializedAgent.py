@@ -18,6 +18,7 @@ from langsmith.evaluation import EvaluationResults
 
 from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
+from src.eval_agents.cite_references_evaluator import CiteEvaluator
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
@@ -150,7 +151,8 @@ class SpecializedAgent(BaseAgent):
     async def evaluate_agent(self, langsmith_client: Client):
         evaluators = [
             ToolPrecisionEvaluator(self.get_tools_from_run_state),
-            JudgeLLMEvaluator()
+            JudgeLLMEvaluator(),
+            CiteEvaluator()
         ]
 
         result = await self.call_agent_evaluation(langsmith_client, evaluators)
