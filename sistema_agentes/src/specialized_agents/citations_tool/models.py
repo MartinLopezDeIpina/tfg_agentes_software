@@ -3,7 +3,7 @@ import json
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import List, Tuple, Any
-from config import REPO_ROOT_ABSOLUTE_PATH, OFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH
+from config import REPO_ROOT_ABSOLUTE_PATH, OFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH, GITLAB_PROJECT_URL, GITLAB_API_URL, GITLAB_PROJECT_NORMAL_URL
 
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool
@@ -125,18 +125,54 @@ class CodeResponseParser(ResponseParser):
             print(f"Error parseando respuesta de documentos del respositorio de código: {e}")
             return {}
 
+class GitlabResponseParser(ResponseParser):
+    def __init__(self, path_to_cut: str):
+        super().__init__(
+            path_to_cut=path_to_cut
+        )
+
+    def parse_tool_response(self, response: List[dict]) -> dict:
+        available_documents = {}
+        try:
+            for elem in response:
+                elem_url = elem.get("web_url")
+                path_to_cut = self.kwargs.get("path_to_cut")
+                if path_to_cut and elem_url.startswith(path_to_cut):
+                    path = elem_url[len(path_to_cut):]
+                    path = path.lstrip("/\\")
+                else:
+                    continue
+
+                path_routes = path.split("/")
+
+                doc_id = path_routes[-1]
+                extra_path = ""
+                for path_elem in path_routes[:-1]:
+                    extra_path+=f"{path_elem}/"
+                extra_path = extra_path.strip("/\\")
+
+                available_documents[doc_id] = extra_path
+
+        except Exception as e:
+            print(f"Error parseando fuente de datos gitlab: {e}")
+
+        finally:
+            return available_documents
+
+
+
 
 
 class DataSource(ABC):
     url: str
-    get_documents_tool_name: str
+    get_documents_tool_name: str | List[str]
     # diccionario con el nombre del documento y prefijo necesario en la url -> algunas fuentes como Confluence requieren poner el id de la página además del nombre en la url
     available_documents: dict[str, str]
     # La id del DataSource para citar a la propia fuente de datos
     docs_id: str
     parser: ResponseParser
 
-    def __init__(self, get_documents_tool_name: str, url: str, docs_id: str, use_example: str, response_parser: ResponseParser, tool_args: dict = None):
+    def __init__(self, get_documents_tool_name: List[str], url: str, docs_id: str, use_example: str, response_parser: ResponseParser, tool_args: List[dict] = None):
         if not tool_args:
             tool_args = {}
 
@@ -152,16 +188,19 @@ class DataSource(ABC):
         Establece la lista de documentos disponibles en esta fuente de datos
         Busca entre las tools del agente la tool necesaria para listar los documentos disponibles
         """
+        self.available_documents = {}
         try:
-            get_documents_tool = None
             for tool in agent_tools:
-                if tool.name == self.get_documents_tool_name:
-                    get_documents_tool = tool
-            if not get_documents_tool:
-                raise Exception("No se ha encontrado la herramienta para listar los documentos")
+                if tool.name in self.get_documents_tool_name:
+                    tool_index = self.get_documents_tool_name.index(tool.name)
 
-            tool_response = await get_documents_tool.ainvoke(self.tool_args)
-            self.available_documents = self.parser.parse_tool_response(tool_response)
+                    get_documents_tool = tool
+
+                    tool_response = await get_documents_tool.ainvoke(self.tool_args[tool_index])
+                    self.available_documents.update(self.parser.parse_tool_response(tool_response))
+
+            if self.available_documents == {}:
+                raise Exception("No se ha encontrado la herramienta para listar los documentos")
 
         except Exception as e:
             self.available_documents = {}
@@ -190,8 +229,8 @@ class DataSource(ABC):
 class GoogleDriveDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str):
         super().__init__(
-            get_documents_tool_name=get_documents_tool_name,
-            tool_args={},
+            get_documents_tool_name=[get_documents_tool_name],
+            tool_args=[{}],
             url="https://drive.google.com/drive/u/0/folders/1axp3gAWo6VeAFq16oj1B5Nm06us2FBdR",
             docs_id="google_drive_documents",
             use_example="if there is a file named file.html: doc_name = file.html",
@@ -201,8 +240,8 @@ class GoogleDriveDataSource(DataSource):
 class FileSystemDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str, tool_args: dict):
         super().__init__(
-            get_documents_tool_name=get_documents_tool_name,
-            tool_args=tool_args,
+            get_documents_tool_name=[get_documents_tool_name],
+            tool_args=[tool_args],
             url=f"file://{tool_args["path"]}",
             docs_id="oficial_documentation",
             use_example="if you want to reference the file file.md: doc_name=file.md",
@@ -211,27 +250,28 @@ class FileSystemDataSource(DataSource):
 class ConfluenceDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str, tools_args: dict):
         super().__init__(
-            get_documents_tool_name=get_documents_tool_name,
-            tool_args=tools_args,
+            get_documents_tool_name=[get_documents_tool_name],
+            tool_args=[tools_args],
             url=f"https://martin-tfg.atlassian.net/wiki/spaces/~7120204ae5fbc225414096ab7a3348546ff647",
             docs_id="confluence_documentation",
             use_example="If you want to reference the page with title page_title: doc_name=page_title",
             response_parser=ConfluenceResponseParser()
         )
 class GitLabDataSource(DataSource):
-    def __init__(self, get_documents_tool_name: str):
+    def __init__(self, get_documents_tool_name: List[str], tool_args: List[dict]):
         super().__init__(
             get_documents_tool_name=get_documents_tool_name,
-            url=f"https://gitlab.devops.lksnext.com/lks/genai/ia-core-tools",
+            tool_args=tool_args,
+            url=GITLAB_PROJECT_NORMAL_URL,
             docs_id="gitlab_repository",
-            use_example="",
-            response_parser=None
+            use_example="If you want to cite a commit, use its id: doc_name=87bde70d722242000a8d997ed83cef6324bf19c6\nIf you want to cite an issue, use its iid: doc_name=3",
+            response_parser=GitlabResponseParser(path_to_cut=GITLAB_PROJECT_NORMAL_URL)
         )
 class CodeDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str, tool_args: dict):
         super().__init__(
-            get_documents_tool_name=get_documents_tool_name,
-            tool_args=tool_args,
+            get_documents_tool_name=[get_documents_tool_name],
+            tool_args=[tool_args],
             url=f"file://{CODE_REPO_ROOT_ABSOLUTE_PATH}",
             docs_id="code_repository",
             use_example="If you want to cite the document notebook1.pynb: doc_name=notebooks/notebook1.pynb",

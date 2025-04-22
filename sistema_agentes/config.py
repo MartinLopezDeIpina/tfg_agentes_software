@@ -14,6 +14,10 @@ OFICIAL_DOCS_RELATIVE_PATH = "/sistema_agentes/static/gen_docs"
 
 CODE_REPO_ROOT_ABSOLUTE_PATH = "/home/martin/open_source/ia-core-tools"
 
+GITLAB_API_URL="https://gitlab.devops.lksnext.com/api/v4"
+GITLAB_PROJECT_URL=1141
+GITLAB_PROJECT_NORMAL_URL="https://gitlab.devops.lksnext.com/lks/genai/ia-core-tools"
+
 default_llm = ChatOpenAI(
     model="gpt-4.1-mini"
 )

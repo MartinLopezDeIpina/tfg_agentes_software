@@ -7,6 +7,7 @@ import requests
 from langchain_core.tools import BaseTool, tool
 
 from src.mcp_client.tool_wrapper import patch_tool_with_exception_handling
+from config import GITLAB_API_URL, GITLAB_PROJECT_URL
 
 
 @tool
@@ -60,7 +61,7 @@ def get_gitlab_braches():
     return branches
 
 @tool
-def get_gitlab_project_commits(user_name: Optional[str] = None, since: Optional[datetime] = None, until: Optional[datetime] = None):
+def get_gitlab_project_commits(user_name: Optional[str] = None, since: Optional[datetime] = None, until: Optional[datetime] = None, result_limit: int = 25):
     """
     Get the commit information of the GitLab repository.
 
@@ -73,9 +74,10 @@ def get_gitlab_project_commits(user_name: Optional[str] = None, since: Optional[
         user name (str): The name of the user account. It must be the same as the one used in GitLab.
         since (datetime): The date to start retrieving commits from.
         until (datetime): The date to stop retrieving commits from.
+        result_limit (int): The number of maximum commits to show, should be 25 unless exceptional cases.
     """
 
-    url = "repository/commits?per_page=25"
+    url = f"repository/commits?per_page={result_limit}"
     if user_name:
         url += f"&author={user_name}"
     if since:
@@ -90,10 +92,8 @@ def get_gitlab_project_commits(user_name: Optional[str] = None, since: Optional[
 def execute_gitlab_api_request(url: str) -> Dict[str, Any]:
 
     gitlab_token = os.getenv('GITLAB_PERSONAL_ACCESS_TOKEN')
-    gitlab_url = os.getenv('GITLAB_API_URL')
-    gitlab_api_project_url = os.getenv('GITLAB_PROJECT_URL')
 
-    request_url = f"{gitlab_url}/projects/{gitlab_api_project_url}/{url}"
+    request_url = f"{GITLAB_API_URL}/projects/{GITLAB_PROJECT_URL}/{url}"
 
     headers = {
         "PRIVATE-TOKEN": gitlab_token

@@ -23,10 +23,10 @@ async def main():
 
     specialized_agents = [
         #GoogleDriveAgent(),
-        #FileSystemAgent(),
+        FileSystemAgent(),
         #GitlabAgent(),
         #ConfluenceAgent(),
-        CodeAgent()
+        #CodeAgent()
     ]
 
     try:
@@ -44,7 +44,7 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "en qué fichero se gestiona las utilidades de pgvector?",
+            "query": "Podrías decirme cada cuanto se hacen reuniones en el proyecto?",
             "messages": []
         })
         """
