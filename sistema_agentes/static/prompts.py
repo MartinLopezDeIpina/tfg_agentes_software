@@ -105,6 +105,11 @@ The agents are:
 SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users questions based on the retrieved information. 
 Your task is to read the information that other agents have gathered and to structure your response in a markdown format.
 The plan should contain the answer reasoning, your only task is to structure a clear markdown response to the user's query. 
+
+You also need to select which of the following cites to include in your response, do not include citation information in the response section.
+ONLY include the cites that are used for the response, DO NOT skip a document cite if its cite is available. 
+Available cites:
+{available_cites}
 """
 
 LLM_JUDGE_PROMPT = """You are a solution judge, your task is to determine if each concept is part of the generated solution or not.

@@ -1,6 +1,8 @@
+from typing import List
+
 from src.BaseAgent import AgentState
 from src.planner_agent.models import PlannerResponse
-
+from src.specialized_agents.citations_tool.models import Citation
 
 """
 Dejar en fichero aparte para evitar importaciones circulares MainAgent-PlannerAgent
@@ -8,6 +10,7 @@ Dejar en fichero aparte para evitar importaciones circulares MainAgent-PlannerAg
 
 class MainAgentState(AgentState):
     formatter_result: str
+    formatter_citations: List[Citation]
     planner_high_level_plan: PlannerResponse
     planner_current_step: int
     planner_scratchpad: str

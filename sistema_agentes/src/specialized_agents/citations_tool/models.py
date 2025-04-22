@@ -15,6 +15,7 @@ class Citation:
     doc_url: str
     doc_explanation: str
 
+    # para serializaciones
     def __str__(self):
         return json.dumps({
             "type": "Citation",
@@ -24,6 +25,12 @@ class Citation:
                 "doc_explanation": self.doc_explanation
             }
         })
+
+    # para prints
+    def to_string(self):
+        return f"""Nombre de documento: {self.doc_name}
+URL: {self.doc_url}
+{self.doc_explanation}"""
 
     @classmethod
     def from_string(cls, s):

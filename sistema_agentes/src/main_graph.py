@@ -1,5 +1,6 @@
 from typing import List
 
+from langchain.chains.question_answering.map_reduce_prompt import messages
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.runnables.graph import CurveStyle, NodeStyles, MermaidDrawMethod
 from langgraph.graph import StateGraph
@@ -73,6 +74,7 @@ class MainAgent(BaseAgent):
         state["messages"] = []
 
         return state
+
 
     def create_graph(self) -> CompiledGraph:
 

@@ -21,7 +21,7 @@ def create_citation_tool(data_sources: List[DataSource]) -> BaseTool:
         Cite a specific document from one or more data sources.
         Args:
             doc_name: The identifier of the document to cite.
-            explanation: Explanation of why this document is being cited, referencing the section of the document used.
+            explanation: Explanation IN SPANISH of why this document is being cited, which section of the document is used, and a concise 1-2 phrase summary of the document.
         Returns:
             Confirmation of the citation or error message if not found
             

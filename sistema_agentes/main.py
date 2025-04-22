@@ -23,8 +23,8 @@ async def main():
 
     specialized_agents = [
         #GoogleDriveAgent(),
-        FileSystemAgent(),
-        #GitlabAgent(),
+        #FileSystemAgent(),
+        GitlabAgent(),
         #ConfluenceAgent(),
         #CodeAgent()
     ]
@@ -44,7 +44,7 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "Podrías decirme cada cuanto se hacen reuniones en el proyecto?",
+            "query": "Cuál es el commit del proyecto más reciente?",
             "messages": []
         })
         """
@@ -158,8 +158,8 @@ async def evaluate_main_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(main())
+    asyncio.run(main())
     #create_langsmith_datasets()
-    asyncio.run(evaluate_gitlab_agent())
+    #asyncio.run(evaluate_gitlab_agent())
 
 
