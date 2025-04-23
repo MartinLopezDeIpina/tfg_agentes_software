@@ -7,13 +7,18 @@ from langsmith import Client
 from pandas import DataFrame
 from tqdm import tqdm
 
-from config import REPO_ROOT_ABSOLUTE_PATH, CSV_DATASET_RELATIVE_PATH
+from config import REPO_ROOT_ABSOLUTE_PATH, CSV_DATASET_RELATIVE_PATH, CSV_DATASET_PRUEBA_RELATIVE_PATH
+
 
 def get_dataset_name_for_agent(agent_name: str):
     return f"evaluate_{agent_name}"
 
-def get_dataset_csv_df(required_columns: List["str"]):
-    csv_dataset_path = os.path.join(REPO_ROOT_ABSOLUTE_PATH, "sistema_agentes", CSV_DATASET_RELATIVE_PATH)
+def get_dataset_csv_df(required_columns: List["str"], is_prueba: bool):
+    if is_prueba:
+        dataset_relative_path = CSV_DATASET_PRUEBA_RELATIVE_PATH
+    else:
+        dataset_relative_path = CSV_DATASET_RELATIVE_PATH
+    csv_dataset_path = os.path.join(REPO_ROOT_ABSOLUTE_PATH, "sistema_agentes", dataset_relative_path)
     if not os.path.exists(csv_dataset_path):
         print(f"Error, csv dataset not found in path: {csv_dataset_path}")
 
@@ -84,7 +89,7 @@ def create_agent_dataset(langsmith_client: Client, agent: str, agent_df: DataFra
     except Exception as e:
         print(f"❌ Error al crear ejemplos para '{agent}': {e}")
 
-def create_langsmith_datasets():
+def create_langsmith_datasets(dataset_prueba: bool = False):
     langsmith_client = Client()
 
     agent_column = 'agent'
@@ -93,7 +98,7 @@ def create_langsmith_datasets():
     plan_column = 'current_plan'
     df = None
     try:
-        df = get_dataset_csv_df([agent_column, query_column])
+        df = get_dataset_csv_df([agent_column, query_column], dataset_prueba)
     except Exception as e:
         print(f"Error procesando csv: {e}")
 
@@ -103,4 +108,6 @@ def create_langsmith_datasets():
         if len(agent_df) == 0:
             print(f"⚠️ Advertencia: No hay filas para el agente '{agent}', saltando...")
             continue
+        if dataset_prueba:
+            agent = f"{agent}_prueba"
         create_agent_dataset(langsmith_client, agent, agent_df, agent_column, query_column, messages_column, plan_column)

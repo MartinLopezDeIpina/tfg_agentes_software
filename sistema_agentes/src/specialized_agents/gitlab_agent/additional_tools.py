@@ -103,7 +103,7 @@ def get_gitlab_project_statistics():
 def get_gitlab_project_members():
     """
     Get the project's member information.
-    This includes the user name, email, and role of each member.
+    This includes the user name, id and role among others.
     """
     return execute_gitlab_api_request_with_pagination("members")
 

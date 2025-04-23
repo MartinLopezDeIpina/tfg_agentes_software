@@ -101,8 +101,8 @@ class MainAgent(BaseAgent):
     def process_result(self, agent_state: MainAgentState) -> str:
         return agent_state.get("formatter_result")
 
-    async def evaluate_agent(self, langsmith_client: Client):
+    async def evaluate_agent(self, langsmith_client: Client, is_prueba: bool = False):
         evaluators = [
             JudgeLLMEvaluator()
         ]
-        return await self.call_agent_evaluation(langsmith_client, evaluators)
+        return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba)

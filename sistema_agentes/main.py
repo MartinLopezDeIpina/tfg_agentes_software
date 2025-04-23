@@ -125,7 +125,7 @@ async def evaluate_planner_agent():
 
     await planner_agent.evaluate_agent(langsmith_client=lansmith_client)
 
-async def evaluate_main_agent():
+async def evaluate_main_agent(is_prueba: bool = True):
     specialized_agents = [
         #GoogleDriveAgent(),
         FileSystemAgent(),
@@ -148,7 +148,7 @@ async def evaluate_main_agent():
         )
 
         langsmith_client = Client()
-        await main_agent.evaluate_agent(langsmith_client=langsmith_client)
+        await main_agent.evaluate_agent(langsmith_client=langsmith_client, is_prueba=is_prueba)
     finally:
         await specialized_agents[0].cleanup()
 
@@ -158,8 +158,8 @@ async def evaluate_main_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(main())
-    #create_langsmith_datasets()
-    #asyncio.run(evaluate_gitlab_agent())
+    #asyncio.run(main())
+    #create_langsmith_datasets(dataset_prueba=True)
+    asyncio.run(evaluate_main_agent(is_prueba=True))
 
 

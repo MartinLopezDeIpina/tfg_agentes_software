@@ -106,9 +106,11 @@ class BaseAgent(ABC):
                "error": True
             }
 
-    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10):
+    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False):
         evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
-        dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=self.name)
+
+        agent_name = self.name if not is_prueba else f"{self.name}_prueba"
+        dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=agent_name)
         if not dataset:
             print(f"Evaluation dataset for {self.name} not found")
             return
