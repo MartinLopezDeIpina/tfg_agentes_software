@@ -28,6 +28,8 @@ from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, default_
 class AgentState(TypedDict):
     query: str
     messages: List[BaseMessage]
+    remaining_steps: int
+    is_last_step: bool
 
 class BaseAgent(ABC):
     """

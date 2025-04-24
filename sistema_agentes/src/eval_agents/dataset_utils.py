@@ -60,42 +60,43 @@ def create_or_empty_langsmith_dataset(langsmith_client: Client, dataset_name: st
     return dataset
 
 
-def create_agent_dataset(langsmith_client: Client, agent: str, agent_df: DataFrame, agent_column: str, query_column: str, messages_column: str, plan_column: str):
+def create_agent_dataset(langsmith_client: Client, agent: str, agent_df: DataFrame, input_columns: List[str]):
     dataset_name = get_dataset_name_for_agent(agent)
     dataset = create_or_empty_langsmith_dataset(langsmith_client, dataset_name)
 
     """
-    Inputs son la columna query, messages y current plan si estos existen.
+    Inputs son la columna query, messages, current_plan y difficulty si estos existen.
     Outputs son todas las demás columnas que no son la del nombre del agente.
     """
-    examples = []
+    inputs_list = []
+    outputs_list = []
+
+    output_columns = [col for col in agent_df.columns if col not in input_columns]
+
     for _, row in agent_df.iterrows():
-        inputs = {"query": row[query_column], "messages": row[messages_column], "current_plan": row[plan_column]}
+        inputs = {col: row[col] for col in input_columns}
+        outputs = {col: row[col] for col in output_columns}
 
-        outputs = {}
-        for col in agent_df.columns:
-            if col != agent_column and col != query_column:
-                outputs[col] = row[col]
+        inputs_list.append(inputs)
+        outputs_list.append(outputs)
 
-        examples.append({"inputs": inputs, "outputs": outputs})
-
-    # Crear ejemplos en LangSmith
     try:
         langsmith_client.create_examples(
-            inputs=[example["inputs"] for example in examples],
-            outputs=[example["outputs"] for example in examples],
+            inputs=inputs_list,
+            outputs=outputs_list,
             dataset_id=dataset.id
         )
+        print(f"✅ Dataset '{dataset_name}' creado con {len(inputs_list)} ejemplos")
     except Exception as e:
         print(f"❌ Error al crear ejemplos para '{agent}': {e}")
 
-def create_langsmith_datasets(dataset_prueba: bool = False):
+def create_langsmith_datasets(dataset_prueba: bool = False, agents_to_update: List[str] = None):
     langsmith_client = Client()
 
-    agent_column = 'agent'
-    query_column = 'query'
-    messages_column = 'messages'
-    plan_column = 'current_plan'
+    agent_column = "agent"
+    query_column = "query"
+    input_column_names = [agent_column, query_column, "messages", "current_plan"]
+
     df = None
     try:
         df = get_dataset_csv_df([agent_column, query_column], dataset_prueba)
@@ -103,11 +104,16 @@ def create_langsmith_datasets(dataset_prueba: bool = False):
         print(f"Error procesando csv: {e}")
 
     unique_agents = df[agent_column].unique()
+    if agents_to_update:
+        unique_agents = [agent for agent in unique_agents if agent in agents_to_update]
+
     for agent in tqdm(unique_agents, desc="Creando datasets", unit="dataset"):
         agent_df = df[df[agent_column] == agent]
+
         if len(agent_df) == 0:
             print(f"⚠️ Advertencia: No hay filas para el agente '{agent}', saltando...")
             continue
+
         if dataset_prueba:
             agent = f"{agent}_prueba"
-        create_agent_dataset(langsmith_client, agent, agent_df, agent_column, query_column, messages_column, plan_column)
+        create_agent_dataset(langsmith_client, agent, agent_df, input_column_names)

@@ -93,7 +93,8 @@ class OrchestratorAgent(BaseAgent):
             if step_agent:
                 task = step_agent.execute_agent_graph_with_exception_handling({
                     "query":step.query,
-                    "messages": []
+                    "messages": [],
+                    "remaining_steps": 1
                 })
                 executed_steps.append({
                     "task": task,
@@ -171,7 +172,6 @@ class OrchestratorAgent(BaseAgent):
     async def evaluate_agent(self, langsmith_client: Client):
         evaluators = [
             ToolPrecisionEvaluator(self.get_tools_from_run_state),
-            JudgeLLMEvaluator()
         ]
 
         result = await self.call_agent_evaluation(langsmith_client, evaluators)

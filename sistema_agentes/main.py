@@ -1,9 +1,11 @@
 import asyncio
 from contextlib import AsyncExitStack
-from typing import List
+from typing import List, Annotated
 
 from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from langgraph.managed.is_last_step import RemainingStepsManager, RemainingSteps
 from langsmith import Client
 
 from src.formatter_agent.formatter_graph import FormatterAgent
@@ -127,9 +129,9 @@ async def evaluate_planner_agent():
 
 async def evaluate_main_agent(is_prueba: bool = True):
     specialized_agents = [
-        #GoogleDriveAgent(),
+        GoogleDriveAgent(),
         FileSystemAgent(),
-        #GitlabAgent(),
+        GitlabAgent(),
         ConfluenceAgent(),
         CodeAgent()
     ]
@@ -152,14 +154,27 @@ async def evaluate_main_agent(is_prueba: bool = True):
     finally:
         await specialized_agents[0].cleanup()
 
+async def debug_agent():
+    agent = GitlabAgent()
+    try:
+        await agent.init_agent()
+        await agent.execute_agent_graph_with_exception_handling(input={
+            "query":  "Búscame información sobre el login de la aplicación",
+            "remaining_steps": RemainingSteps(1)
 
-
+        })
+    except Exception as e:
+        print(f"Error ejecutando agente {agent.name}: {e}")
+    finally:
+        await agent.cleanup()
 
 if __name__ == '__main__':
     load_dotenv()
 
+    asyncio.run(debug_agent())
     #asyncio.run(main())
-    #create_langsmith_datasets(dataset_prueba=True)
-    asyncio.run(evaluate_main_agent(is_prueba=True))
+    #create_langsmith_datasets(dataset_prueba=True, agents_to_update=["main_agent"])
+    #asyncio.run(evaluate_main_agent(is_prueba=True))
+    #asyncio.run(evaluate_confluence_agent())
 
 

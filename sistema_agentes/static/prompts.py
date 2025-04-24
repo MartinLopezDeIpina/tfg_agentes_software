@@ -1,6 +1,7 @@
 CITE_REFERENCES_PROMPT="""{agent_prompt}
 If a document is going to be used to answer the question, cite it with the cite_document tool.
-YOU CAN NOT USE A DOCUMENT'S INFORMATION TO ANSWER A QUESTION IF IT WAS NOT CITED
+You can also cite the information source if it is required to cite documentation or information sources: cite it using the indicated document_name in the tool description. 
+IMPORTANT: YOU CAN NOT USE A DOCUMENT'S INFORMATION TO ANSWER A QUESTION IF IT WAS NOT CITED
 """
 
 google_drive_system_prompt="""You are a Google Drive researcher agent. Your task is to answer questions based on the files in a Google Drive folder.
@@ -54,7 +55,9 @@ gitlab_agent_system_prompt = """"You are a GitLab researcher assistant. Your tas
 -Use the provided tools to retrieve the required information from the GitLab project.
 -Answer the question based on the retrieved information.
 
-Do not answer the question if sufficient information is not available, if a tool call with specific parameters is required, utilize other tools to retrieve the required information.
+IMPORTANT: Do not answer the question if sufficient information is not available, if a tool call with specific parameters is required, utilize other tools to retrieve the required information.
+For example, before retrieving commits of a specific user, search for its gitlab username.
+
 Remember to cite the ISSUES and COMMITS that you use to gather information with the cite_document tool.
 
 The tools will retrieve information from the following GitLab project:
@@ -113,10 +116,15 @@ Available cites:
 """
 
 LLM_JUDGE_PROMPT = """You are a solution judge, your task is to determine if each concept is part of the generated solution or not.
-You will be provided with a generated solution and a ground truth consisting of a list of concepts or ideas that the solution must have. You must determine with the specified format whether the solution contains each idea. 
-Structure your response in the specified JSON format, with a boolean per solution concept.
+You will be provided with a generated solution and a ground truth consisting of a list of concepts or ideas that the solution must have.
+You must determine with the specified format whether the solution contains each idea.
 
-If the solution does not try to answer the question and instead states that not enough information is available, indicate it in the corresponding attribute of your response.
+Additionally, you must determine if the model has tried to respond the question or not.
+
+IMPORTANT: Clarification on what "tried_to_respond" means:
+- When a solution CORRECTLY states that not enough information is available and explains why (without inventing answers), this means the model is NOT trying to respond. 
+- When a solution tries to provide specific answers despite lacking sufficient information (hallucinating or fabricating information), this means the model IS trying to respond. 
+- When a solution CORRECTLY states that not enough information is available and provides additional information to help, this means the model is NOT trying to respond.
 
 Original question:
 {query}
@@ -126,3 +134,8 @@ Ground truth concepts:
 
 Generated solution:
 {generated_solution}"""
+
+REACT_SUMMARIZER_SYSTEM_PROMPT="""You are a response summary generator.
+An agent has failed to answer a user's question, your task is to generate a useful response with the available information. 
+DO NOT hallucinate information, just answer with the available resources.
+"""

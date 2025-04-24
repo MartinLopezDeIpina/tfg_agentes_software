@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
@@ -139,8 +139,17 @@ class FormatterAgent(BaseAgent):
 
         return graph_builder.compile()
 
-    def process_result(self, agent_state: AgentState) -> AIMessage:
-        pass
+    def process_result(self, agent_state: FormatterAgentState) -> CitedAIMessage:
+        response = agent_state.get("formatted_result")
+        citations = agent_state.get("formatter_citations")
+
+        message = AIMessage(
+            content=response
+        )
+        return CitedAIMessage(
+            message=message,
+            citations=citations
+        )
 
     def execute_from_dataset(self, inputs: dict) -> dict:
         pass

@@ -60,6 +60,8 @@ def execute_gitlab_api_request_with_pagination(url: str, params: Dict[str, Any] 
 
 
         current_page_items = response.json()
+        if type(current_page_items) is not list:
+            current_page_items = [current_page_items]
         all_items.extend(current_page_items)
 
         headers = response.headers

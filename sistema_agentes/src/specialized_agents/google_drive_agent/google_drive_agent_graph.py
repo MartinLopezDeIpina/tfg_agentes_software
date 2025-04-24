@@ -23,6 +23,7 @@ class GoogleDriveAgent(SpecializedAgent):
                 "gdrive_list_files",
                 "gdrive_read_file",
                 "gdrive_search",
+                "gdrive_list_files_json"
             ],
             data_sources=[GoogleDriveDataSource("gdrive_list_files_json")],
             prompt=CITE_REFERENCES_PROMPT.format(

@@ -58,7 +58,6 @@ class GitlabAgent(SpecializedAgent):
                 stats_tool = tool
 
         stats_task = stats_tool.ainvoke({})
-
         stats_result = await asyncio.gather(stats_task)
 
         messages = [
