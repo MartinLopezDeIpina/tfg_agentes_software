@@ -149,7 +149,7 @@ class SpecializedAgent(BaseAgent):
             )
             return result
         except Exception as e:
-            print(f"Excepción ejecutando agente react de {self.name}: {e}")
+            print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
             state["recursion_limit_exceded"] = True
             last_state = self.react_graph.get_state(config)
             messages = last_state.values.get("messages", [])
