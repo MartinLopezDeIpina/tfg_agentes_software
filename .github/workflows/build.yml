@@ -29,7 +29,7 @@ jobs:
       - name: Run tests with pytest and generate coverage
         # Indicar el python path para ejecutar en forma de módulo desde la raíz del componente mcp_bd_codigo
         run: |
-          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo INITIALIZE_DB=false ROOT_DIR=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v --cov=${{ github.workspace }} --cov-report=xml:${{ github.workspace }}/coverage.xml
+          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo INITIALIZE_DB=false ROOT_DIR=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v --cov=. --cov-report=xml:coverage.xml
       # Subir el reporte de cobertura como un artefacto
       - name: Upload coverage as artifact
         uses: actions/upload-artifact@v4

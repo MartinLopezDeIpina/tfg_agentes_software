@@ -147,6 +147,8 @@ class SpecializedAgent(BaseAgent):
                 },
                 config=config
             )
+            if result["messages"][-1].content == "Sorry, need more steps to process this request.":
+                raise Exception("Recursion limit reached")
             return result
         except Exception as e:
             print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
