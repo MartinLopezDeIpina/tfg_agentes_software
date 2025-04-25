@@ -26,16 +26,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Create env file
-        run: |
-          cat > .env << EOL
-          ROOT_DIR=${{ github.workspace }}
-          INITIALIZE_DB=false
-          EOL
       - name: Run tests with pytest
         # Indicar el python path para ejecutar en forma de módulo desde la raíz del componente mcp_bd_codigo
         run: |
-          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v
+          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo INITIALIZE_DB=false ROOT_DIR=${{ github.workspace }} pytest tests/ -v
 
   # Job para el análisis de SonarQube de el proyecto
   sonarqube:
