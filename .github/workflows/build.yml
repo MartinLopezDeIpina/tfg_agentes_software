@@ -1,0 +1,61 @@
+name: Build and Test
+on:
+  push:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+    # Permite ejecutar el workflow manualmente desde la interfaz de GitHub
+jobs:
+  # Job para los tests del módulo servidor_mcp_bd_codigo
+  test-bd-codigo:
+    name: Test servidor_mcp_bd_codigo
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./servidor_mcp_bd_codigo
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests with pytest and generate coverage
+        # Indicar el python path para ejecutar en forma de módulo desde la raíz del componente mcp_bd_codigo
+        run: |
+          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo INITIALIZE_DB=false ROOT_DIR=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v --cov=. --cov-report=xml:coverage.xml
+      # Subir el reporte de cobertura como un artefacto
+      - name: Upload coverage as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./servidor_mcp_bd_codigo/coverage.xml
+          retention-days: 1
+  # Job para el análisis de SonarQube de el proyecto
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: [test-bd-codigo]  # Espera a que terminen los tests
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Descargar el reporte de cobertura
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: ./servidor_mcp_bd_codigo
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.python.coverage.reportPaths=./servidor_mcp_bd_codigo/coverage.xml

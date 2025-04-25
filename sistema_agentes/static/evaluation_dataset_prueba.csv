@@ -1,0 +1,7 @@
+agent,difficulty,query,solution,cite,necessary_tools,unnecessary_tools,possible,current_plan,messages
+main_agent,0,¿Existe documentación formal del modelo de negocio o dominio? ¿Dónde se encuentra?,"""Existe un documento formal llamado 'modelo_negocio.md'"", ""Se encuentra en la documentación general del proyecto""",modelo-negocio.md,,,TRUE,,
+main_agent,1,¿Cuál es la URL completa del repositorio de código y cómo puedo acceder a él?,"""La URL es https://gitlab.devops.lksnext.com/lks/genai/ia-core-tools"", ""Es necesario tener una cuenta de GitLab de LKS NEXT y tener acceso al repositorio"", ""Es necesario estar conectado a la red privada de LKS NEXT"" ","gitlab_repository, onboarding.md",,,TRUE,,
+main_agent,2,¿Existen una guía o manual de despliegue con docker para el proyecto? ¿Puedes explicarme el funcionamiento de este despliegue?,"""Existe una guía en el archivo 'despliegue.md de la documentación del proyecto"", ""Se proporciona una explicación de cómo funciona el fichero para el despliegue docker""","despliegue.md, Dockerfile",,,TRUE,,
+,,,,,,,TRUE,,
+,,,,,,,TRUE,,
+,,,,,,,FALSE,,

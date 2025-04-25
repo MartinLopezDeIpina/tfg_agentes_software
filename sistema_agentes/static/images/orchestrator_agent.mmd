@@ -1,0 +1,18 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	prepare(prepare)
+	execute_orchestrator(execute_orchestrator)
+	execute_agents(execute_agents)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> prepare;
+	execute_agents --> __end__;
+	execute_orchestrator --> execute_agents;
+	prepare --> execute_orchestrator;
+	classDef default #fad7de
+	classDef first #ffdfba
+	classDef last #baffc9

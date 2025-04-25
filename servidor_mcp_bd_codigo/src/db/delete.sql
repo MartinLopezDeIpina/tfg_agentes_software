@@ -1,0 +1,1 @@
+delete from ancestors; delete from chunk_references; delete from fsentry cascade; delete from file_chunks cascade;
