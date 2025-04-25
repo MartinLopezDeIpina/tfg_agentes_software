@@ -32,7 +32,7 @@ jobs:
           PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo INITIALIZE_DB=false ROOT_DIR=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v --cov=. --cov-report=xml:coverage.xml
       # Subir el reporte de cobertura como un artefacto
       - name: Upload coverage as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: ./servidor_mcp_bd_codigo/coverage.xml
@@ -48,7 +48,7 @@ jobs:
           fetch-depth: 0
       # Descargar el reporte de cobertura
       - name: Download coverage artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report
           path: ./servidor_mcp_bd_codigo
