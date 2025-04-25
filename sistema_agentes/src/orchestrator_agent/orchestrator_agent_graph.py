@@ -13,6 +13,7 @@ from src.BaseAgent import BaseAgent, AgentState
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
+from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CitedAIMessage
 from static.prompts import ORCHESTRATOR_PROMPT
@@ -57,14 +58,19 @@ class OrchestratorAgent(BaseAgent):
         return state
 
     async def execute_orchestrator_agent(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+        """
+        Intenta ejecutar el orquestador con varios intentos de parsing.
+        Si falla tras varios intentos crea un plan si pasos.
+        """
         print("+Ejecutando agente orquestador")
-
-        structured_llm = BaseChatModel.with_structured_output(self.model, schema=OrchestratorPlan)
-
         try:
-            orchestrator_result = await structured_llm.ainvoke(
-                input=state["messages"]
+            prompt = state["messages"]
+            orchestrator_result = await execute_structured_llm_with_validator_handling(
+                prompt=prompt,
+                output_schema=OrchestratorPlan,
+                llm=self.model
             )
+            
             if not isinstance(orchestrator_result, OrchestratorPlan):
                 orchestrator_result = OrchestratorPlan.model_validate(orchestrator_result)
 
@@ -72,8 +78,9 @@ class OrchestratorAgent(BaseAgent):
 
         except Exception as e:
             print(f"Error en structured output: {e}")
-            #todo: gestionar parsing
-
+            state["orchestrator_low_level_plan"] = OrchestratorPlan(
+                steps_to_complete=[]
+            )
         finally:
             return state
 

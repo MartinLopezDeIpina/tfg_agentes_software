@@ -171,8 +171,8 @@ async def debug_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(debug_agent())
-    #asyncio.run(main())
+    #asyncio.run(debug_agent())
+    asyncio.run(main())
     #create_langsmith_datasets(dataset_prueba=True, agents_to_update=["main_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
     #asyncio.run(evaluate_confluence_agent())

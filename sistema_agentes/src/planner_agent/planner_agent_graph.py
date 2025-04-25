@@ -2,6 +2,7 @@ from typing import List, TypedDict
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ChatMessage
+from langchain_core.output_parsers import PydanticOutputParser
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
@@ -11,6 +12,7 @@ from config import default_reasoner_llm, default_llm
 from src.BaseAgent import BaseAgent, AgentState
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
+from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.planner_agent.models import PlannerResponse
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
@@ -100,15 +102,18 @@ class PlannerAgent(BaseAgent):
         return state
 
     async def execute_planner_structure_agent(self, state: MainAgentState) -> MainAgentState:
-        structured_llm = self.structure_model.with_structured_output(PlannerResponse)
+        """
+        Intentar estructurar la salida del planner con el validador.
+        Si no se consigue después de varios intentos devolver el plan completo en el siguiente paso.
+        """
+        planner_scratchpad = state.get("planner_scratchpad")
         try:
-            planner_result = await structured_llm.ainvoke(
-                input=PLANNER_STRUCURE_PROMPT.format(
-                    plan=state["planner_scratchpad"]
-                )
+            prompt=PLANNER_STRUCURE_PROMPT.format(plan=planner_scratchpad)
+            planner_result = await execute_structured_llm_with_validator_handling(
+                prompt=prompt,
+                llm=self.structure_model,
+                output_schema=PlannerResponse,
             )
-            if not isinstance(planner_result, PlannerResponse):
-                planner_result = PlannerResponse.model_validate(planner_result)
 
             state["planner_high_level_plan"] = planner_result
             state["messages"].append(AIMessage(
@@ -116,13 +121,13 @@ class PlannerAgent(BaseAgent):
             ))
 
         except Exception as e:
-            print(f"Error en structured output: {e}")
-            #todo: gestionar parsing
-
+            state["planner_high_level_plan"] = PlannerResponse(
+                plan_reasoning=planner_scratchpad,
+                steps=[planner_scratchpad],
+                finished=False
+            )
         finally:
-
             return state
-
 
     def create_graph(self) -> CompiledGraph:
         """

@@ -9,6 +9,7 @@ from langsmith import Client
 
 from src.BaseAgent import AgentState, BaseAgent
 from src.formatter_agent.models import FormatterResponse
+from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.planner_agent.models import PlannerResponse
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
@@ -81,15 +82,20 @@ class FormatterAgent(BaseAgent):
         return state
 
     async def execute_formatter(self, state: FormatterAgentState):
+        """
+        Se hacen varios intentos de formatear la salida con las citas correctas.
+        Cada intento a su vez reintenta una vez con el parser de langchain.
+        """
         state["current_try"] += 1
         try:
-
-            structured_model = self.model.with_structured_output(FormatterResponse)
-            formatter_result = await structured_model.ainvoke(
-                input=state["messages"],
+            prompt = state["messages"]
+            formatter_result = await execute_structured_llm_with_validator_handling(
+                prompt=prompt,
+                output_schema=FormatterResponse,
+                llm=self.model,
+                # Solo validar una vez el parsing, sino volver a intentarlo en el propio grafo del formatter
+                max_retries=1
             )
-            if not isinstance(formatter_result, FormatterResponse):
-                formatter_result = FormatterResponse.model_validate(formatter_result)
 
             output_citations = formatter_result.citations
             formatter_citations = []
