@@ -29,18 +29,32 @@ jobs:
       - name: Run tests with pytest
         # Indicar el python path para ejecutar en forma de módulo desde la raíz del componente mcp_bd_codigo
         run: |
-          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo INITIALIZE_DB=false ROOT_DIR=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v
+          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo INITIALIZE_DB=false ROOT_DIR=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v --cov=. --cov-report=xml:coverage.xml
+      - name: Cache coverage report
+        uses: actions/cache@v3
+        with:
+          path: ./servidor_mcp_bd_codigo/coverage.xml
+          key: ${{ runner.os }}-coverage-${{ github.sha }}
 
   # Job para el análisis de SonarQube de el proyecto
   sonarqube:
-    name: SonarQube Analysis
-    runs-on: ubuntu-latest
-    needs: [test-bd-codigo]  # Espera a que terminen los tests
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      name: SonarQube Analysis
+      runs-on: ubuntu-latest
+      needs: [test-bd-codigo]  # Espera a que terminen los tests
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
+        - name: Restore coverage report
+          uses: actions/cache@v3
+          with:
+            path: ./servidor_mcp_bd_codigo/coverage.xml
+            key: ${{ runner.os }}-coverage-${{ github.sha }}
+        - name: SonarQube Scan
+          uses: SonarSource/sonarqube-scan-action@v5
+          env:
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          with:
+            args: >
+              -Dsonar.python.coverage.reportPaths=./servidor_mcp_bd_codigo/coverage.xml
