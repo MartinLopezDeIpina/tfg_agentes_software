@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Table, Integer, String, ForeignKey, DateTime, Text, create_engine, Boolean
 from pgvector.sqlalchemy import Vector
@@ -88,5 +90,8 @@ class FileChunk(Base):
         self.start_line = start_line
         self.end_line = end_line
 
-engine = DBConnection.get_engine()
-Base.metadata.create_all(engine)
+
+# No inicializar la conexión si así se indica en las variables de entorno
+if os.environ.get("INITIALIZE_DB", "true").lower() != "false":
+    engine = DBConnection.get_engine()
+    Base.metadata.create_all(engine)

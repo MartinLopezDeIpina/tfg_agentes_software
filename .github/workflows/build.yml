@@ -30,6 +30,7 @@ jobs:
         run: |
           cat > .env << EOL
           ROOT_DIR=${{ github.workspace }}
+          INITIALIZE_DB=false
           EOL
       - name: Run tests with pytest
         # Indicar el python path para ejecutar en forma de módulo desde la raíz del componente mcp_bd_codigo
