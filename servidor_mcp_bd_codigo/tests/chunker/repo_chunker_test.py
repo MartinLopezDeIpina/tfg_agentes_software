@@ -12,7 +12,7 @@ from src.chunker.repo_chunker import FileChunker
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from config import TEST_EXAMPLE_FILES_PATH
+from config import TEST_EXAMPLE_FILES_PATH, ROOT_DIR
 
 def return_definition_extraction(example_file_path):
     """
@@ -23,8 +23,7 @@ def return_definition_extraction(example_file_path):
     """
     with patch('importlib.resources.files') as mock_files:
 
-        #todo: no depender de la ruta absoluta
-        mock_files.return_value = Path('/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo')
+        mock_files.return_value = Path(ROOT_DIR)
 
         file_relative_path = os.path.join(TEST_EXAMPLE_FILES_PATH, example_file_path)
         absolute_file_path = get_file_absolute_path(file_relative_path)

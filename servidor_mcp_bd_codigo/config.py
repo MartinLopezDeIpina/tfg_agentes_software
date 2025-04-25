@@ -18,10 +18,9 @@ MAX_REFERENCING_CHUNKS = 1
 LLM_TEMPERATURE = 0.5
 
 TEST_EXAMPLE_FILES_PATH = "tests/chunker/example_files"
-
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-REPO_ROOT_ABSOLUTE_PATH = "/home/martin/open_source/ia-core-tools"
+ROOT_DIR = os.environ.get("ROOT_DIR", os.path.dirname(os.path.abspath(__file__)))
+# No se usa para los tests por lo que no es necesario cambiarlo
+REPO_ROOT_ABSOLUTE_PATH = os.environ.get("REPO_ROOT_ABSOLUTE_PATH", "/home/martin/open_source/ia-core-tools")
 
 # directorios a ignorar solo para la visualización del aŕbol
 TREE_STR_IGNORE_DIRS = [".git"]

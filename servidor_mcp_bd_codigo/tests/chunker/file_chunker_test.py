@@ -3,8 +3,6 @@ from unittest.mock import MagicMock, patch
 from chunker.repo_chunker import FileChunker
 from utils.utils import get_file_absolute_path_from_path, get_file_absolute_path_from_proyect_relative_path
 from src.db.models import FSEntry
-#todo fix paths
-from config import TEST_EXAMPLE_FILES_PATH
 
 def create_fsentry_side_effect(created_fsentries, cls, *args, **kwargs):
     name = kwargs.get('name')
