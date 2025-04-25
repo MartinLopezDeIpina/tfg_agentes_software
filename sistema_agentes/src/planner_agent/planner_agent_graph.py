@@ -10,7 +10,7 @@ from langsmith import Client
 
 from config import default_reasoner_llm, default_llm
 from src.BaseAgent import BaseAgent, AgentState
-from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
+from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.planner_agent.models import PlannerResponse

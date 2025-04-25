@@ -18,10 +18,10 @@ from langgraph.prebuilt import create_react_agent
 
 from langsmith import Client, evaluate, aevaluate, EvaluationResult
 
-from src.eval_agents.base_evaluator import BaseEvaluator
+from src.evaluators.base_evaluator import BaseEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.utils import tab_all_lines_x_times
-from src.eval_agents.dataset_utils import search_langsmith_dataset
+from src.evaluators.dataset_utils import search_langsmith_dataset
 from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, default_llm
 
 

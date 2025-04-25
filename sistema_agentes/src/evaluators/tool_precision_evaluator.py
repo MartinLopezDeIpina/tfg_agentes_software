@@ -5,7 +5,7 @@ from langsmith.evaluation import EvaluationResults
 from langsmith.schemas import Example, Run
 from pydantic import StrictFloat
 
-from src.eval_agents.base_evaluator import BaseEvaluator
+from src.evaluators.base_evaluator import BaseEvaluator
 from src.utils import get_list_from_string_comma_separated_values
 
 def get_evaluation_result(tool_precision: StrictFloat, necessary_tool_precision: float, unnecessary_tool_precision: float) -> EvaluationResults:

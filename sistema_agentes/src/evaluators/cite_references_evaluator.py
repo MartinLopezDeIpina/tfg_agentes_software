@@ -6,7 +6,7 @@ from langsmith.evaluation import EvaluationResults
 from pydantic import StrictFloat
 
 from src.BaseAgent import AgentState
-from src.eval_agents.base_evaluator import BaseEvaluator
+from src.evaluators.base_evaluator import BaseEvaluator
 from langsmith.schemas import Example, Run
 
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
@@ -25,6 +25,7 @@ def get_cites_from_state_messages(state: AgentState) -> List[Citation]:
 
 def get_citation_score(expected_cites_str: List[str], actual_cites: List[Citation]) -> float:
     actual_cites_str = [citation.doc_name for citation in actual_cites]
+    actual_cites_str = set(actual_cites_str)
 
     num_expected_cites = len(expected_cites_str)
     cite_hits = 0

@@ -24,15 +24,15 @@ from langsmith.evaluation import EvaluationResults
 
 from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
-from src.eval_agents.cite_references_evaluator import CiteEvaluator
-from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
+from src.evaluators.cite_references_evaluator import CiteEvaluator
+from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import DataSource, CitedAIMessage
 from src.utils import tab_all_lines_x_times
-from src.eval_agents.dataset_utils import search_langsmith_dataset
-from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
+from src.evaluators.dataset_utils import search_langsmith_dataset
+from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt.chat_agent_executor import AgentState as ReactAgentState
 
