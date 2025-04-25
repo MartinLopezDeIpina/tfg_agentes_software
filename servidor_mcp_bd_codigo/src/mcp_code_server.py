@@ -7,10 +7,9 @@ import os.path
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
 from config import REPO_ROOT_ABSOLUTE_PATH, MAX_CHUNKS, MAX_REFERENCED_CHUNKS, MAX_REFERENCING_CHUNKS
-from db.db_connection import DBConnection
-from db.db_utils import get_chunk_code
+from src.db.db_connection import DBConnection
 from mcp_tools import get_code_repository_rag_docs_from_query, get_code_from_repository_file, get_all_files_list
-from utils.proyect_tree import generate_repo_tree_str
+from src.utils.proyect_tree import generate_repo_tree_str
 
 from src.pg_vector_tools import PGVectorTools
 

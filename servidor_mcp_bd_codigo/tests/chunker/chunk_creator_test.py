@@ -1,7 +1,5 @@
-from typing import List
-
-from chunker.chunk_creator import ChunkCreator
-from db.models import FileChunk
+from src.chunker.chunk_creator import ChunkCreator
+from src.db.models import FileChunk
 
 from unittest.mock import MagicMock
 import pytest

@@ -1,4 +1,4 @@
-from utils.utils import tab_all_lines, apend_with_x_tab_to_text
+from src.utils.utils import tab_all_lines, apend_with_x_tab_to_text
 
 
 def format_retrieved_chunks_into_string(response: dict[int, dict]) -> str:

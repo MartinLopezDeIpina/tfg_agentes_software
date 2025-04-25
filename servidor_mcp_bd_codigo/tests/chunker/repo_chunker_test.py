@@ -5,9 +5,9 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from tree_sitter import Point
 
-from chunker.chunk_objects import Definition
+from src.chunker.chunk_objects import Definition
 from src.chunker.repo_chunker import analyze_file_abstract_syntaxis_tree
-from utils.utils import get_file_absolute_path, get_file_text
+from src.utils.utils import get_file_absolute_path, get_file_text
 from src.chunker.repo_chunker import FileChunker
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))

@@ -12,7 +12,7 @@ import os
 from src.utils.utils import get_file_text, get_start_to_end_lines_from_text_code
 from src.db.db_utils import get_chunk_code
 
-from db.db_connection import DBConnection
+from src.db.db_connection import DBConnection
 from src.utils.proyect_tree import generate_repo_tree_str
 from src.code_indexer.llm_tools import AsyncLLMPrompter, AsyncEmbedder
 from src.code_indexer.prompt_builder import DocPromptBuilder

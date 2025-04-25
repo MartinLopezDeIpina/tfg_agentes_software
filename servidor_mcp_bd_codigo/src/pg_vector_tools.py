@@ -4,8 +4,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_core.embeddings.embeddings import Embeddings
 from config import EMBEDDER_MODEL_INSTANCE
-from db.db_utils import get_fs_entry_from_relative_path, get_root_fs_entry, get_chunk_code
-from db.models import FileChunk, Ancestor, FSEntry
+from src.db.db_utils import get_fs_entry_from_relative_path, get_root_fs_entry, get_chunk_code
+from src.db.models import FileChunk, Ancestor, FSEntry
 from src.db.db_connection import DBConnection
 from sqlalchemy import select
 from sqlalchemy.sql import func

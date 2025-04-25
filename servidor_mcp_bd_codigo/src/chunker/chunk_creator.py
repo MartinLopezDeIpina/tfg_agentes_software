@@ -1,7 +1,7 @@
 from typing import List
 
 from src.db.models import FileChunk, FSEntry
-from utils.utils import get_count_text_lines
+from src.utils.utils import get_count_text_lines
 
 
 class ChunkCreator:

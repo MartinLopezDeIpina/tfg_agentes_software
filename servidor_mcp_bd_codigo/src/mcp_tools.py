@@ -1,6 +1,6 @@
 from config import REPO_ROOT_ABSOLUTE_PATH, MAX_CHUNKS, MAX_REFERENCED_CHUNKS, MAX_REFERENCING_CHUNKS
-from db.db_utils import get_chunk_code
-from db.models import FSEntry
+from src.db.db_utils import get_chunk_code
+from src.db.models import FSEntry
 from src.pg_vector_tools import PGVectorTools
 from sqlalchemy.orm import Session
 

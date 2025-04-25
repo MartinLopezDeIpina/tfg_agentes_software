@@ -10,9 +10,8 @@ from src.chunker.chunk_creator import ChunkCreator
 from src.chunker.file_chunk_state import ChunkingContext, FinalState, StartState
 from src.db.models import FSEntry, FileChunk
 from src.db.db_connection import DBConnection
-from tests.chunker.file_chunker_state_test import chunk_creator
 
-from utils.utils import get_file_text, get_count_text_lines
+from src.utils.utils import get_file_text, get_count_text_lines
 from src.db.db_utils import get_fsentry_relative_path, add_fs_entry
 from src.chunker.chunk_objects import Definition
 
