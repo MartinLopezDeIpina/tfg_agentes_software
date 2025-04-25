@@ -6,9 +6,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 EMBEDDER_MODEL = "text-embedding-3-small"
-EMBEDDER_MODEL_INSTANCE = OpenAIEmbeddings(
-                model=EMBEDDER_MODEL
-                )
+
+EMBEDDER_MODEL_INSTANCE = None
+try:
+    EMBEDDER_MODEL_INSTANCE = OpenAIEmbeddings(
+                    model=EMBEDDER_MODEL
+                    )
+except Exception as e:
+    print("No se ha establecido la api key de openai")
 
 MAX_LINE_LENGTH = 2000
 MAX_CHUNKS = 3
