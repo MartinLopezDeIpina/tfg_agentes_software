@@ -1,5 +1,6 @@
 from config import REPO_ROOT_ABSOLUTE_PATH, MAX_CHUNKS, MAX_REFERENCED_CHUNKS, MAX_REFERENCING_CHUNKS
 from db.db_utils import get_chunk_code
+from db.models import FSEntry
 from src.pg_vector_tools import PGVectorTools
 from sqlalchemy.orm import Session
 
@@ -94,6 +95,10 @@ def get_code_from_repository_file(db_session: Session, pgvector_tools: PGVectorT
         db_session=db_session
     )
     return response
+
+def get_all_files_list(db_session: Session):
+    files = db_session.query(FSEntry.path).all()
+    return [file.path for file in files]
 
 
 

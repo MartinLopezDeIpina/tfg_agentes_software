@@ -1,9 +1,11 @@
 import asyncio
 from contextlib import AsyncExitStack
-from typing import List
+from typing import List, Annotated
 
 from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from langgraph.managed.is_last_step import RemainingStepsManager, RemainingSteps
 from langsmith import Client
 
 from src.formatter_agent.formatter_graph import FormatterAgent
@@ -22,16 +24,16 @@ from src.eval_agents.dataset_utils import create_langsmith_datasets
 async def main():
 
     specialized_agents = [
-        GoogleDriveAgent(),
-        FileSystemAgent(),
-        #GitlabAgent(),
+        #GoogleDriveAgent(),
+        #FileSystemAgent(),
+        GitlabAgent(),
         #ConfluenceAgent(),
         #CodeAgent()
     ]
 
     try:
         # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
-        available_agents = await connect_specialized_agents_to_mcp(specialized_agents)
+        available_agents = await init_specialized_agents(specialized_agents)
 
         planner_agent = PlannerAgent()
         orchestrator_agent = OrchestratorAgent(available_agents)
@@ -44,27 +46,24 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "Existe alguna guía de estilos para el frontend del proyecto?",
+            "query": "Cuál es el commit del proyecto más reciente?",
             "messages": []
         })
         """
         orchestrator_graph = orchestrator_agent.create_graph()
         result = await orchestrator_graph.ainvoke({
-            "planner_high_level_plan": "Obten información sobre el frontend de la aplicación"
+            "planner_high_level_plan": "Explicame el funcionamiento de la plantilla de admin"
         })
         """
-        
-
-
 
     finally:
         await MCPClient.cleanup()
 
-async def connect_specialized_agents_to_mcp(specialized_agents: List[SpecializedAgent]) -> List[SpecializedAgent]:
+async def init_specialized_agents(specialized_agents: List[SpecializedAgent]) -> List[SpecializedAgent]:
     available_agents = []
     for agent in specialized_agents:
         try:
-            await agent.connect_to_mcp()
+            await agent.init_agent()
             available_agents.append(agent)
         except Exception as e:
             print(f"Error conectando agente {agent.name}: {e}")
@@ -73,7 +72,7 @@ async def connect_specialized_agents_to_mcp(specialized_agents: List[Specialized
 
 async def evaluate_specialized_agent(agent: SpecializedAgent):
     try:
-        await agent.connect_to_mcp()
+        await agent.init_agent()
         langsmith_client = Client()
 
         results = await agent.evaluate_agent(langsmith_client=langsmith_client)
@@ -94,6 +93,9 @@ async def evaluate_file_system_agent():
 async def evaluate_google_drive_agent():
     await evaluate_specialized_agent(GoogleDriveAgent())
 
+async def evaluate_gitlab_agent():
+    await evaluate_specialized_agent(GitlabAgent())
+
 async def evaluate_orchestrator_agent(agents: List[SpecializedAgent] = None):
     try:
 
@@ -105,7 +107,7 @@ async def evaluate_orchestrator_agent(agents: List[SpecializedAgent] = None):
             CodeAgent()
         ]
 
-        available_agents = await connect_specialized_agents_to_mcp(agents)
+        available_agents = await init_specialized_agents(agents)
         orchestrator_agent = OrchestratorAgent(available_agents)
 
         agents_str = ""
@@ -125,18 +127,18 @@ async def evaluate_planner_agent():
 
     await planner_agent.evaluate_agent(langsmith_client=lansmith_client)
 
-async def evaluate_main_agent():
+async def evaluate_main_agent(is_prueba: bool = True):
     specialized_agents = [
-        #GoogleDriveAgent(),
+        GoogleDriveAgent(),
         FileSystemAgent(),
-        #GitlabAgent(),
+        GitlabAgent(),
         ConfluenceAgent(),
         CodeAgent()
     ]
 
     try:
         # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
-        available_agents = await connect_specialized_agents_to_mcp(specialized_agents)
+        available_agents = await init_specialized_agents(specialized_agents)
 
         planner_agent = PlannerAgent()
         orchestrator_agent = OrchestratorAgent(available_agents)
@@ -148,18 +150,31 @@ async def evaluate_main_agent():
         )
 
         langsmith_client = Client()
-        await main_agent.evaluate_agent(langsmith_client=langsmith_client)
+        await main_agent.evaluate_agent(langsmith_client=langsmith_client, is_prueba=is_prueba)
     finally:
         await specialized_agents[0].cleanup()
 
+async def debug_agent():
+    agent = GitlabAgent()
+    try:
+        await agent.init_agent()
+        await agent.execute_agent_graph_with_exception_handling(input={
+            "query":  "Búscame información sobre el login de la aplicación",
+            "remaining_steps": RemainingSteps(1)
 
-
+        })
+    except Exception as e:
+        print(f"Error ejecutando agente {agent.name}: {e}")
+    finally:
+        await agent.cleanup()
 
 if __name__ == '__main__':
     load_dotenv()
 
+    #asyncio.run(debug_agent())
     #asyncio.run(main())
-    create_langsmith_datasets()
-    asyncio.run(evaluate_main_agent())
+    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
+    asyncio.run(evaluate_main_agent(is_prueba=False))
+    #asyncio.run(evaluate_confluence_agent())
 
 

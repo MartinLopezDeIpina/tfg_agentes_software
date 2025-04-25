@@ -1,5 +1,6 @@
 import asyncio
 import os
+from datetime import datetime
 from typing import List, Dict
 from contextlib import AsyncExitStack
 
@@ -7,8 +8,12 @@ from langchain_core.tools import BaseTool
 from mcp import ClientSession, StdioServerParameters, stdio_client
 from mcp.client.sse import sse_client
 from langchain_mcp_adapters.tools import load_mcp_tools
+from sqlalchemy.dialects.mysql import DATETIME
+from config import GITLAB_API_URL
+
 from config import REPO_ROOT_ABSOLUTE_PATH
 from src.mcp_client.tool_wrapper import patch_tool_with_exception_handling
+from src.specialized_agents.gitlab_agent.additional_tools import get_gitlab_project_commits, get_gitlab_issues
 
 """
 Se crea un cliente MCP por cada agente. 
@@ -72,11 +77,9 @@ class MCPClient:
 
         server_env = {
             "GITLAB_PERSONAL_ACCESS_TOKEN": os.getenv('GITLAB_PERSONAL_ACCESS_TOKEN'),
-            "GITLAB_API_URL": os.getenv('GITLAB_API_URL'),
+            "GITLAB_API_URL": GITLAB_API_URL
         }
 
-        if not server_env["GITLAB_API_URL"]:
-            raise ValueError("GITLAB_API_URL is not set in the environment variables.")
         if not server_env["GITLAB_PERSONAL_ACCESS_TOKEN"]:
             raise ValueError("GITLAB_PERSONAL_ACCESS_TOKEN is not set in the environment variables.")
 
@@ -276,6 +279,24 @@ class MCPClient:
 
 async def main():
     mcp_client = MCPClient()
+    await mcp_client.connect_to_gitlab_server()
+
+    arguments = {
+       "since":  datetime(2024, 12, 10),
+       "until":  datetime(2025, 1, 1),
+       "user_name": "m.lonbide"
+    }
+    """
+    result = await mcp_client.call_tool(tool_name="get_gitlab_project_commits", tool_args=arguments, server_id="gitlab")
+    """
+
+    result = await get_gitlab_project_commits.ainvoke({})
+    result2 = await get_gitlab_issues.ainvoke({})
+
+    print(result)
+
+
+
     await MCPClient.cleanup()
 
 

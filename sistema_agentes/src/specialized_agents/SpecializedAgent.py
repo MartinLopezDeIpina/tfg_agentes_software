@@ -1,14 +1,22 @@
 import functools
+import uuid
 from abc import ABC, abstractmethod
-from typing import List, TypedDict
+from typing import List, TypedDict, Annotated, Sequence
 
+import langgraph.prebuilt.chat_agent_executor
+from jedi.inference.recursion import recursion_limit
 from langchain.chains.question_answering.map_reduce_prompt import messages
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.constants import END
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
+from langgraph.managed import RemainingSteps
+from langgraph.managed.is_last_step import IsLastStepManager, IsLastStep
 from langgraph.prebuilt import create_react_agent
 
 from langsmith import Client, evaluate, aevaluate
@@ -16,12 +24,23 @@ from langsmith.evaluation import EvaluationResults
 
 from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
+from src.eval_agents.cite_references_evaluator import CiteEvaluator
 from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
+from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
+from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
+from src.specialized_agents.citations_tool.models import DataSource, CitedAIMessage
 from src.utils import tab_all_lines_x_times
 from src.eval_agents.dataset_utils import search_langsmith_dataset
 from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt.chat_agent_executor import AgentState as ReactAgentState
 
+from static.prompts import REACT_SUMMARIZER_SYSTEM_PROMPT
+
+
+class SpecializedAgentState(AgentState):
+    recursion_limit_exceded: bool
 
 class SpecializedAgent(BaseAgent):
 
@@ -29,28 +48,57 @@ class SpecializedAgent(BaseAgent):
     tools_str: List[str]
     tools: List[BaseTool]
     mcp_client: MCPClient
+    data_sources: List[DataSource]
+    max_steps: int
+    react_graph: CompiledGraph
 
     def __init__(
         self,
         name: str,
         description: str,
+        prompt: str = "",
         model: BaseChatModel = default_llm,
         tools_str: List[str] = None,
+        data_sources: List[DataSource] = None,
+        max_steps: int = 10
     ):
         super().__init__(
             name=name,
             model = model,
-            debug=True
+            debug=True,
+            prompt = prompt
         )
 
         self.description = description
         self.tools_str = tools_str or []
+        self.data_sources = data_sources or []
+        self.max_steps = max_steps
+
+
 
     @abstractmethod
     async def connect_to_mcp(self):
         """
         Conectarse al cliente mcp y obtener las tools
         """
+
+    async def create_citation_data_source(self):
+        if self.data_sources:
+            for data_source in self.data_sources:
+                await data_source.set_available_documents(self.tools)
+
+            self.tools.append(
+                create_citation_tool(
+                    data_sources=self.data_sources
+                )
+            )
+
+    async def init_agent(self):
+        """
+        Conecta el agente al servidor MCP e inicializa el sistema de referenciado de citas
+        """
+        await self.connect_to_mcp()
+        await self.create_citation_data_source()
 
     async def cleanup(self):
         """
@@ -59,35 +107,96 @@ class SpecializedAgent(BaseAgent):
         if self.mcp_client:
             await self.mcp_client.cleanup()
 
-    def process_result(self, agent_state: AgentState) -> AIMessage:
+    def process_result(self, agent_state: SpecializedAgentState) -> CitedAIMessage:
         """
         Una vez ejecutado el grafo del agente, obtener el resultado final.
         """
-        ai_messages = [msg for msg in agent_state["messages"] if isinstance(msg, AIMessage)]
+        ai_messages = agent_state.get("messages")
 
         if ai_messages:
-            final_result = ai_messages[-1]
+            response_message = ai_messages[-1]
+            citations = get_citations_from_conversation_messages(ai_messages) or []
+
+            return CitedAIMessage(
+                message=response_message,
+                citations=citations
+            )
         else:
-            final_result = AIMessage(
-                content="An error occurred while processing the request"
+            final_result = CitedAIMessage(
+                message=AIMessage(content="Error procesando respuesta"),
+                citations = []
             )
 
         return final_result
+
+    async def call_langgraph_react_graph(self, state: SpecializedAgentState):
+        """
+        Llamar al grafo ReAct de langgraph con el máximo de steps definido
+        """
+        messages = state.get("messages")
+        thread_id = str(uuid.uuid4())
+        config=RunnableConfig(
+            recursion_limit=self.max_steps,
+            configurable={"thread_id": thread_id}
+        )
+
+        try:
+            result = await self.react_graph.ainvoke(
+                input={
+                    "messages": messages,
+                },
+                config=config
+            )
+            return result
+        except Exception as e:
+            print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
+            state["recursion_limit_exceded"] = True
+            last_state = self.react_graph.get_state(config)
+            messages = last_state.values.get("messages", [])
+            state["messages"] = messages
+            return state
+        
+    def check_react_recursion_limit(self, state: SpecializedAgentState):
+        recursion_limit_exceded = state.get("recursion_limit_exceded")
+        
+        if recursion_limit_exceded:
+            return "response_summarizer"
+        else:
+            return END
+        
+    async def generate_summarized_response(self, state: SpecializedAgentState):
+        messages = state.get("messages")
+        new_system_message = SystemMessage(
+            content=REACT_SUMMARIZER_SYSTEM_PROMPT
+        )
+        messages[0] = new_system_message
+        try:
+            summarizer_response = await self.model.ainvoke(messages)
+            state["messages"].append(summarizer_response)
+            return state
+        except Exception as e:
+            state["messages"].append(AIMessage(content="Error ejecutando agente especializado"))
+            return state
 
     def create_graph(self) -> CompiledGraph:
         """
         Devolver el grafo compilado del agente
         """
+        checkpointer = MemorySaver()
+        self.react_graph = create_react_agent(
+            model=self.model,
+            tools=self.tools,
+            checkpointer=checkpointer
+        )
         graph_builder = StateGraph(AgentState)
 
-        react_graph = create_react_agent(model=self.model, tools=self.tools)
-
         graph_builder.add_node("prepare", self.prepare_prompt)
-        graph_builder.add_node("react", react_graph)
+        graph_builder.add_node("react", self.call_langgraph_react_graph)
+        graph_builder.add_node("response_summarizer", self.generate_summarized_response)
 
         graph_builder.set_entry_point("prepare")
         graph_builder.add_edge("prepare", "react")
-        graph_builder.set_finish_point("react")
+        graph_builder.add_conditional_edges("react", self.check_react_recursion_limit)
 
         return graph_builder.compile()
 
@@ -109,7 +218,8 @@ class SpecializedAgent(BaseAgent):
     async def evaluate_agent(self, langsmith_client: Client):
         evaluators = [
             ToolPrecisionEvaluator(self.get_tools_from_run_state),
-            JudgeLLMEvaluator()
+            JudgeLLMEvaluator(),
+            CiteEvaluator()
         ]
 
         result = await self.call_agent_evaluation(langsmith_client, evaluators)

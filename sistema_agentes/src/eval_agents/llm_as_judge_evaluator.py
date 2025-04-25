@@ -44,6 +44,9 @@ class JudgeLLMEvaluator(BaseEvaluator):
         run_state = run.outputs.get("run_state")
         run_solution = example.outputs.get("solution")
         solution_possible = example.outputs.get("possible")
+        difficulty = example.outputs.get("difficulty")
+        if difficulty is not None:
+            difficulty = int(difficulty)
 
         if solution_possible:
             solution_list = get_list_from_string_comma_separated_values(run_solution)
@@ -65,6 +68,14 @@ class JudgeLLMEvaluator(BaseEvaluator):
                         score=StrictFloat(score)
                     )
                 )
+                if difficulty is not None:
+                    evaluation_results.append(
+                        EvaluationResult(
+                            key=f"{difficulty} Difficulty",
+                            score=StrictFloat(score)
+                        )
+                    )
+
             else:
                 if model_evaluation.tried_to_respond:
                     hallucination_score = 0.0

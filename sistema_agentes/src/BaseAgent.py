@@ -28,6 +28,8 @@ from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, default_
 class AgentState(TypedDict):
     query: str
     messages: List[BaseMessage]
+    remaining_steps: int
+    is_last_step: bool
 
 class BaseAgent(ABC):
     """
@@ -40,16 +42,19 @@ class BaseAgent(ABC):
     name: str
     model: BaseChatModel
     debug: bool
+    prompt: str
 
     def __init__(
             self,
             name: str,
             model: BaseChatModel = None,
-            debug: bool = True
+            debug: bool = True,
+            prompt: str = ""
     ):
         self.name = name
         self.model = model or default_llm
         self.debug = True
+        self.prompt = prompt
 
     @abstractmethod
     async def prepare_prompt(self, state: AgentState) -> AgentState:
@@ -76,6 +81,15 @@ class BaseAgent(ABC):
         Define los evaluadores específicos a utilizar para la evaluación del agente.
         """
 
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        agent_graph = self.create_graph()
+        try:
+            result = await agent_graph.ainvoke(input=input)
+            return result
+        except Exception as e:
+            print(f"Excepción ejecutando agente {self.name}: {e}")
+            return input
+
     async def execute_from_dataset(self, inputs: dict) -> dict:
         compiled_graph = self.create_graph()
 
@@ -94,9 +108,11 @@ class BaseAgent(ABC):
                "error": True
             }
 
-    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10):
+    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False):
         evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
-        dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=self.name)
+
+        agent_name = self.name if not is_prueba else f"{self.name}_prueba"
+        dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=agent_name)
         if not dataset:
             print(f"Evaluation dataset for {self.name} not found")
             return

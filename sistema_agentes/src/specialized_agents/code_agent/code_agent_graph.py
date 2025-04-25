@@ -8,10 +8,12 @@ from langchain_openai import ChatOpenAI
 
 from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
+from src.specialized_agents.citations_tool.models import CodeDataSource
 from static.agent_descriptions import CODE_AGENT_DESCRIPTION
 
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
-from src.specialized_agents.code_agent.prompts import system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, code_agent_system_prompt
+
 
 class CodeAgent(SpecializedAgent):
     def __init__(self, model: BaseChatModel = None):
@@ -23,7 +25,15 @@ class CodeAgent(SpecializedAgent):
                 "get_code_repository_rag_docs_from_query_tool",
                 "get_file_from_repository_tool",
                 "get_repository_tree_tool",
-            ]
+                "get_all_respository_files_list"
+            ],
+            data_sources=[CodeDataSource(
+                get_documents_tool_name="get_all_respository_files_list",
+                tool_args={}
+            )],
+            prompt=CITE_REFERENCES_PROMPT.format(
+                agent_prompt=code_agent_system_prompt
+            )
         )
 
     async def connect_to_mcp(self):
@@ -49,7 +59,7 @@ class CodeAgent(SpecializedAgent):
 
         messages = [
             SystemMessage(
-                system_prompt.format(
+                self.prompt.format(
                     proyect_tree=proyect_tree,
                     initial_retrieved_docs=initial_retrieved_docs
                 )

@@ -199,6 +199,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         }
                     },
                 },
+            },
+            {
+                name: "gdrive_list_files_json",
+                description: "List all files in the specified Google Drive directory and return as JSON array of filenames",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        page_size: {
+                            type: "number",
+                            description: "Number of files to return (default: 30, max: 100) - Only affects top-level pagination",
+                        },
+                        page_token: {
+                            type: "string",
+                            description: "Token for pagination if there are more files - Only affects top-level pagination",
+                        }
+                    },
+                },
             }
         ],
     };
@@ -337,6 +354,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     {
                         type: "text",
                         text: response,
+                    },
+                ],
+                isError: false,
+            };
+        }
+        catch (error) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Error listing files: ${error.message}`,
+                    },
+                ],
+                isError: true,
+            };
+        }
+    }
+
+    else if (request.params.name === "gdrive_list_files_json") {
+        const pageSize = request.params.arguments?.page_size || 30;
+        const pageToken = request.params.arguments?.page_token || null;
+
+        try {
+            // Determinar la carpeta raíz para iniciar el listado recursivo
+            const rootFolderId = config.specificFolderId;
+
+            // Usar la función recursiva para obtener todos los archivos
+            const fileList = await listFilesRecursively(rootFolderId, 0, 5);
+
+            // Crear un array de solo los nombres de archivos
+            const fileNames = fileList.map(file => ({name: file.name, url: ""}));
+
+            // Convertir a JSON string con formato
+            const jsonResponse = JSON.stringify({ documents: fileNames }, null, 2);
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: jsonResponse,
                     },
                 ],
                 isError: false,

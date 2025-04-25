@@ -9,9 +9,10 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
-from src.specialized_agents.confluence_agent.prompts import system_prompt
+from src.specialized_agents.citations_tool.models import ConfluenceDataSource
 from src.utils import tab_all_lines_x_times
 from static.agent_descriptions import CONFLUENCE_AGENT_DESCRIPTION
+from static.prompts import CITE_REFERENCES_PROMPT, confluence_system_prompt
 
 
 class ConfluenceAgent(SpecializedAgent):
@@ -23,7 +24,17 @@ class ConfluenceAgent(SpecializedAgent):
             tools_str= [
                 "confluence_search",
                 "confluence_get_page"
-            ]
+            ],
+            data_sources=[ConfluenceDataSource(
+                get_documents_tool_name="confluence_search",
+                tools_args= {
+                    "query":"type=page",
+                    "limit": 50
+                }
+            )],
+            prompt=CITE_REFERENCES_PROMPT.format(
+                agent_prompt=confluence_system_prompt
+            )
         )
 
     async def connect_to_mcp(self):
@@ -39,7 +50,7 @@ class ConfluenceAgent(SpecializedAgent):
 
         pages_task = pages_tool.ainvoke({
             "query":"type=page",
-            "limit": 500
+            "limit": 50
         })
 
         pages_result = await asyncio.gather(pages_task)
@@ -59,9 +70,9 @@ class ConfluenceAgent(SpecializedAgent):
 
         messages = [
             SystemMessage(
-                system_prompt.format(
-                    confluence_pages_preview=confluence_pages_preview
-                ),
+                self.prompt.format(
+                    confluence_pages_preview=confluence_pages_preview,
+                )
             ),
             HumanMessage(
                 content=state["query"]
