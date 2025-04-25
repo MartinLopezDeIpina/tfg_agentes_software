@@ -32,8 +32,10 @@ jobs:
           ROOT_DIR=${{ github.workspace }}
           EOL
       - name: Run tests with pytest
+        # Indicar el python path para ejecutar en forma de módulo desde la raíz del componente mcp_bd_codigo
         run: |
-          pytest tests/ -v
+          PYTHONPATH=${{ github.workspace }}/servidor_mcp_bd_codigo pytest tests/ -v
+
   # Job para el análisis de SonarQube de el proyecto
   sonarqube:
     name: SonarQube Analysis
