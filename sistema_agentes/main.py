@@ -24,11 +24,11 @@ from src.evaluators.dataset_utils import create_langsmith_datasets
 async def main():
 
     specialized_agents = [
-        #GoogleDriveAgent(),
-        #FileSystemAgent(),
+        GoogleDriveAgent(),
+        FileSystemAgent(),
         GitlabAgent(),
-        #ConfluenceAgent(),
-        #CodeAgent()
+        ConfluenceAgent(),
+        CodeAgent()
     ]
 
     try:
@@ -44,6 +44,7 @@ async def main():
             formatter_agent=formatter_agent
         )
 
+        """
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
             "query": "Cuál es el commit del proyecto más reciente?",
@@ -54,7 +55,6 @@ async def main():
         result = await orchestrator_graph.ainvoke({
             "planner_high_level_plan": "Explicame el funcionamiento de la plantilla de admin"
         })
-        """
 
     finally:
         await MCPClient.cleanup()
@@ -172,9 +172,9 @@ if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(debug_agent())
-    asyncio.run(main())
-    #create_langsmith_datasets(dataset_prueba=True, agents_to_update=["main_agent"])
+    #asyncio.run(main())
+    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["orchestrator_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
-    #asyncio.run(evaluate_confluence_agent())
+    asyncio.run(evaluate_orchestrator_agent())
 
 

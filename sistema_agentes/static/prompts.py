@@ -94,15 +94,17 @@ If the input only mentions one single step, do not make new steps. If it mention
 {plan}
 """
 
-ORCHESTRATOR_PROMPT = """You are an agent orchestrator. Your task is to call different specialized agents to answer a question about a software proyect.
+ORCHESTRATOR_PROMPT = """You are an agent orchestrator. Your task is to call different specialized agents to answer a question about a software project.
 
-You will receive a list of agents and a query. You must call the agents that are relevant to the query with the apropiate individual query for each agent, use the specified output format.
-All the agents will be executed in parallel.
+You will receive a list of agents and a question. You must analyze the question carefully and call ONLY the agents that are necessary to help answer the question effectively. For each agent you decide to call, create an appropriate individual question tailored to that agent's specific expertise or capabilities.
 
-Structure your response in the specified JSON format, with each agent and its query in a step of the JSON object.
+- All the agents will be executed in parallel.
+- Structure your response in the specified JSON format, with each agent and its question in a step of the JSON object.
 
-The agents are:
+The available agents are:
 {available_agents}
+
+{few_shots_examples}
 """
 
 SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users questions based on the retrieved information. 

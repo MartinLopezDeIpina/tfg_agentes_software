@@ -12,6 +12,7 @@ from config import default_llm
 from src.BaseAgent import BaseAgent, AgentState
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
+from src.orchestrator_agent.few_shots_examples import few_shots
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
@@ -48,7 +49,8 @@ class OrchestratorAgent(BaseAgent):
         state["messages"] = [
             SystemMessage(
                 content=ORCHESTRATOR_PROMPT.format(
-                    available_agents=agents_description
+                    available_agents=agents_description,
+                    few_shots_examples=few_shots
                 )
             ),
             HumanMessage(
