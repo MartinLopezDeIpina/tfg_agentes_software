@@ -62,11 +62,11 @@ orchestrator_agent,,,,,google_drive_agent,"file_system_agent, confluence_agent, 
 orchestrator_agent,,,,,gitlab_agent,"file_system_agent, confluence_agent, google_drive_agent, code_agent",TRUE,Busca información sobre issues del proyecto que mencionen bugs,
 orchestrator_agent,,,,,confluence_agent,"file_system_agent, google_drive_agent, code_agent, gitlab_agent",TRUE,Busca información sobre los colores de la guía de estilos,
 orchestrator_agent,,,,,"file_system_agent, confluence_agent, google_drive_agent","gitlab_agent, code_agent",TRUE,Busca documentación de la interfaz de usuario de la aplicación,
-planner_agent,¿Cómo funciona el frontend del proyecto?,,"""El plan no está finalizado"", ""El plan contiene un step para obtener información relacionada con el frontend del proyecto"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,,
-planner_agent,¿Qué tecnologías se utilizan en el proyecto?,,"""El plan no está finalizado"", ""El plan contiene un step para obtener información relacionada con las tecnologías utilizadas"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,,
-planner_agent,¿Cómo funciona la gestión del proyecto?,,"""El plan no está finalizado"", ""El plan contiene un step para obtener información relacionada con la gestión del proyecto"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,,
-planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos visual en el proyecto,,"""El plan no está finalizado"", ""El plan contiene un step para obtener información relacionada con la guía de estilos visual del proyecto"", ""El plan listado (steps) contiene más de un elemento",,,,TRUE,,
-planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos en el proyecto,,"""El plan no está finalizado"", ""El plan contiene un step para obtener ejemplos de código de frontend donde se apliquen los principios de la guía de estilos"", ""el step listado contiene información sobre las características de la guía de estilos del código a buscar""",,,,TRUE,"""Para buscar ejemplos donde se aplica la guía de estilos visual primero hay que buscar la guía de estilos visual del proyecto "",""Obtener la guía de estilos visual del proyecto""","""Guía de estilos visual: Primario: Azul Bootstrap (#0d6efd class=text-primary) Secundario: Gris claro (#f8f9fa class=bg-light) Fuentes Web:
+planner_agent,¿Cómo funciona el frontend del proyecto?,,"""finished: false"", ""El plan contiene un step para obtener información relacionada con el frontend del proyecto"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,,
+planner_agent,¿Qué tecnologías se utilizan en el proyecto?,,"""finished: false"", ""El plan contiene un step para obtener información relacionada con las tecnologías utilizadas"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,,
+planner_agent,¿Cómo funciona la gestión del proyecto?,,"""finished: false"", ""El plan contiene un step para obtener información relacionada con la gestión del proyecto"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,,
+planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos visual en el proyecto,,"""finished: false"", ""El plan contiene un step para obtener información relacionada con la guía de estilos visual del proyecto"", ""El plan listado (steps) contiene más de un elemento",,,,TRUE,,
+planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos en el proyecto,,"""finished: false"", ""El plan contiene un step para obtener ejemplos de código de frontend donde se apliquen los principios de la guía de estilos"", ""el step listado contiene información sobre las características de la guía de estilos del código a buscar""",,,,TRUE,"""Para buscar ejemplos donde se aplica la guía de estilos visual primero hay que buscar la guía de estilos visual del proyecto "",""Obtener la guía de estilos visual del proyecto""","""Guía de estilos visual: Primario: Azul Bootstrap (#0d6efd class=text-primary) Secundario: Gris claro (#f8f9fa class=bg-light) Fuentes Web:
 
 DM Sans: Para textos generales (weights: 400 500 700)
 
@@ -81,7 +81,7 @@ Basado en Bootstrap con 12 columnas
 Responsive con breakpoints estándar de Bootstrap
 
 Clases principales: .row .col-[tamaño] .col-[tamaño]-[número]"""
-planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos en el proyecto,,"""El plan sí está finalizado"", ""Se ha obtenido información suficiente sobre la guía de estilos y el código en el que se aplica""",,,,TRUE,"""Para buscar ejemplos donde se aplica la guía de estilos visual primero hay que buscar la guía de estilos visual del proyecto"", ""Primero se debe obtener la guía de estilos del proyecto"", ""Después se deben obtener ejemplos de código donde se aplique esta guía de estilos""","""Guía de estilos visual: Primario: Azul Bootstrap (#0d6efd class=text-primary) Secundario: Gris claro (#f8f9fa class=bg-light) Fuentes Web:
+planner_agent,Proporciona ejemplos en los que se aplica la guía de estilos en el proyecto,,"""finished: true"", ""Se ha obtenido información suficiente sobre la guía de estilos y el código en el que se aplica""",,,,TRUE,"""Para buscar ejemplos donde se aplica la guía de estilos visual primero hay que buscar la guía de estilos visual del proyecto"", ""Primero se debe obtener la guía de estilos del proyecto"", ""Después se deben obtener ejemplos de código donde se aplique esta guía de estilos""","""Guía de estilos visual: Primario: Azul Bootstrap (#0d6efd class=text-primary) Secundario: Gris claro (#f8f9fa class=bg-light) Fuentes Web:
 
 DM Sans: Para textos generales (weights: 400 500 700)
 
@@ -150,8 +150,8 @@ Clases principales: .row .col-[tamaño] .col-[tamaño]-[número]"",
         <i class=bi bi-plus></i>
     </a>
 </div>"""
-planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,,"""El plan no está finalizado"", ""El plan contiene un step para obtener las funcionalidades de la documentación marcadas como por implementar"", ""El plan listado (steps) contiene más de un elemento""",,,,TRUE,,
-planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,,"""El plan no está finalizado"", ""El plan contiene un step relacionado con obtener las issues del proyecto"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,"""Para determinar si las funcionalidades por implementar están listadas en alguna issue primero se deben obtener la documentación correspondiente a dichas funcionalidades y para ver si las issues contienen información sobre dichas funcionalidades"", ""Primero se debe buscar información en la documentación sobre las funcionalidades por implementar"", ""Después se deben buscar las issues del proyecto""","""Funcionalidades No Implementadas
+planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,,"""finished: false"", ""El plan contiene un step para obtener las funcionalidades de la documentación marcadas como por implementar"", ""El plan listado (steps) contiene más de un elemento""",,,,TRUE,,
+planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,,"""finished: false"", ""El plan contiene un step relacionado con obtener las issues del proyecto"", ""El plan listado (steps) contiene un solo elemento""",,,,TRUE,"""Para determinar si las funcionalidades por implementar están listadas en alguna issue primero se deben obtener la documentación correspondiente a dichas funcionalidades y para ver si las issues contienen información sobre dichas funcionalidades"", ""Primero se debe buscar información en la documentación sobre las funcionalidades por implementar"", ""Después se deben buscar las issues del proyecto""","""Funcionalidades No Implementadas
 
 Crawlers: Mencionados en el menú pero aún no implementados
 API Keys: Aparecen en el menú pero no están completamente implementados
@@ -168,7 +168,7 @@ Elementos para Revisión
 Menú de Repositorio: Contiene elemento marcado como TASK: delete
 Consistencia de Confirmaciones: Algunas acciones de eliminación tienen confirmación y otras no
 Implementación Completa: Finalizar elementos marcados como pendientes"""
-planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,,"""El plan sí está finalizado"", ""Se ha obtenido suficiente información como para determinar si existen issues para las funcionalidades no implementadas""",,,,TRUE,"""Para determinar si las funcionalidades por implementar están listadas en alguna issue primero se deben obtener la documentación correspondiente a dichas funcionalidades y para ver si las issues contienen información sobre dichas funcionalidades"", ""Primero se debe buscar información en la documentación sobre las funcionalidades por implementar"", ""Después se deben buscar las issues del proyecto""","""Funcionalidades No Implementadas
+planner_agent,¿Existe alguna issue para las funcionalidades marcadas en la documentación por implementar?,,"""finished: true"", ""Se ha obtenido suficiente información como para determinar si existen issues para las funcionalidades no implementadas""",,,,TRUE,"""Para determinar si las funcionalidades por implementar están listadas en alguna issue primero se deben obtener la documentación correspondiente a dichas funcionalidades y para ver si las issues contienen información sobre dichas funcionalidades"", ""Primero se debe buscar información en la documentación sobre las funcionalidades por implementar"", ""Después se deben buscar las issues del proyecto""","""Funcionalidades No Implementadas
 
 Crawlers: Mencionados en el menú pero aún no implementados
 API Keys: Aparecen en el menú pero no están completamente implementados
@@ -186,12 +186,12 @@ Menú de Repositorio: Contiene elemento marcado como TASK: delete
 Consistencia de Confirmaciones: Algunas acciones de eliminación tienen confirmación y otras no
 Implementación Completa: Finalizar elementos marcados como pendientes"",
 
-""Issue 123: Es necesario implementar validación de formularios clinet-side
-responsable: Aritz Galdos"",
-"
+""Aquí tienes issues sobre funcionalidades por implementar:
+ Issue 123: Es necesario implementar validación de formularios client-side
+responsable: Aritz Galdos"""
 planner_agent,¿Cómo despliego el proyecto en AWS?,,,,,,FALSE,"""Para explicar cómo desplegar el proyecto en AWS primero debo buscar documentación sobre esto"", ""Buscar información sobre despliegue en AWS""","""No se ha obtenido información sobre AWS"", ""Los métodos de despliegue son Docker y modo desarrollador"""
 main_agent,¿Qué IDE o editor es recomendado para este proyecto y qué configuraciones específicas requiere?,,,,,,FALSE,,
-main_agent,¿Existen tareas marcadas como good first issues para nuevos contribuyentes? ¿Dónde puedo encontrarlas?,,,,,,TRUE,,
+main_agent,¿Existen tareas marcadas como good first issues para nuevos contribuyentes? ¿Dónde puedo encontrarlas?,,,,,,FALSE,,
 main_agent,¿Qué nivel de participación tiene el cliente en el proceso de desarrollo y toma de decisiones?,,,,,,FALSE,,
 main_agent,¿Cuál es el objetivo principal y la finalidad del proyecto?,0,"""Es un software que proporciona utilidades para crear aplicaciones de IA"", ""Incluye utilidades RAG"", ""Su finalidad es Facilitar implementación de soluciones IA""",README.md,,,TRUE,,
 main_agent,¿Cuáles son las funcionalidades principales que incluye el proyecto?,0,"""Gestión de agentes IA"", ""Configuración de repositorios de conocimiento y carga de documentos"",  ""Entorno de playground para probar agentes"", ""API para integración con otras aplicaciones""",informacion-cliente.md,,,TRUE,,

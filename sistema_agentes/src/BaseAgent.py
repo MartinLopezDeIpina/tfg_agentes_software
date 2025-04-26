@@ -108,7 +108,10 @@ class BaseAgent(ABC):
                "error": True
             }
 
-    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False):
+    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False, evaluation_name: str = None):
+        if not evaluation_name:
+            evaluation_name = f"{self.name} evaluation"
+
         evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
 
         agent_name = self.name if not is_prueba else f"{self.name}_prueba"
@@ -124,7 +127,8 @@ class BaseAgent(ABC):
             data=dataset,
             client=langsmith_client,
             evaluators=evaluator_functions,
-            max_concurrency=max_conc
+            max_concurrency=max_conc,
+            experiment_prefix=evaluation_name,
         )
         return results
 

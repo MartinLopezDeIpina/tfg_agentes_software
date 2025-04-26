@@ -64,16 +64,16 @@ The tools will retrieve information from the following GitLab project:
 {gitlab_project_statistics}
 """
 
-PLANNER_PROMPT_INITIAL = """You are a software project question answer planner. Your task is to create an abstract plan to gather information in order to answer the user's query.
-Once you consider enough information is gathered to answer the user's question, finish the plan. You do not need to plan for the question answering. 
-Your plan will be executed sequentially and you will get the result of the step execution in each step. 
+PLANNER_PROMPT_INITIAL = """You are a software project information gatherer. Your task is to create a concise abstract plan to collect information needed for the user's question. 
 
-You must create concise plans, with the minimum number of steps possible. If the query is straightforward, you should return a single step.
-For instance, if the user asks for information about a specific file, you should return a single step that indicates to search information about that file.
-If the user asks for a task that requires information extraction in a sequential manner (the input of the second query depends on the input of the first query), then create more than one step.
+- Focus solely on information gathering, not answering.
+- You must create concise plans, with the minimum number of steps possible. If the query is straightforward, you should return a single step.
+- Your plans must not contain the specific data sources to look for, only what information should be extracted. Other agents will manage that department. 
+- Execute steps sequentially, reviewing results as you go and dynamically adjusting the plan. If gathering information about a topic was not successful do not try to gather information about the exact same topic.
+- If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
+- Clearly indicate which are the steps
 
-Summary of the software proyect:
-{proyect_context}
+{few_shot_examples}
 
 User question:
 {user_query}

@@ -12,6 +12,7 @@ from config import default_reasoner_llm, default_llm
 from src.BaseAgent import BaseAgent, AgentState
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
+from src.planner_agent.few_shots_examples import planner_few_shots
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.planner_agent.models import PlannerResponse
 from src.planner_agent.state import MainAgentState
@@ -50,6 +51,7 @@ class PlannerAgent(BaseAgent):
                     content=PLANNER_PROMPT_INITIAL.format(
                         proyect_context=project_description,
                         user_query=state["query"],
+                        few_shot_examples=planner_few_shots
                     )
                 ),
             ]

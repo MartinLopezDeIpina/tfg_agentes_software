@@ -123,9 +123,9 @@ async def evaluate_orchestrator_agent(agents: List[SpecializedAgent] = None):
 
 async def evaluate_planner_agent():
     planner_agent = PlannerAgent()
-    lansmith_client = Client()
+    langsmith_client = Client()
 
-    await planner_agent.evaluate_agent(langsmith_client=lansmith_client)
+    await planner_agent.evaluate_agent(langsmith_client=langsmith_client)
 
 async def evaluate_main_agent(is_prueba: bool = True):
     specialized_agents = [
@@ -173,8 +173,8 @@ if __name__ == '__main__':
 
     #asyncio.run(debug_agent())
     #asyncio.run(main())
-    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["orchestrator_agent"])
+    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["planner_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
-    asyncio.run(evaluate_orchestrator_agent())
+    asyncio.run(evaluate_planner_agent())
 
 

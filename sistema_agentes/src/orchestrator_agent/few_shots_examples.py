@@ -29,7 +29,7 @@ few_shots_template = FewShotPromptTemplate(
     suffix="",
     prefix="Here are some abstract examples of some type of questions you need to answer:"
 )
-few_shots = few_shots_template.format()
+orchestrator_few_shots = few_shots_template.format()
 
 
 
