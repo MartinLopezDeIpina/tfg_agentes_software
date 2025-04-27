@@ -1,6 +1,5 @@
 import asyncio
 import os
-from datetime import datetime
 from typing import List, Dict
 from contextlib import AsyncExitStack
 
@@ -8,12 +7,11 @@ from langchain_core.tools import BaseTool
 from mcp import ClientSession, StdioServerParameters, stdio_client
 from mcp.client.sse import sse_client
 from langchain_mcp_adapters.tools import load_mcp_tools
-from sqlalchemy.dialects.mysql import DATETIME
 from config import GITLAB_API_URL
 
 from config import REPO_ROOT_ABSOLUTE_PATH
 from src.mcp_client.tool_wrapper import patch_tool_with_exception_handling
-from src.specialized_agents.gitlab_agent.additional_tools import get_gitlab_project_commits, get_gitlab_issues
+from src.globals import global_exit_stack, global_tools, global_sessions
 
 """
 Se crea un cliente MCP por cada agente. 
@@ -21,15 +19,6 @@ Para cada servidor MCP se crea una sesión. Las sesiones pueden ser compartidas 
 Un cliente puede conectarse a varias sesiones. 
 Cada cliente tiene una lista de tools que filtra desde las disponibles en sus sesiones.
 """
-
-# sesiones con servidores, diccionario de server_id, Session
-_global_sessions: Dict[str, ClientSession] = {}
-# tools disponibles por cada servidor
-_global_tools: Dict[str, BaseTool] = {}
-# contexto asíncrono global
-_global_exit_stack: AsyncExitStack = None
-
-
 class MCPClient:
     """Cliente MCP con conexiones compartidas entre instancias"""
 
@@ -38,12 +27,6 @@ class MCPClient:
         Solo se cargarán las tools indicadas en agent_tools para pasarle al agente únicamente las tools necesarias.
         Si no se indica ninguna se cargarán todas.
         """
-        global _global_exit_stack
-
-        # Inicializar el exit_stack global si no existe
-        if _global_exit_stack is None:
-            _global_exit_stack = AsyncExitStack()
-
         self.agent_tools = agent_tools or []
         self.sessions = {}
         self.tools = {}
@@ -60,8 +43,8 @@ class MCPClient:
         Returns:
             bool: True si la sesión existe y fue configurada, False en caso contrario
         """
-        if server_id in _global_sessions:
-            self.sessions[server_id] = _global_sessions[server_id]
+        if server_id in global_sessions:
+            self.sessions[server_id] = global_sessions[server_id]
             self.tools[server_id] = self._filter_tools(server_id)
             return True
         return False
@@ -142,21 +125,19 @@ class MCPClient:
 
     async def connect_to_stdio_server(self, server_id: str, stdio_params: StdioServerParameters):
         """Conectar a un servidor MCP usando stdio."""
-        global _global_sessions, _global_tools, _global_exit_stack
-
         if self._check_if_session_exists(server_id):
             return
 
         # Establecer la conexión usando el exit_stack global
-        stdio_transport = await _global_exit_stack.enter_async_context(stdio_client(stdio_params))
+        stdio_transport = await global_exit_stack.enter_async_context(stdio_client(stdio_params))
         self.stdio_transports[server_id] = stdio_transport
         stdio, write = stdio_transport
 
         # Crear la sesión
-        session = await _global_exit_stack.enter_async_context(ClientSession(stdio, write))
+        session = await global_exit_stack.enter_async_context(ClientSession(stdio, write))
 
         # Guardar la sesión a nivel global y en la instancia actual
-        _global_sessions[server_id] = session
+        global_sessions[server_id] = session
         self.sessions[server_id] = session
 
         # Inicializar la sesión y cargar herramientas
@@ -186,24 +167,22 @@ class MCPClient:
 
     async def connect_to_sse_server(self, server_id: str, host_ip: str, host_port: int):
         """Conectar a un servidor MCP usando SSE."""
-        global _global_sessions, _global_tools, _global_exit_stack
-
         if self._check_if_session_exists(server_id):
             return
 
         print(f"Connecting to SSE server at {host_ip}:{host_port}")
 
         # Usar el exit_stack global
-        streams = await _global_exit_stack.enter_async_context(
+        streams = await global_exit_stack.enter_async_context(
             sse_client(f"http://{host_ip}:{host_port}/sse")
         )
 
-        session = await _global_exit_stack.enter_async_context(
+        session = await global_exit_stack.enter_async_context(
             ClientSession(streams[0], streams[1])
         )
 
         # Guardar la sesión a nivel global y en la instancia actual
-        _global_sessions[server_id] = session
+        global_sessions[server_id] = session
         self.sessions[server_id] = session
 
         # Inicializar la sesión y cargar herramientas
@@ -211,15 +190,13 @@ class MCPClient:
 
     async def _initialize_session(self, server_id: str):
         """Inicializa una sesión y carga sus herramientas."""
-        global _global_tools
-
         await self.sessions[server_id].initialize()
 
         # Cargar herramientas de langchain solo si no se han cargado antes
-        if server_id not in _global_tools:
+        if server_id not in global_tools:
             tools = await load_mcp_tools(self.sessions[server_id])
             wrapped_tools = [patch_tool_with_exception_handling(tool) for tool in tools]
-            _global_tools[server_id] = wrapped_tools
+            global_tools[server_id] = wrapped_tools
 
         # Filtrar herramientas para este cliente
         self.tools[server_id] = self._filter_tools(server_id)
@@ -230,15 +207,13 @@ class MCPClient:
 
     def _filter_tools(self, server_id: str) -> List[BaseTool]:
         """Filtrar herramientas según la lista agent_tools"""
-        global _global_tools
-
-        if server_id not in _global_tools:
+        if server_id not in global_tools:
             return []
 
         if not self.agent_tools:
-            return _global_tools[server_id]
+            return global_tools[server_id]
 
-        return [tool for tool in _global_tools[server_id]
+        return [tool for tool in global_tools[server_id]
                 if tool.name in self.agent_tools]
 
     async def call_tool(self, server_id: str, tool_name: str, tool_args: dict):
@@ -265,37 +240,26 @@ class MCPClient:
     @staticmethod
     async def cleanup():
         """Desconecta de todos los servidores cerrando el exit_stack global."""
-        global _global_exit_stack, _global_sessions, _global_tools
-
         try:
-            if _global_exit_stack:
-                await _global_exit_stack.aclose()
-                _global_exit_stack = None
-                _global_sessions = {}
-                _global_tools = {}
+            if global_exit_stack:
+                await global_exit_stack.aclose()
                 print("Todos los servidores desconectados correctamente")
         except Exception as e:
             print(f"Error durante la limpieza global: {e}")
 
 async def main():
     mcp_client = MCPClient()
-    await mcp_client.connect_to_gitlab_server()
-
-    arguments = {
-       "since":  datetime(2024, 12, 10),
-       "until":  datetime(2025, 1, 1),
-       "user_name": "m.lonbide"
+    await mcp_client.connect_to_code_server()
+    
+    tool_name = "get_code_repository_rag_docs_from_query_tool"
+    tool_args = {
+        "query": "¿Se utiliza algún patrón o metodología para crear alguna clase?"
     }
-    """
-    result = await mcp_client.call_tool(tool_name="get_gitlab_project_commits", tool_args=arguments, server_id="gitlab")
-    """
 
-    result = await get_gitlab_project_commits.ainvoke({})
-    result2 = await get_gitlab_issues.ainvoke({})
-
+    result = await mcp_client.call_tool(server_id="code_repo", tool_name=tool_name, tool_args=tool_args)
+    tree = await mcp_client.call_tool(server_id="code_repo", tool_name="get_repository_tree_tool", tool_args={})
+    print(tree)
     print(result)
-
-
 
     await MCPClient.cleanup()
 

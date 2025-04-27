@@ -82,6 +82,7 @@ class BaseAgent(ABC):
         """
 
     async def execute_agent_graph_with_exception_handling(self, input: dict):
+        # todo: hacer lo de los checkpoints??
         agent_graph = self.create_graph()
         try:
             result = await agent_graph.ainvoke(input=input)

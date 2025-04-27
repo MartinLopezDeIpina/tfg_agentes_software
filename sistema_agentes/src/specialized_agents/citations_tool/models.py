@@ -281,7 +281,7 @@ class CodeDataSource(DataSource):
             tool_args=[tool_args],
             url=f"file://{CODE_REPO_ROOT_ABSOLUTE_PATH}",
             docs_id="code_repository",
-            use_example="If you want to cite the document notebook1.pynb: doc_name=notebooks/notebook1.pynb",
+            use_example="If you want to cite the document notebook1.pynb: doc_name=notebooks/notebook1.pynb\nIf you want to cite the directory_1 directory: doc_name=relative/path/to/dir/directory_1",
             response_parser=CodeResponseParser()
         )
 

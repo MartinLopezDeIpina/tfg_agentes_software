@@ -155,12 +155,12 @@ async def evaluate_main_agent(is_prueba: bool = True):
         await specialized_agents[0].cleanup()
 
 async def debug_agent():
-    agent = GitlabAgent()
+    agent = CodeAgent()
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
-            "query":  "Búscame información sobre el login de la aplicación",
-            "remaining_steps": RemainingSteps(1)
+            "query":  "¿Puedes mostrarme la jerarquía completa de llamadas para el método invoke_rag_with_repo en ModelTools?",
+            "remaining_steps": RemainingSteps(2)
 
         })
     except Exception as e:
@@ -173,8 +173,8 @@ if __name__ == '__main__':
 
     #asyncio.run(debug_agent())
     #asyncio.run(main())
-    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["planner_agent"])
+    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["code_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
-    asyncio.run(evaluate_planner_agent())
+    asyncio.run(evaluate_code_agent())
 
 
