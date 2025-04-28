@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 load_dotenv()
 
@@ -27,4 +27,15 @@ default_llm = ChatOpenAI(
 default_reasoner_llm = ChatOpenAI(
     model="o4-mini"
 )
+default_embedding_llm = OpenAIEmbeddings(
+    model="text-embedding-3-small"
+)
+
+db_user=os.getenv("DB_USER")
+db_password=os.getenv("DB_PASSWORD")
+db_host=os.getenv("DB_HOST")
+db_port=os.getenv("DB_PORT")
+db_name=os.getenv("DB_NAME")
+postgre_connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+psycopg_connection_string = f"postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 

@@ -155,7 +155,7 @@ async def evaluate_main_agent(is_prueba: bool = True):
         await specialized_agents[0].cleanup()
 
 async def debug_agent():
-    agent = CodeAgent()
+    agent = FileSystemAgent()
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
@@ -171,10 +171,10 @@ async def debug_agent():
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(debug_agent())
+    asyncio.run(debug_agent())
     #asyncio.run(main())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["code_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
-    asyncio.run(evaluate_code_agent())
+    #asyncio.run(evaluate_code_agent())
 
 

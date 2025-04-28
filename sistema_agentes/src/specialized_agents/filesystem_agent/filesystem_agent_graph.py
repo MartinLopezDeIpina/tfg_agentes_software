@@ -8,9 +8,12 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
 from config import OFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
 from src.BaseAgent import AgentState
+from src.db.documentation_indexer import AsyncDirectoryIndexer, AsyncPGVectorRetriever
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CodeDataSource, FileSystemDataSource
 from src.mcp_client.mcp_multi_client import MCPClient
+from src.specialized_agents.filesystem_agent.additional_tools import get_docs_rag_tool, \
+    get_file_system_agent_additional_tools
 from static.agent_descriptions import FILE_SYSTEM_AGENT_DESCRIPTION
 from static.prompts import CITE_REFERENCES_PROMPT, filesystem_agent_system_prompt
 
@@ -43,6 +46,10 @@ class FileSystemAgent(SpecializedAgent):
         self.mcp_client = MCPClient(agent_tools=self.tools_str)
         await self.mcp_client.connect_to_filesystem_server()
         self.tools = self.mcp_client.get_tools()
+        
+    async def add_additional_tools(self):
+        additional_tools = await get_file_system_agent_additional_tools()
+        self.tools.extend(additional_tools)
 
     async def prepare_prompt(self, state: AgentState) -> AgentState:
         dir_tool = None

@@ -1,15 +1,12 @@
-import asyncio
-import os
 import uuid
 from abc import abstractmethod
 from typing import List
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import MemorySaver, InMemorySaver
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import END
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
@@ -22,7 +19,7 @@ from src.BaseAgent import AgentState, BaseAgent
 from src.evaluators.cite_references_evaluator import CiteEvaluator
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.postgres_connection_manager import PostgresPoolManager
+from src.db.postgres_connection_manager import PostgresPoolManager
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import DataSource, CitedAIMessage
@@ -76,6 +73,12 @@ class SpecializedAgent(BaseAgent):
         Conectarse al cliente mcp y obtener las tools
         """
 
+    async def add_additional_tools(self):
+        """
+        Sobreescribir para añadir herramientas que no están disponibles en el servidor mcp en el caso de que sean necesarias
+        """
+        pass
+
     async def create_citation_data_source(self):
         if self.data_sources:
             for data_source in self.data_sources:
@@ -105,6 +108,7 @@ class SpecializedAgent(BaseAgent):
         Conecta el agente al servidor MCP e inicializa el sistema de referenciado de citas
         """
         await self.connect_to_mcp()
+        await self.add_additional_tools()
         await self.create_citation_data_source()
         await self.init_checkpointer()
 

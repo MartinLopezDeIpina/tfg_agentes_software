@@ -2,13 +2,14 @@ import functools
 import os.path
 import subprocess
 import tempfile
+import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, TypedDict, Callable
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, AIMessage
-from langchain_core.runnables import Runnable
+from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_core.runnables.graph import CurveStyle, NodeStyles
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
@@ -82,7 +83,6 @@ class BaseAgent(ABC):
         """
 
     async def execute_agent_graph_with_exception_handling(self, input: dict):
-        # todo: hacer lo de los checkpoints??
         agent_graph = self.create_graph()
         try:
             result = await agent_graph.ainvoke(input=input)
