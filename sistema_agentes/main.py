@@ -8,6 +8,8 @@ from langchain_openai import ChatOpenAI
 from langgraph.managed.is_last_step import RemainingStepsManager, RemainingSteps
 from langsmith import Client
 
+from src.db.documentation_indexer import AsyncPGVectorRetriever
+from src.db.pgvector_utils import PGVectorStore
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_graph import MainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
@@ -159,7 +161,7 @@ async def debug_agent():
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
-            "query":  "¿Puedes mostrarme la jerarquía completa de llamadas para el método invoke_rag_with_repo en ModelTools?",
+            "query":  "Could you provide any information in the company's CEO? use the rag tool",
             "remaining_steps": RemainingSteps(2)
 
         })
@@ -167,6 +169,16 @@ async def debug_agent():
         print(f"Error ejecutando agente {agent.name}: {e}")
     finally:
         await agent.cleanup()
+
+async def pruebas():
+    store = PGVectorStore(
+        collection_name="official_documentation"
+    )
+    retriever = AsyncPGVectorRetriever(
+        pg_vector_store=store
+    )
+    docs = await retriever.ainvoke(input="LKS next", top_k=5)
+    print(docs)
 
 if __name__ == '__main__':
     load_dotenv()
@@ -176,5 +188,7 @@ if __name__ == '__main__':
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["code_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
     #asyncio.run(evaluate_code_agent())
+
+    #asyncio.run(pruebas())
 
 

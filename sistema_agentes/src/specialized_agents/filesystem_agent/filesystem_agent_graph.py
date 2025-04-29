@@ -6,9 +6,8 @@ from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
-from config import OFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
+from config import OFFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
 from src.BaseAgent import AgentState
-from src.db.documentation_indexer import AsyncDirectoryIndexer, AsyncPGVectorRetriever
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CodeDataSource, FileSystemDataSource
 from src.mcp_client.mcp_multi_client import MCPClient
@@ -29,12 +28,13 @@ class FileSystemAgent(SpecializedAgent):
                 "read_file",
                 "read_multiple_files",
                 "directory_tree",
+                "rag_search_documentation"
             ],
             data_sources=[FileSystemDataSource(
                 get_documents_tool_name="search_files",
                 tool_args = {
                     "pattern": "",
-                    "path": f"{REPO_ROOT_ABSOLUTE_PATH}{OFICIAL_DOCS_RELATIVE_PATH}"
+                    "path": f"{REPO_ROOT_ABSOLUTE_PATH}{OFFICIAL_DOCS_RELATIVE_PATH}"
                 }
             )],
             prompt=CITE_REFERENCES_PROMPT.format(

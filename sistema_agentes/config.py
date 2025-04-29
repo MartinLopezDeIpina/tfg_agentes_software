@@ -13,7 +13,7 @@ CSV_DATASET_RELATIVE_PATH = "static/evaluation_dataset.csv"
 CSV_DATASET_PRUEBA_RELATIVE_PATH = "static/evaluation_dataset_prueba.csv"
 
 GRAPH_IMAGES_RELATIVE_PATH = "static/images"
-OFICIAL_DOCS_RELATIVE_PATH = "/sistema_agentes/static/gen_docs"
+OFFICIAL_DOCS_RELATIVE_PATH = "/sistema_agentes/static/gen_docs"
 
 CODE_REPO_ROOT_ABSOLUTE_PATH = "/home/martin/open_source/ia-core-tools"
 
@@ -38,4 +38,6 @@ db_port=os.getenv("DB_PORT")
 db_name=os.getenv("DB_NAME")
 postgre_connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 psycopg_connection_string = f"postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+PGVECTOR_COLLECTION_PREFIX="collection_"
 

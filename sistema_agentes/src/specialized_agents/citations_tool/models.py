@@ -3,7 +3,7 @@ import json
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import List, Tuple, Any
-from config import REPO_ROOT_ABSOLUTE_PATH, OFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH, GITLAB_PROJECT_URL, GITLAB_API_URL, GITLAB_PROJECT_NORMAL_URL
+from config import REPO_ROOT_ABSOLUTE_PATH, OFFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH, GITLAB_PROJECT_URL, GITLAB_API_URL, GITLAB_PROJECT_NORMAL_URL
 
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool
