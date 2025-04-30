@@ -29,6 +29,9 @@ class GitlabAgent(SpecializedAgent):
                 Obtenerlas manualmente en lugar de MCP
                 """
             ],
+            prompt_only_tools=[
+                "get_gitlab_project_statistics"
+            ],
             data_sources=[GitLabDataSource(
                 get_documents_tool_name=["get_gitlab_project_commits", "get_gitlab_issues"],
                 tool_args = [

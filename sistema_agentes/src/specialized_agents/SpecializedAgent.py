@@ -37,6 +37,7 @@ class SpecializedAgent(BaseAgent):
 
     description: str
     tools_str: List[str]
+    prompt_only_tools_str: List[str]
     tools: List[BaseTool]
     mcp_client: MCPClient
     data_sources: List[DataSource]
@@ -51,6 +52,7 @@ class SpecializedAgent(BaseAgent):
         prompt: str = "",
         model: BaseChatModel = default_llm,
         tools_str: List[str] = None,
+        prompt_only_tools: List[str] = None,
         data_sources: List[DataSource] = None,
         max_steps: int = 10
     ):
@@ -63,6 +65,7 @@ class SpecializedAgent(BaseAgent):
 
         self.description = description
         self.tools_str = tools_str or []
+        self.prompt_only_tools_str = prompt_only_tools or []
         self.data_sources = data_sources or []
         self.max_steps = max_steps
 
@@ -78,6 +81,9 @@ class SpecializedAgent(BaseAgent):
         Sobreescribir para añadir herramientas que no están disponibles en el servidor mcp en el caso de que sean necesarias
         """
         pass
+
+    def get_agent_tools(self):
+        return [tool for tool in self.tools if tool.name not in self.prompt_only_tools_str]
 
     async def create_citation_data_source(self):
         if self.data_sources:
@@ -204,9 +210,10 @@ class SpecializedAgent(BaseAgent):
         """
         Devolver el grafo compilado del agente
         """
+        agent_tools = self.get_agent_tools()
         self.react_graph = create_react_agent(
             model=self.model,
-            tools=self.tools,
+            tools=agent_tools,
             checkpointer=self.checkpointer
         )
         graph_builder = StateGraph(AgentState)

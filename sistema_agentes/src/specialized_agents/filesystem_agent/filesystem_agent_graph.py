@@ -30,6 +30,10 @@ class FileSystemAgent(SpecializedAgent):
                 "directory_tree",
                 "rag_search_documentation"
             ],
+            prompt_only_tools=[
+                "search_files",
+                "directory_tree",
+            ],
             data_sources=[FileSystemDataSource(
                 get_documents_tool_name="search_files",
                 tool_args = {

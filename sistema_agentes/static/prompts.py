@@ -41,6 +41,14 @@ The available Confluence pages are:
 {confluence_pages_preview}
 """
 
+cached_confluence_system_prompt="""You are a Confluence researcher assistant. Your task is to answer the user's question based on the Confluence documentation.
+
+Do not answer the question if sufficient information is not available.
+
+The available Confluence pages are: 
+{confluence_pages_preview}
+"""
+
 code_agent_system_prompt="""You are a code researcher assistant. Your task is to answer the user's question based on the code repository.
 
 Use the provided tools to retrieve relevant code chunks or files from the repository. 

@@ -17,7 +17,7 @@ from src.orchestrator_agent.orchestrator_agent_graph import  OrchestratorAgent
 from src.planner_agent.planner_agent_graph import  PlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
-from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent
+from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent, CachedConfluenceAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
@@ -157,11 +157,11 @@ async def evaluate_main_agent(is_prueba: bool = True):
         await specialized_agents[0].cleanup()
 
 async def debug_agent():
-    agent = FileSystemAgent()
+    agent = CachedConfluenceAgent()
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
-            "query":  "Could you provide any information in the company's CEO? use the rag tool",
+            "query":  "Is there any login file?",
             "remaining_steps": RemainingSteps(2)
 
         })
@@ -183,11 +183,11 @@ async def pruebas():
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(debug_agent())
+    asyncio.run(debug_agent())
     #asyncio.run(main())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["file_system_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
-    asyncio.run(evaluate_file_system_agent())
+    #asyncio.run(evaluate_file_system_agent())
 
     #asyncio.run(pruebas())
 
