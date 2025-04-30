@@ -24,7 +24,7 @@ def get_docs_rag_tool(langchain_retriever: AsyncPGVectorRetriever) -> BaseTool:
         Returns:
             relevant documents from the official documentation
         """
-        relevant_documents = await langchain_retriever.ainvoke(input=query, top_k=5)
+        relevant_documents = await langchain_retriever.ainvoke(input=query, top_k=15)
 
         tool_result = ""
         for document in relevant_documents:
@@ -42,8 +42,7 @@ async def get_file_system_agent_additional_tools() -> Sequence[BaseTool]:
     documentation_path = f"{REPO_ROOT_ABSOLUTE_PATH}{OFFICIAL_DOCS_RELATIVE_PATH}"
 
     documents_indexer = AsyncDocsIndexer(collection_name=collection_name)
-    # todo:
-    #await documents_indexer.index_all_directory_files_if_not_indexed(directory_path=documentation_path)
+    await documents_indexer.index_all_directory_files_if_not_indexed(directory_path=documentation_path)
     retriever = documents_indexer.get_retriever()
 
     rag_tool = get_docs_rag_tool(langchain_retriever=retriever)

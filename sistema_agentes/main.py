@@ -183,11 +183,11 @@ async def pruebas():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(debug_agent())
+    #asyncio.run(debug_agent())
     #asyncio.run(main())
-    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["code_agent"])
+    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["file_system_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
-    #asyncio.run(evaluate_code_agent())
+    asyncio.run(evaluate_file_system_agent())
 
     #asyncio.run(pruebas())
 

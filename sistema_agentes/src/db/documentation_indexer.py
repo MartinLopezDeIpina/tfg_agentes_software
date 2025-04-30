@@ -61,7 +61,11 @@ class AsyncDocsIndexer:
             print(f"Documentación previamente indexada")
             return
 
-        await self.index_all_directory_files(directory_path)
+        try:
+            await self.pg_vector_store.create()
+            await self.index_all_directory_files(directory_path)
+        except Exception as e:
+            print(f"Error indexando documentos: {e}")
 
     def get_retriever(self) -> AsyncPGVectorRetriever:
         return AsyncPGVectorRetriever(

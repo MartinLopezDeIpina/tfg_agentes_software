@@ -2,15 +2,18 @@ from pathlib import Path
 from typing import Sequence
 
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, CSVLoader, UnstructuredFileLoader
+from langchain_community.vectorstores.pgembedding import CollectionStore
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_postgres import PGVector
-from langchain_text_splitters import CharacterTextSplitter
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from langchain_text_splitters import CharacterTextSplitter, ExperimentalMarkdownSyntaxTextSplitter
+from sqlalchemy import text, select
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from config import PGVECTOR_COLLECTION_PREFIX, default_embedding_llm
 from src.db.postgres_connection_manager import PostgresPoolManager
+from src.utils import read_file_content
+
 
 class PGVectorStore:
     vector_store: PGVector
@@ -47,7 +50,9 @@ class PGVectorStore:
         ext = file_path.suffix.lower()
         if ext == '.pdf':
             return PyPDFLoader(str(file_path), extract_images=False)
-        elif ext == '.txt' or ext == '.md':
+        elif ext == '.md':
+            return ExperimentalMarkdownSyntaxTextSplitter
+        elif ext == '.txt':
             return TextLoader(str(file_path))
         elif ext in ['.csv', '.tsv']:
             return CSVLoader(str(file_path))
@@ -59,34 +64,46 @@ class PGVectorStore:
 
     async def index_resource(self, resource: Path, metadata: dict = None):
         """
-        Indexa un documento utilizando un laoder para generar los chunks
-        Añade los metadatos indicados
+        Indexa los documentos separandolos en chunks según los títulos markdown
         """
         if not metadata:
             metadata = {}
 
-        loader = self._get_loader_for_file(resource)
+        resource_text = read_file_content(resource)
 
-        pages = loader.load()
-        text_splitter = CharacterTextSplitter(chunk_size=150, chunk_overlap=10)
-        docs = text_splitter.split_documents(pages)
+        headers_to_split_on = [
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+        ]
+
+        splitter = ExperimentalMarkdownSyntaxTextSplitter(
+            headers_to_split_on=headers_to_split_on,
+            strip_headers=False
+        )
+        docs = splitter.split_text(resource_text)
 
         for doc in docs:
             doc.metadata = metadata
 
-        result = await self.vector_store.aadd_documents(docs)
-        print(result)
+        await self.vector_store.aadd_documents(docs)
+        print(f"Added document: {resource.absolute()}")
 
 
     async def is_collection_empty(self) -> bool:
-        collection_name = self.vector_store.collection_name
-        sql = text(f"SELECT COUNT(*) FROM {collection_name}")
+        async with AsyncSession(self.engine) as session:
+            collection = await session.execute(
+                select(CollectionStore).where(CollectionStore.name == self.vector_store.collection_name)
+            )
+            collection_instance = collection.scalar_one_or_none()
+            if not collection_instance:
+                return True
+            return False
 
-        async with self.engine.connect() as connection:
-            result = await connection.execute(sql)
-            row = result.fetchone()
-            count = row[0] if row else 0
-            return count == 0
+    async def create(self):
+        await self.vector_store.acreate_collection()
+
+    async def delete_collection(self):
+        await self.vector_store.adelete_collection()
 
     async def search_similar(self, query: str, top_k: int = 5) -> Sequence[Document]:
         """
