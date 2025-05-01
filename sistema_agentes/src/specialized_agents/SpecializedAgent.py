@@ -254,3 +254,15 @@ class SpecializedAgent(BaseAgent):
         return result
 
 
+def get_agents_description(available_agents: List[SpecializedAgent]):
+    agents_description = ""
+    for agent in available_agents:
+        agents_description += f"\n-{agent.to_string()}"
+
+    return agents_description
+
+
+
+
+
+

@@ -15,12 +15,14 @@ from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.planner_agent.few_shots_examples import planner_few_shots
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
-from src.planner_agent.models import PlannerResponse
+from src.planner_agent.models import PlannerResponse, BasicPlannerResponse, OrchestratorPlannerResponse
 from src.planner_agent.state import MainAgentState
-from src.specialized_agents.SpecializedAgent import SpecializedAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent, get_agents_description
 from src.utils import tab_all_lines_x_times, print_markdown, get_list_from_string_comma_separated_values
 from static.agent_descriptions import PROJECT_DESCRIPTION
-from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT, PLANNER_STRUCURE_PROMPT
+from static.prompts import PLANNER_PROMPT_INITIAL, PLANNER_PROMPT_AFTER, SOLVER_AGENT_PROMPT, PLANNER_STRUCURE_PROMPT, \
+    ORCHESTRATOR_PLANNER_PROMPT
+
 
 class PlannerAgent(BaseAgent, ABC):
     max_steps: int
@@ -53,16 +55,47 @@ class PlannerAgent(BaseAgent, ABC):
     def end_plan_execution(self, state: MainAgentState):
         return state
 
-    @abstractmethod
-    def execute_planner_reasoner_agent(self, state: MainAgentState):
-        """
-        El paso del agente planificador enfocado a razonar con el agente razonador
-        """
+    def format_planner_prompt(self, messages: List[BaseMessage], current_plan: PlannerResponse) -> str:
+        initial_message = messages[0].content
+        planner_current_plan = current_plan.to_string()
+
+        step_result = ""
+        for message in messages[1:]:
+            step_result+= "\n-Researcher output:"
+            step_result += f"\n{tab_all_lines_x_times(message.content)}\n"
+
+        prompt = PLANNER_PROMPT_AFTER.format(
+            initial_prompt=initial_message,
+            previous_plan=planner_current_plan,
+            step_result=step_result,
+        )
+
+        return prompt
+
+    async def execute_planner_reasoner_agent(self, state: MainAgentState):
+        print("+Ejecutando agente planner")
+        messages = state["messages"]
+        if len(messages) == 1:
+            # si es el primer plan que se hace
+            planner_input = messages[0].content
+        else:
+            planner_input = self.format_planner_prompt(messages, state["planner_high_level_plan"])
+
+        planner_scratchpad = await self.model.ainvoke(
+            input=planner_input
+        )
+
+        state["planner_scratchpad"] = planner_scratchpad.content
+
+        state["planner_current_step"] += 1
+        return state
 
     @abstractmethod
     def execute_planner_structure_agent(self, state: MainAgentState):
         """
         El paso del agente planificador enfocado en generar el plan desde el razonamiento del plan
+        Intentar estructurar la salida del planner con el validador.
+        Si no se consigue después de varios intentos devolver el plan completo en el siguiente paso.
         """
 
     def create_graph(self) -> CompiledGraph:
@@ -152,17 +185,13 @@ class BasicPlannerAgent(PlannerAgent):
             }
 
     async def execute_planner_structure_agent(self, state: MainAgentState) -> MainAgentState:
-        """
-        Intentar estructurar la salida del planner con el validador.
-        Si no se consigue después de varios intentos devolver el plan completo en el siguiente paso.
-        """
         planner_scratchpad = state.get("planner_scratchpad")
         try:
             prompt=PLANNER_STRUCURE_PROMPT.format(plan=planner_scratchpad)
             planner_result = await execute_structured_llm_with_validator_handling(
                 prompt=prompt,
                 llm=self.structure_model,
-                output_schema=PlannerResponse,
+                output_schema=BasicPlannerResponse,
             )
 
             state["planner_high_level_plan"] = planner_result
@@ -171,7 +200,7 @@ class BasicPlannerAgent(PlannerAgent):
             ))
 
         except Exception as e:
-            state["planner_high_level_plan"] = PlannerResponse(
+            state["planner_high_level_plan"] = BasicPlannerResponse(
                 plan_reasoning=planner_scratchpad,
                 steps=[planner_scratchpad],
                 finished=False
@@ -193,41 +222,68 @@ class BasicPlannerAgent(PlannerAgent):
             ]
         return state
 
-    def format_planner_prompt(self, messages: List[BaseMessage], current_plan: PlannerResponse) -> str:
-        initial_message = messages[0].content
-        planner_current_plan = current_plan.to_string()
 
-        step_result = ""
-        for message in messages[1:]:
-            step_result+= "\n-Researcher output:"
-            step_result += f"\n{tab_all_lines_x_times(message.content)}\n"
+class OrchestratorPlannerAgent(PlannerAgent):
 
-        prompt = PLANNER_PROMPT_AFTER.format(
-            initial_prompt=initial_message,
-            previous_plan=planner_current_plan,
-            step_result=step_result,
+    available_agents_description: str
+
+    def __init__(self,
+                 planner_model: BaseChatModel = default_reasoner_llm,
+                 structure_model:BaseChatModel = default_llm,
+                 max_steps: int = 2,
+                 debug: bool = True,
+                 available_agents: List[SpecializedAgent] = None
+                 ):
+        super().__init__(
+            planner_model=planner_model,
+            structure_model=structure_model,
+            max_steps=max_steps,
+            debug=debug
         )
+        self.available_agents_description = get_agents_description(available_agents)
 
-        return prompt
+    def execute_from_dataset(self, inputs: dict) -> dict:
+        pass
 
-    async def execute_planner_reasoner_agent(self, state: MainAgentState) -> MainAgentState:
-        print("+Ejecutando agente planner")
+    async def prepare_prompt(self, state: AgentState) -> AgentState:
         messages = state["messages"]
-        if len(messages) == 1:
-            # si es el primer plan que se hace
-            planner_input = messages[0].content
-        else:
-            planner_input = self.format_planner_prompt(messages, state["planner_high_level_plan"])
-
-        planner_scratchpad = await self.model.ainvoke(
-            input=planner_input
-        )
-
-        state["planner_scratchpad"] = planner_scratchpad.content
-
-
-        state["planner_current_step"] += 1
+        if not messages or len(messages) == 0:
+            state["messages"] = [
+                SystemMessage(
+                    content=ORCHESTRATOR_PLANNER_PROMPT.format(
+                        project_description=PROJECT_DESCRIPTION,
+                        user_query=state["query"],
+                        available_agents=self.available_agents_description,
+                        few_shot_examples=""
+                    )
+                ),
+            ]
         return state
+
+    async def execute_planner_structure_agent(self, state: MainAgentState):
+        planner_scratchpad = state.get("planner_scratchpad")
+        try:
+            prompt=PLANNER_STRUCURE_PROMPT.format(plan=planner_scratchpad)
+            planner_result = await execute_structured_llm_with_validator_handling(
+                prompt=prompt,
+                llm=self.structure_model,
+                output_schema=OrchestratorPlannerResponse,
+            )
+
+            state["planner_high_level_plan"] = planner_result
+            state["messages"].append(AIMessage(
+                content=planner_result.to_string()
+            ))
+
+        except Exception as e:
+            state["planner_high_level_plan"] = BasicPlannerResponse(
+                plan_reasoning=planner_scratchpad,
+                steps=[planner_scratchpad],
+                finished=False
+            )
+        finally:
+            return state
+        pass
 
 
 

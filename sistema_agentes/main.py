@@ -13,8 +13,9 @@ from src.db.pgvector_utils import PGVectorStore
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_graph import MainAgent, BasicMainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent
-from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent
+from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
+    DummyOrchestratorAgent
+from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent, OrchestratorPlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent, CachedConfluenceAgent
@@ -37,16 +38,15 @@ async def main():
         # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
         available_agents = await init_specialized_agents(specialized_agents)
 
-        planner_agent = PlannerAgent()
-        orchestrator_agent = OrchestratorAgent(available_agents)
+        planner_agent = OrchestratorPlannerAgent(available_agents=available_agents)
+        orchestrator_agent = DummyOrchestratorAgent(available_agents=available_agents)
         formatter_agent = FormatterAgent()
-        main_agent = MainAgent(
+        main_agent = BasicMainAgent(
             planner_agent=planner_agent,
             orchestrator_agent=orchestrator_agent,
             formatter_agent=formatter_agent
         )
 
-        """
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
             "query": "Cuál es el commit del proyecto más reciente?",
@@ -57,6 +57,7 @@ async def main():
         result = await orchestrator_graph.ainvoke({
             "planner_high_level_plan": "Explicame el funcionamiento de la plantilla de admin"
         })
+        """
 
     finally:
         await MCPClient.cleanup()
@@ -145,8 +146,8 @@ async def evaluate_main_agent(is_prueba: bool = True):
         # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
         available_agents = await init_specialized_agents(specialized_agents)
 
-        planner_agent = BasicPlannerAgent()
-        orchestrator_agent = BasicOrchestratorAgent(available_agents)
+        planner_agent = OrchestratorPlannerAgent(available_agents=available_agents)
+        orchestrator_agent = DummyOrchestratorAgent(available_agents)
         formatter_agent = FormatterAgent()
         main_agent = BasicMainAgent(
             planner_agent=planner_agent,

@@ -14,12 +14,12 @@ from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
 from src.orchestrator_agent.few_shots_examples import orchestrator_few_shots
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
-from src.specialized_agents.SpecializedAgent import SpecializedAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent, get_agents_description
 from src.specialized_agents.citations_tool.models import CitedAIMessage
 from static.prompts import ORCHESTRATOR_PROMPT
 
 class OrchestratorAgentState(AgentState):
-    planner_high_level_plan: str
+    planner_high_level_plan: str | OrchestratorPlan
     orchestrator_low_level_plan: OrchestratorPlan
     low_level_plan_execution_result: List[CitedAIMessage]
 
@@ -39,7 +39,6 @@ class OrchestratorAgent(BaseAgent, ABC):
             debug=debug
         )
         self.available_agents = available_agents
-
 
     async def execute_agents(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
         orchestrator_plan = state.get("orchestrator_low_level_plan")
@@ -162,9 +161,7 @@ class BasicOrchestratorAgent(OrchestratorAgent):
             }
 
     async def prepare_prompt(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
-        agents_description = ""
-        for agent in self.available_agents:
-            agents_description += f"\n-{agent.to_string()}"
+        agents_description = get_agents_description(self.available_agents)
 
         messages = state.get("messages")
         if not messages:
@@ -212,8 +209,24 @@ class BasicOrchestratorAgent(OrchestratorAgent):
         finally:
             return state
 
+class DummyOrchestratorAgent(OrchestratorAgent):
 
+    def __init__(self,
+                 available_agents: List[SpecializedAgent],
+                 debug: bool = True
+                 ):
+        super().__init__(
+            available_agents=available_agents,
+            debug=debug
+        )
 
+    async def execute_orchestrator_agent(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+        """
+        Simplemente traduce el plan de los agentes a ejecutar desde el plan ya creado del PlannerOrchestrator
+        """
+        state["orchestrator_low_level_plan"] = state.get("planner_high_level_plan")
 
+        return state
 
-
+    async def prepare_prompt(self, state: OrchestratorAgentState) -> AgentState:
+        return state

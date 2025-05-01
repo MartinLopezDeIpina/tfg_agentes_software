@@ -120,6 +120,26 @@ The available agents are:
 {few_shots_examples}
 """
 
+ORCHESTRATOR_PLANNER_PROMPT="""You are planner which has to create a plan to solve a user's question about a software project.
+
+You will receive the software project description and a sequence of available specialized agents description, your task is to create a brief plan on how to solve the plan calling the available agents. 
+
+- Focus solely on information gathering, not answering.
+- You must create concise plans, with the minimum number of steps possible. If the query is straightforward, you should return a single step.
+- Execute steps sequentially, reviewing results as you go and dynamically adjusting the plan. If gathering information about a topic was not successful do not try to gather information about the exact same topic.
+- If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
+- Clearly indicate which are the steps
+
+Project description: 
+{project_description}
+
+Available agents: 
+{available_agents}
+
+User question:
+{user_query}
+"""
+
 SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users questions based on the retrieved information. 
 Your task is to read the information that other agents have gathered and to structure your response in a markdown format.
 The plan should contain the answer reasoning, your only task is to structure a clear markdown response to the user's query. 
