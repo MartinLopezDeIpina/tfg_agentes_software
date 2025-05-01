@@ -6,11 +6,13 @@ from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
-from config import OFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
+from config import OFFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
 from src.BaseAgent import AgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CodeDataSource, FileSystemDataSource
 from src.mcp_client.mcp_multi_client import MCPClient
+from src.specialized_agents.filesystem_agent.additional_tools import get_docs_rag_tool, \
+    get_file_system_agent_additional_tools
 from static.agent_descriptions import FILE_SYSTEM_AGENT_DESCRIPTION
 from static.prompts import CITE_REFERENCES_PROMPT, filesystem_agent_system_prompt
 
@@ -26,12 +28,17 @@ class FileSystemAgent(SpecializedAgent):
                 "read_file",
                 "read_multiple_files",
                 "directory_tree",
+                "rag_search_documentation"
+            ],
+            prompt_only_tools=[
+                "search_files",
+                "directory_tree",
             ],
             data_sources=[FileSystemDataSource(
                 get_documents_tool_name="search_files",
                 tool_args = {
                     "pattern": "",
-                    "path": f"{REPO_ROOT_ABSOLUTE_PATH}{OFICIAL_DOCS_RELATIVE_PATH}"
+                    "path": f"{REPO_ROOT_ABSOLUTE_PATH}{OFFICIAL_DOCS_RELATIVE_PATH}"
                 }
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
@@ -43,6 +50,10 @@ class FileSystemAgent(SpecializedAgent):
         self.mcp_client = MCPClient(agent_tools=self.tools_str)
         await self.mcp_client.connect_to_filesystem_server()
         self.tools = self.mcp_client.get_tools()
+        
+    async def add_additional_tools(self):
+        additional_tools = await get_file_system_agent_additional_tools()
+        self.tools.extend(additional_tools)
 
     async def prepare_prompt(self, state: AgentState) -> AgentState:
         dir_tool = None

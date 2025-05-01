@@ -8,6 +8,8 @@ from langchain_openai import ChatOpenAI
 from langgraph.managed.is_last_step import RemainingStepsManager, RemainingSteps
 from langsmith import Client
 
+from src.db.documentation_indexer import AsyncPGVectorRetriever
+from src.db.pgvector_utils import PGVectorStore
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_graph import MainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
@@ -15,20 +17,20 @@ from src.orchestrator_agent.orchestrator_agent_graph import  OrchestratorAgent
 from src.planner_agent.planner_agent_graph import  PlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
-from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent
+from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent, CachedConfluenceAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
-from src.eval_agents.dataset_utils import create_langsmith_datasets
+from src.evaluators.dataset_utils import create_langsmith_datasets
 
 async def main():
 
     specialized_agents = [
-        #GoogleDriveAgent(),
-        #FileSystemAgent(),
+        GoogleDriveAgent(),
+        FileSystemAgent(),
         GitlabAgent(),
-        #ConfluenceAgent(),
-        #CodeAgent()
+        ConfluenceAgent(),
+        CodeAgent()
     ]
 
     try:
@@ -44,6 +46,7 @@ async def main():
             formatter_agent=formatter_agent
         )
 
+        """
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
             "query": "Cuál es el commit del proyecto más reciente?",
@@ -54,7 +57,6 @@ async def main():
         result = await orchestrator_graph.ainvoke({
             "planner_high_level_plan": "Explicame el funcionamiento de la plantilla de admin"
         })
-        """
 
     finally:
         await MCPClient.cleanup()
@@ -83,6 +85,9 @@ async def evaluate_specialized_agent(agent: SpecializedAgent):
 
 async def evaluate_confluence_agent():
     await evaluate_specialized_agent(ConfluenceAgent())
+
+async def evaluate_cached_confluence_agent():
+    await evaluate_specialized_agent(CachedConfluenceAgent())
 
 async def evaluate_code_agent():
     await evaluate_specialized_agent(CodeAgent())
@@ -123,16 +128,16 @@ async def evaluate_orchestrator_agent(agents: List[SpecializedAgent] = None):
 
 async def evaluate_planner_agent():
     planner_agent = PlannerAgent()
-    lansmith_client = Client()
+    langsmith_client = Client()
 
-    await planner_agent.evaluate_agent(langsmith_client=lansmith_client)
+    await planner_agent.evaluate_agent(langsmith_client=langsmith_client)
 
 async def evaluate_main_agent(is_prueba: bool = True):
     specialized_agents = [
         GoogleDriveAgent(),
         FileSystemAgent(),
         GitlabAgent(),
-        ConfluenceAgent(),
+        CachedConfluenceAgent(),
         CodeAgent()
     ]
 
@@ -155,12 +160,12 @@ async def evaluate_main_agent(is_prueba: bool = True):
         await specialized_agents[0].cleanup()
 
 async def debug_agent():
-    agent = GitlabAgent()
+    agent = CachedConfluenceAgent()
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
-            "query":  "Búscame información sobre el login de la aplicación",
-            "remaining_steps": RemainingSteps(1)
+            "query":  "Is there any login file?",
+            "remaining_steps": RemainingSteps(2)
 
         })
     except Exception as e:
@@ -168,13 +173,25 @@ async def debug_agent():
     finally:
         await agent.cleanup()
 
+async def pruebas():
+    store = PGVectorStore(
+        collection_name="official_documentation"
+    )
+    retriever = AsyncPGVectorRetriever(
+        pg_vector_store=store
+    )
+    docs = await retriever.ainvoke(input="LKS next", top_k=5)
+    print(docs)
+
 if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(debug_agent())
-    asyncio.run(main())
-    #create_langsmith_datasets(dataset_prueba=True, agents_to_update=["main_agent"])
-    #asyncio.run(evaluate_main_agent(is_prueba=True))
-    #asyncio.run(evaluate_confluence_agent())
+    #asyncio.run(main())
+    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
+    asyncio.run(evaluate_main_agent(is_prueba=False))
+    #asyncio.run(evaluate_cached_confluence_agent())
+
+    #asyncio.run(pruebas())
 
 

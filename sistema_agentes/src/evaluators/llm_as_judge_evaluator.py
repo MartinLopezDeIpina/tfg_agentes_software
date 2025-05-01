@@ -7,8 +7,8 @@ from langsmith.evaluation import EvaluationResults
 from langsmith.schemas import Example, Run
 from pydantic import StrictFloat
 
-from src.eval_agents.base_evaluator import BaseEvaluator
-from src.eval_agents.models import JudgeLLMResponse
+from src.evaluators.base_evaluator import BaseEvaluator
+from src.evaluators.models import JudgeLLMResponse
 from src.utils import get_list_from_string_comma_separated_values, get_list_string_with_indexes
 from static.prompts import LLM_JUDGE_PROMPT
 

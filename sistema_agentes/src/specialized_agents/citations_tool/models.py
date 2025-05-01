@@ -3,7 +3,7 @@ import json
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import List, Tuple, Any
-from config import REPO_ROOT_ABSOLUTE_PATH, OFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH, GITLAB_PROJECT_URL, GITLAB_API_URL, GITLAB_PROJECT_NORMAL_URL
+from config import REPO_ROOT_ABSOLUTE_PATH, OFFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH, GITLAB_PROJECT_URL, GITLAB_API_URL, GITLAB_PROJECT_NORMAL_URL
 
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool
@@ -281,7 +281,7 @@ class CodeDataSource(DataSource):
             tool_args=[tool_args],
             url=f"file://{CODE_REPO_ROOT_ABSOLUTE_PATH}",
             docs_id="code_repository",
-            use_example="If you want to cite the document notebook1.pynb: doc_name=notebooks/notebook1.pynb",
+            use_example="If you want to cite the document notebook1.pynb: doc_name=notebooks/notebook1.pynb\nIf you want to cite the directory_1 directory: doc_name=relative/path/to/dir/directory_1",
             response_parser=CodeResponseParser()
         )
 

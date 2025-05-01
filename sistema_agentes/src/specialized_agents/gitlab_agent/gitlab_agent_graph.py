@@ -29,6 +29,9 @@ class GitlabAgent(SpecializedAgent):
                 Obtenerlas manualmente en lugar de MCP
                 """
             ],
+            prompt_only_tools=[
+                "get_gitlab_project_statistics"
+            ],
             data_sources=[GitLabDataSource(
                 get_documents_tool_name=["get_gitlab_project_commits", "get_gitlab_issues"],
                 tool_args = [
@@ -49,6 +52,8 @@ class GitlabAgent(SpecializedAgent):
         self.mcp_client = MCPClient(agent_tools=self.tools_str)
         await self.mcp_client.connect_to_gitlab_server()
         self.tools = self.mcp_client.get_tools()
+
+    async def add_additional_tools(self):
         self.tools.extend(get_gitlab_agent_additional_tools())
 
     async def prepare_prompt(self, state: AgentState) -> AgentState:

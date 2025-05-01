@@ -29,3 +29,10 @@ REPO_ROOT_ABSOLUTE_PATH = os.environ.get("REPO_ROOT_ABSOLUTE_PATH", "/home/marti
 
 # directorios a ignorar solo para la visualización del aŕbol
 TREE_STR_IGNORE_DIRS = [".git"]
+
+files_to_ignore = [".git",
+                   "app/static/css/style.css",
+                   "app/static/js/bootstrap.bundle.js",
+                   "app/static/js/bootstrap.bundle.min.js",
+                   "app/static/vendor"]
+

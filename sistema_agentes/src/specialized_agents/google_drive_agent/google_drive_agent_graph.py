@@ -25,6 +25,10 @@ class GoogleDriveAgent(SpecializedAgent):
                 "gdrive_search",
                 "gdrive_list_files_json"
             ],
+            prompt_only_tools=[
+                "gdrive_list_files",
+                "gdrive_list_files_json"
+            ],
             data_sources=[GoogleDriveDataSource("gdrive_list_files_json")],
             prompt=CITE_REFERENCES_PROMPT.format(
                 agent_prompt=google_drive_system_prompt
