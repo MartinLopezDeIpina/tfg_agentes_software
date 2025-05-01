@@ -86,6 +86,9 @@ async def evaluate_specialized_agent(agent: SpecializedAgent):
 async def evaluate_confluence_agent():
     await evaluate_specialized_agent(ConfluenceAgent())
 
+async def evaluate_cached_confluence_agent():
+    await evaluate_specialized_agent(CachedConfluenceAgent())
+
 async def evaluate_code_agent():
     await evaluate_specialized_agent(CodeAgent())
 
@@ -134,7 +137,7 @@ async def evaluate_main_agent(is_prueba: bool = True):
         GoogleDriveAgent(),
         FileSystemAgent(),
         GitlabAgent(),
-        ConfluenceAgent(),
+        CachedConfluenceAgent(),
         CodeAgent()
     ]
 
@@ -183,11 +186,11 @@ async def pruebas():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(debug_agent())
+    #asyncio.run(debug_agent())
     #asyncio.run(main())
-    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["file_system_agent"])
-    #asyncio.run(evaluate_main_agent(is_prueba=True))
-    #asyncio.run(evaluate_file_system_agent())
+    #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
+    asyncio.run(evaluate_main_agent(is_prueba=False))
+    #asyncio.run(evaluate_cached_confluence_agent())
 
     #asyncio.run(pruebas())
 

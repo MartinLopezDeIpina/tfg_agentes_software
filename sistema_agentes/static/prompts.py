@@ -1,7 +1,8 @@
 CITE_REFERENCES_PROMPT="""{agent_prompt}
 If a document is going to be used to answer the question, cite it with the cite_document tool.
-You can also cite the information source you have access to if it is required to cite documentation sources or information sources: cite it using the indicated document_name in the cite_tool description. 
+You can also cite the information source you have access to: cite it using the indicated document_name, as it is explained in the cite_tool description. 
 IMPORTANT: YOU CAN NOT USE A DOCUMENT'S INFORMATION TO ANSWER A QUESTION IF IT WAS NOT CITED
+IMPORTANT: IF YOU MENTION A FILE'S NAME OR ID, YOU MUST MENTION IN WHICH INFORMATION SOURCE IT IS STORED
 """
 
 google_drive_system_prompt="""You are a Google Drive researcher agent. 
