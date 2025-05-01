@@ -11,10 +11,10 @@ from langsmith import Client
 from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.pgvector_utils import PGVectorStore
 from src.formatter_agent.formatter_graph import FormatterAgent
-from src.main_graph import MainAgent
+from src.main_graph import MainAgent, BasicMainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.orchestrator_agent.orchestrator_agent_graph import  OrchestratorAgent
-from src.planner_agent.planner_agent_graph import  PlannerAgent
+from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent
+from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent, CachedConfluenceAgent
@@ -145,10 +145,10 @@ async def evaluate_main_agent(is_prueba: bool = True):
         # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
         available_agents = await init_specialized_agents(specialized_agents)
 
-        planner_agent = PlannerAgent()
-        orchestrator_agent = OrchestratorAgent(available_agents)
+        planner_agent = BasicPlannerAgent()
+        orchestrator_agent = BasicOrchestratorAgent(available_agents)
         formatter_agent = FormatterAgent()
-        main_agent = MainAgent(
+        main_agent = BasicMainAgent(
             planner_agent=planner_agent,
             orchestrator_agent=orchestrator_agent,
             formatter_agent=formatter_agent
@@ -189,7 +189,7 @@ if __name__ == '__main__':
     #asyncio.run(debug_agent())
     #asyncio.run(main())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    asyncio.run(evaluate_main_agent(is_prueba=False))
+    asyncio.run(evaluate_main_agent(is_prueba=True))
     #asyncio.run(evaluate_cached_confluence_agent())
 
     #asyncio.run(pruebas())

@@ -1,16 +1,15 @@
 import asyncio
+from abc import ABC, abstractmethod
 from typing import TypedDict, List
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
-from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
 from config import default_llm
 from src.BaseAgent import BaseAgent, AgentState
-from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
 from src.orchestrator_agent.few_shots_examples import orchestrator_few_shots
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
@@ -24,7 +23,7 @@ class OrchestratorAgentState(AgentState):
     orchestrator_low_level_plan: OrchestratorPlan
     low_level_plan_execution_result: List[CitedAIMessage]
 
-class OrchestratorAgent(BaseAgent):
+class OrchestratorAgent(BaseAgent, ABC):
 
     available_agents: List[SpecializedAgent]
 
@@ -41,50 +40,6 @@ class OrchestratorAgent(BaseAgent):
         )
         self.available_agents = available_agents
 
-    async def prepare_prompt(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
-        agents_description = ""
-        for agent in self.available_agents:
-            agents_description += f"\n-{agent.to_string()}"
-
-        state["messages"] = [
-            SystemMessage(
-                content=ORCHESTRATOR_PROMPT.format(
-                    available_agents=agents_description,
-                    few_shots_examples=orchestrator_few_shots
-                )
-            ),
-            HumanMessage(
-                content=state["planner_high_level_plan"]
-            )
-        ]
-        return state
-
-    async def execute_orchestrator_agent(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
-        """
-        Intenta ejecutar el orquestador con varios intentos de parsing.
-        Si falla tras varios intentos crea un plan si pasos.
-        """
-        print("+Ejecutando agente orquestador")
-        try:
-            prompt = state["messages"]
-            orchestrator_result = await execute_structured_llm_with_validator_handling(
-                prompt=prompt,
-                output_schema=OrchestratorPlan,
-                llm=self.model
-            )
-            
-            if not isinstance(orchestrator_result, OrchestratorPlan):
-                orchestrator_result = OrchestratorPlan.model_validate(orchestrator_result)
-
-            state["orchestrator_low_level_plan"] = orchestrator_result
-
-        except Exception as e:
-            print(f"Error en structured output: {e}")
-            state["orchestrator_low_level_plan"] = OrchestratorPlan(
-                steps_to_complete=[]
-            )
-        finally:
-            return state
 
     async def execute_agents(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
         orchestrator_plan = state.get("orchestrator_low_level_plan")
@@ -124,6 +79,12 @@ class OrchestratorAgent(BaseAgent):
 
         return state
 
+    @abstractmethod
+    async def execute_orchestrator_agent(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+        """
+        Define la lógica de ejecución del agente orquestador, desde un plan a alto nivel genera un plan a bajo nivel (los agentes especializados a llamar)
+        """
+
     def create_graph(self) -> CompiledGraph:
         """
         Devolver el grafo compilado del agente
@@ -144,6 +105,36 @@ class OrchestratorAgent(BaseAgent):
     def process_result(self, agent_state: OrchestratorAgentState) -> List[CitedAIMessage]:
         specialized_agents_responses = agent_state.get("low_level_plan_execution_result")
         return specialized_agents_responses
+
+
+    @staticmethod
+    def get_tools_from_run_state(state: OrchestratorAgentState) -> List[str]:
+        tools = []
+        orchestrator_response = state["orchestrator_low_level_plan"]
+        for agent_step in orchestrator_response.steps_to_complete:
+            tools.append(agent_step.agent_name.value)
+        return tools
+
+    async def evaluate_agent(self, langsmith_client: Client):
+        evaluators = [
+            ToolPrecisionEvaluator(self.get_tools_from_run_state),
+        ]
+
+        result = await self.call_agent_evaluation(langsmith_client, evaluators)
+        return result
+
+class BasicOrchestratorAgent(OrchestratorAgent):
+
+    def __init__(self,
+        available_agents: List[SpecializedAgent],
+        model: BaseChatModel = default_llm,
+        debug: bool = True
+    ):
+        super().__init__(
+            available_agents=available_agents,
+            model=model,
+            debug=debug
+        )
 
     async def execute_from_dataset(self, inputs: dict) -> dict:
         """
@@ -170,21 +161,57 @@ class OrchestratorAgent(BaseAgent):
                 "error": True
             }
 
-    @staticmethod
-    def get_tools_from_run_state(state: OrchestratorAgentState) -> List[str]:
-        tools = []
-        orchestrator_response = state["orchestrator_low_level_plan"]
-        for agent_step in orchestrator_response.steps_to_complete:
-            tools.append(agent_step.agent_name.value)
-        return tools
+    async def prepare_prompt(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+        agents_description = ""
+        for agent in self.available_agents:
+            agents_description += f"\n-{agent.to_string()}"
 
-    async def evaluate_agent(self, langsmith_client: Client):
-        evaluators = [
-            ToolPrecisionEvaluator(self.get_tools_from_run_state),
-        ]
+        messages = state.get("messages")
+        if not messages:
+            state["messages"] = []
 
-        result = await self.call_agent_evaluation(langsmith_client, evaluators)
-        return result
+        state["messages"].insert(0,
+                                 SystemMessage(
+                                     content=ORCHESTRATOR_PROMPT.format(
+                                         available_agents=agents_description,
+                                         few_shots_examples=orchestrator_few_shots
+                                     )
+                                 ),
+                                 )
+        state["messages"].append(
+            HumanMessage(
+                content=state["planner_high_level_plan"]
+            )
+        )
+        return state
+
+    async def execute_orchestrator_agent(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+        """
+        Intenta ejecutar el orquestador con varios intentos de parsing.
+        Si falla tras varios intentos crea un plan si pasos.
+        """
+        print("+Ejecutando agente orquestador")
+        try:
+            prompt = state["messages"]
+            orchestrator_result = await execute_structured_llm_with_validator_handling(
+                prompt=prompt,
+                output_schema=OrchestratorPlan,
+                llm=self.model
+            )
+
+            if not isinstance(orchestrator_result, OrchestratorPlan):
+                orchestrator_result = OrchestratorPlan.model_validate(orchestrator_result)
+
+            state["orchestrator_low_level_plan"] = orchestrator_result
+
+        except Exception as e:
+            print(f"Error en structured output: {e}")
+            state["orchestrator_low_level_plan"] = OrchestratorPlan(
+                steps_to_complete=[]
+            )
+        finally:
+            return state
+
 
 
 

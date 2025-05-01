@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import List
 
 from langchain.chains.question_answering.map_reduce_prompt import messages
@@ -19,18 +20,14 @@ from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CitedAIMessage
 
 
-class MainAgent(BaseAgent):
+class MainAgent(BaseAgent, ABC):
 
-    planner_agent: PlannerAgent
-    orchestrator_agent: OrchestratorAgent
     formatter_agent: FormatterAgent
 
     def __init__(
             self,
-            planner_agent: PlannerAgent,
-            orchestrator_agent: OrchestratorAgent,
-            formatter_agent: FormatterAgent,
-            debug=True
+            debug=True,
+            formatter_agent: FormatterAgent = None,
                  ):
 
         super().__init__(
@@ -38,9 +35,46 @@ class MainAgent(BaseAgent):
             model=None,
             debug=debug
         )
+        self.formatter_agent = formatter_agent or FormatterAgent()
+
+    async def execute_formatter_graph(self, state: MainAgentState):
+        messages = state.get("messages")
+        query = state.get("query")
+        result = await self.formatter_agent.execute_agent_graph_with_exception_handling({
+            "query": query,
+            "messages": messages
+        })
+        formatter_result = self.formatter_agent.process_result(result)
+        state["formatter_result"] = formatter_result
+        return state
+
+    def process_result(self, agent_state: MainAgentState) -> CitedAIMessage:
+        return agent_state.get("formatter_result")
+
+    async def evaluate_agent(self, langsmith_client: Client, is_prueba: bool = False):
+        evaluators = [
+            JudgeLLMEvaluator(),
+            CiteEvaluator()
+        ]
+        return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba)
+
+class BasicMainAgent(MainAgent):
+
+    planner_agent: PlannerAgent
+    orchestrator_agent: OrchestratorAgent
+    formatter_agent: FormatterAgent
+
+    def __init__(self,
+                 planner_agent: PlannerAgent,
+                 orchestrator_agent: OrchestratorAgent,
+                 formatter_agent: FormatterAgent
+                 ):
+        super().__init__(
+            formatter_agent = formatter_agent
+        )
         self.planner_agent = planner_agent
         self.orchestrator_agent = orchestrator_agent
-        self.formatter_agent = formatter_agent
+
 
     async def execute_orchestrator_graph(self, state: MainAgentState) -> MainAgentState:
         if "planner_high_level_plan" in state:
@@ -76,19 +110,6 @@ class MainAgent(BaseAgent):
 
         return state
 
-    async def execute_formatter_graph(self, state: MainAgentState):
-        messages = state.get("messages")
-        query = state.get("query")
-        result = await self.formatter_agent.execute_agent_graph_with_exception_handling({
-            "query": query,
-            "messages": messages
-        })
-        formatter_result = self.formatter_agent.process_result(result)
-        state["formatter_result"] = formatter_result
-        return state
-
-
-
     def create_graph(self) -> CompiledGraph:
 
         graph_builder = StateGraph(MainAgentState)
@@ -108,12 +129,12 @@ class MainAgent(BaseAgent):
 
         return graph_builder.compile()
 
-    def process_result(self, agent_state: MainAgentState) -> CitedAIMessage:
-        return agent_state.get("formatter_result")
+"""
+class OrchestratorPlannerTogetherMainAgent(MainAgent):
+    def __init__(self,
+             debug=True
+                 ):
+        super().__init__(
+        )
+"""
 
-    async def evaluate_agent(self, langsmith_client: Client, is_prueba: bool = False):
-        evaluators = [
-            JudgeLLMEvaluator(),
-            CiteEvaluator()
-        ]
-        return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba)
