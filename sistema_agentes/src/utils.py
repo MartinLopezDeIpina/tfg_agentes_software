@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 from rich.console import Console
@@ -27,6 +28,18 @@ def get_list_string_with_indexes(list: List[str]) -> str:
         string_result += f"{i}. {element}\n\n"
 
     return string_result
+
+def read_file_content(file: Path) -> str:
+    try:
+        with open(file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content
+
+    except Exception as e:
+        print(f"Error leyendo fichero {file}")
+        return ""
+
+
 
 
 

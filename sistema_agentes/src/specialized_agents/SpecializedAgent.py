@@ -1,42 +1,33 @@
-import functools
 import uuid
-from abc import ABC, abstractmethod
-from typing import List, TypedDict, Annotated, Sequence
-
-import langgraph.prebuilt.chat_agent_executor
-from jedi.inference.recursion import recursion_limit
-from langchain.chains.question_answering.map_reduce_prompt import messages
+from abc import abstractmethod
+from typing import List
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
-from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import END
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
-from langgraph.managed import RemainingSteps
-from langgraph.managed.is_last_step import IsLastStepManager, IsLastStep
 from langgraph.prebuilt import create_react_agent
 
-from langsmith import Client, evaluate, aevaluate
-from langsmith.evaluation import EvaluationResults
+from langsmith import Client
 
 from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
-from src.eval_agents.cite_references_evaluator import CiteEvaluator
-from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
+from src.evaluators.cite_references_evaluator import CiteEvaluator
+from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
+from src.db.postgres_connection_manager import PostgresPoolManager
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import DataSource, CitedAIMessage
 from src.utils import tab_all_lines_x_times
-from src.eval_agents.dataset_utils import search_langsmith_dataset
-from src.eval_agents.tool_precision_evaluator import ToolPrecisionEvaluator
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt.chat_agent_executor import AgentState as ReactAgentState
+from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
 
 from static.prompts import REACT_SUMMARIZER_SYSTEM_PROMPT
+
 
 
 class SpecializedAgentState(AgentState):
@@ -46,11 +37,13 @@ class SpecializedAgent(BaseAgent):
 
     description: str
     tools_str: List[str]
+    prompt_only_tools_str: List[str]
     tools: List[BaseTool]
     mcp_client: MCPClient
     data_sources: List[DataSource]
     max_steps: int
     react_graph: CompiledGraph
+    checkpointer: BaseCheckpointSaver
 
     def __init__(
         self,
@@ -59,6 +52,7 @@ class SpecializedAgent(BaseAgent):
         prompt: str = "",
         model: BaseChatModel = default_llm,
         tools_str: List[str] = None,
+        prompt_only_tools: List[str] = None,
         data_sources: List[DataSource] = None,
         max_steps: int = 10
     ):
@@ -71,9 +65,9 @@ class SpecializedAgent(BaseAgent):
 
         self.description = description
         self.tools_str = tools_str or []
+        self.prompt_only_tools_str = prompt_only_tools or []
         self.data_sources = data_sources or []
         self.max_steps = max_steps
-
 
 
     @abstractmethod
@@ -81,6 +75,15 @@ class SpecializedAgent(BaseAgent):
         """
         Conectarse al cliente mcp y obtener las tools
         """
+
+    async def add_additional_tools(self):
+        """
+        Sobreescribir para añadir herramientas que no están disponibles en el servidor mcp en el caso de que sean necesarias
+        """
+        pass
+
+    def get_agent_tools(self):
+        return [tool for tool in self.tools if tool.name not in self.prompt_only_tools_str]
 
     async def create_citation_data_source(self):
         if self.data_sources:
@@ -93,12 +96,27 @@ class SpecializedAgent(BaseAgent):
                 )
             )
 
+    async def init_checkpointer(self):
+        """
+        Configura el checkpointer de PostgreSQL.
+        Si falla la conexión utilizar un MemorySaver normal sin manejo de concurrencia.
+        """
+        try:
+            postgres_manager = await PostgresPoolManager.get_instance()
+            self.checkpointer = postgres_manager.get_checkpointer()
+
+        except Exception as e:
+            print(f"Error conectando a postgresql, iniciando checkpointer básico: {e}")
+            self.checkpointer = MemorySaver()
+
     async def init_agent(self):
         """
         Conecta el agente al servidor MCP e inicializa el sistema de referenciado de citas
         """
         await self.connect_to_mcp()
+        await self.add_additional_tools()
         await self.create_citation_data_source()
+        await self.init_checkpointer()
 
     async def cleanup(self):
         """
@@ -153,7 +171,7 @@ class SpecializedAgent(BaseAgent):
         except Exception as e:
             print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
             state["recursion_limit_exceded"] = True
-            last_state = self.react_graph.get_state(config)
+            last_state = await self.react_graph.aget_state(config)
             messages = last_state.values.get("messages", [])
             state["messages"] = messages
             return state
@@ -168,10 +186,18 @@ class SpecializedAgent(BaseAgent):
         
     async def generate_summarized_response(self, state: SpecializedAgentState):
         messages = state.get("messages")
+        if not messages:
+            messages = []
+
         new_system_message = SystemMessage(
             content=REACT_SUMMARIZER_SYSTEM_PROMPT
         )
-        messages[0] = new_system_message
+
+        if len(messages) > 0:
+            messages[0] = new_system_message
+        else:
+            messages.append(new_system_message)
+
         try:
             summarizer_response = await self.model.ainvoke(messages)
             state["messages"].append(summarizer_response)
@@ -184,11 +210,11 @@ class SpecializedAgent(BaseAgent):
         """
         Devolver el grafo compilado del agente
         """
-        checkpointer = MemorySaver()
+        agent_tools = self.get_agent_tools()
         self.react_graph = create_react_agent(
             model=self.model,
-            tools=self.tools,
-            checkpointer=checkpointer
+            tools=agent_tools,
+            checkpointer=self.checkpointer
         )
         graph_builder = StateGraph(AgentState)
 

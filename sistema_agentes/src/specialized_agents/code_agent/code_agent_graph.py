@@ -27,6 +27,10 @@ class CodeAgent(SpecializedAgent):
                 "get_repository_tree_tool",
                 "get_all_respository_files_list"
             ],
+            prompt_only_tools=[
+                "get_repository_tree_tool",
+                "get_all_respository_files_list"
+            ],
             data_sources=[CodeDataSource(
                 get_documents_tool_name="get_all_respository_files_list",
                 tool_args={}

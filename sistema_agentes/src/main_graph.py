@@ -8,8 +8,8 @@ from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
 from src.BaseAgent import AgentState, BaseAgent
-from src.eval_agents.cite_references_evaluator import CiteEvaluator
-from src.eval_agents.llm_as_judge_evaluator import JudgeLLMEvaluator
+from src.evaluators.cite_references_evaluator import CiteEvaluator
+from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
 from src.planner_agent.models import PlannerResponse
