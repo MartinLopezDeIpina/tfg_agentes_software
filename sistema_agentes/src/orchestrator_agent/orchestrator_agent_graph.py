@@ -19,6 +19,7 @@ from src.specialized_agents.citations_tool.models import CitedAIMessage
 from static.prompts import ORCHESTRATOR_PROMPT
 
 class OrchestratorAgentState(AgentState):
+    # El high level plan representa lo que el orquestador tiene que responder, puede ser un paso de un plan o directamente una pregunta del usuario.
     planner_high_level_plan: str | OrchestratorPlan
     orchestrator_low_level_plan: OrchestratorPlan
     low_level_plan_execution_result: List[CitedAIMessage]
@@ -39,6 +40,74 @@ class OrchestratorAgent(BaseAgent, ABC):
             debug=debug
         )
         self.available_agents = available_agents
+
+    @abstractmethod
+    def create_orchestrate_agents_graph(self, state: OrchestratorAgentState) -> CompiledGraph:
+        """
+        Define la lógica de ejecución del orquestador, debe ejecutar los agentes especializados
+        """
+
+    def create_graph(self) -> CompiledGraph:
+        """
+        Devolver el grafo compilado del agente
+        """
+        graph_builder = StateGraph(OrchestratorAgentState)
+
+        orchestrate_agents_graph = self.create_orchestrate_agents_graph
+
+        graph_builder.add_node("prepare", self.prepare_prompt)
+        graph_builder.add_node("orchestrator", orchestrate_agents_graph)
+
+
+        graph_builder.set_entry_point("prepare")
+        graph_builder.add_edge("prepare", "orchestrator")
+
+        return graph_builder.compile()
+
+    def process_result(self, agent_state: OrchestratorAgentState) -> List[CitedAIMessage]:
+        specialized_agents_responses = agent_state.get("low_level_plan_execution_result")
+        return specialized_agents_responses
+
+
+    @staticmethod
+    def get_tools_from_run_state(state: OrchestratorAgentState) -> List[str]:
+        tools = []
+        orchestrator_response = state["orchestrator_low_level_plan"]
+        for agent_step in orchestrator_response.steps_to_complete:
+            tools.append(agent_step.agent_name.value)
+        return tools
+
+    async def evaluate_agent(self, langsmith_client: Client):
+        evaluators = [
+            ToolPrecisionEvaluator(self.get_tools_from_run_state),
+        ]
+
+        result = await self.call_agent_evaluation(langsmith_client, evaluators)
+        return result
+
+
+class OneStepOrchestratorAgent(OrchestratorAgent, ABC):
+    """
+    Ejecuta una única iteración de uno o varios agentes asíncronos especializados.
+    """
+
+    def __init__(
+            self,
+            available_agents: List[SpecializedAgent],
+            model: BaseChatModel = default_llm,
+            debug: bool = True
+    ):
+        super().__init__(
+            available_agents=available_agents,
+            model=model,
+            debug=debug
+        )
+
+    @abstractmethod
+    async def execute_orchestrator_agent(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+        """
+        Define la lógica de ejecución del agente orquestador, desde un plan a alto nivel genera un plan a bajo nivel (los agentes especializados a llamar)
+        """
 
     async def execute_agents(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
         orchestrator_plan = state.get("orchestrator_low_level_plan")
@@ -78,51 +147,23 @@ class OrchestratorAgent(BaseAgent, ABC):
 
         return state
 
-    @abstractmethod
-    async def execute_orchestrator_agent(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+    def create_orchestrate_agents_graph(self, state: OrchestratorAgentState) -> CompiledGraph:
         """
-        Define la lógica de ejecución del agente orquestador, desde un plan a alto nivel genera un plan a bajo nivel (los agentes especializados a llamar)
+        Dada una query ejecuta los agentes especializados y obtiene los mensajes citados
         """
 
-    def create_graph(self) -> CompiledGraph:
-        """
-        Devolver el grafo compilado del agente
-        """
         graph_builder = StateGraph(OrchestratorAgentState)
 
-        graph_builder.add_node("prepare", self.prepare_prompt)
         graph_builder.add_node("execute_orchestrator", self.execute_orchestrator_agent)
         graph_builder.add_node("execute_agents", self.execute_agents)
 
-        graph_builder.set_entry_point("prepare")
-        graph_builder.add_edge("prepare", "execute_orchestrator")
+        graph_builder.set_entry_point("execute_orchestrator")
         graph_builder.add_edge("execute_orchestrator", "execute_agents")
-        graph_builder.set_finish_point("execute_agents")
 
         return graph_builder.compile()
 
-    def process_result(self, agent_state: OrchestratorAgentState) -> List[CitedAIMessage]:
-        specialized_agents_responses = agent_state.get("low_level_plan_execution_result")
-        return specialized_agents_responses
 
-
-    @staticmethod
-    def get_tools_from_run_state(state: OrchestratorAgentState) -> List[str]:
-        tools = []
-        orchestrator_response = state["orchestrator_low_level_plan"]
-        for agent_step in orchestrator_response.steps_to_complete:
-            tools.append(agent_step.agent_name.value)
-        return tools
-
-    async def evaluate_agent(self, langsmith_client: Client):
-        evaluators = [
-            ToolPrecisionEvaluator(self.get_tools_from_run_state),
-        ]
-
-        result = await self.call_agent_evaluation(langsmith_client, evaluators)
-        return result
-
-class BasicOrchestratorAgent(OrchestratorAgent):
+class BasicOrchestratorAgent(OneStepOrchestratorAgent):
 
     def __init__(self,
         available_agents: List[SpecializedAgent],
@@ -209,7 +250,7 @@ class BasicOrchestratorAgent(OrchestratorAgent):
         finally:
             return state
 
-class DummyOrchestratorAgent(OrchestratorAgent):
+class DummyOrchestratorAgent(OneStepOrchestratorAgent):
 
     def __init__(self,
                  available_agents: List[SpecializedAgent],

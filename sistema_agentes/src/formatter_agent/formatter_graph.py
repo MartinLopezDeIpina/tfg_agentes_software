@@ -27,6 +27,7 @@ def get_citations_string(citations: List[Citation]) -> str:
         )
     return citation_str
 
+# todo: se podría hacer un formatter que solo coja el último mensaje y las citas y solo haga print del resultado, para usarlo con el ReactOrchestratorAgent
 class FormatterAgentState(AgentState):
     messages: List[BaseMessage]
     available_citations: List[Citation]

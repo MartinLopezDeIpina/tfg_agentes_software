@@ -24,22 +24,33 @@ from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
 from src.evaluators.dataset_utils import create_langsmith_datasets
 
-async def main():
-
-    specialized_agents = [
-        GoogleDriveAgent(),
+def get_specialized_agents():
+    return [
+        #GoogleDriveAgent(),
         FileSystemAgent(),
-        GitlabAgent(),
+        #GitlabAgent(),
         ConfluenceAgent(),
-        CodeAgent()
+        #CodeAgent()
     ]
 
+async def basic_main():
+    special_agents = get_specialized_agents()
+    planner_agent = BasicPlannerAgent()
+    orchestrator_agent = BasicOrchestratorAgent(available_agents=special_agents)
+    await main(specialized_agents=special_agents, planner_agent=planner_agent, orchestrator_agent=orchestrator_agent)
+
+async def planner_orchestrator_main():
+    special_agents = get_specialized_agents()
+    planner_agent = OrchestratorPlannerAgent(available_agents=special_agents)
+    orchestrator_agent = DummyOrchestratorAgent(available_agents=special_agents)
+    await main(specialized_agents=special_agents, planner_agent=planner_agent, orchestrator_agent=orchestrator_agent)
+
+
+async def main(specialized_agents: List[SpecializedAgent], planner_agent: PlannerAgent, orchestrator_agent: OrchestratorAgent):
     try:
         # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
-        available_agents = await init_specialized_agents(specialized_agents)
+        await init_specialized_agents(specialized_agents)
 
-        planner_agent = OrchestratorPlannerAgent(available_agents=available_agents)
-        orchestrator_agent = DummyOrchestratorAgent(available_agents=available_agents)
         formatter_agent = FormatterAgent()
         main_agent = BasicMainAgent(
             planner_agent=planner_agent,
@@ -47,17 +58,12 @@ async def main():
             formatter_agent=formatter_agent
         )
 
-        main_graph = main_agent.create_graph()
-        result = await main_graph.ainvoke({
-            "query": "Dime ejemplos en el código donde se aplique la guía de estilos del proyecto",
-            "messages": []
-        })
-        """
-        orchestrator_graph = orchestrator_agent.create_graph()
-        result = await orchestrator_graph.ainvoke({
-            "planner_high_level_plan": "Explicame el funcionamiento de la plantilla de admin"
-        })
-        """
+        result = await main_agent.execute_agent_graph_with_exception_handling(
+            {
+                "query": "Dime ejemplos en el código donde se aplique la guía de estilos del proyecto",
+                "messages": []
+            }
+        )
 
     finally:
         await MCPClient.cleanup()
@@ -208,8 +214,9 @@ async def pruebas():
 if __name__ == '__main__':
     load_dotenv()
 
+    asyncio.run(planner_orchestrator_main())
+
     #asyncio.run(debug_agent())
-    #asyncio.run(main())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
     #asyncio.run(evaluate_orchestrator_planner_agent())

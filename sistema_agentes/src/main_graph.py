@@ -128,13 +128,3 @@ class BasicMainAgent(MainAgent):
         graph_builder.add_edge("orchestrator", "planner")
 
         return graph_builder.compile()
-
-"""
-class OrchestratorPlannerTogetherMainAgent(MainAgent):
-    def __init__(self,
-             debug=True
-                 ):
-        super().__init__(
-        )
-"""
-
