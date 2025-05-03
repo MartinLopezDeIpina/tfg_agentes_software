@@ -294,5 +294,14 @@ class OrchestratorPlannerAgent(PlannerAgent):
         finally:
             return state
 
+"""
+class DummyPlannerAgent(PlannerAgent):
+    
+    def execute_planner_reasoner_agent(self, state: MainAgentState):
 
+    def execute_planner_structure_agent(self, state: MainAgentState):
+        pass
 
+    async def prepare_prompt(self, state: AgentState) -> AgentState:
+        pass
+"""

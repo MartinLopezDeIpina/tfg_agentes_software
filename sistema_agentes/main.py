@@ -11,10 +11,10 @@ from langsmith import Client
 from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.pgvector_utils import PGVectorStore
 from src.formatter_agent.formatter_graph import FormatterAgent
-from src.main_graph import MainAgent, BasicMainAgent
+from src.main_graph import MainAgent, BasicMainAgent , OrchestratorOnlyMainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
-    DummyOrchestratorAgent
+    DummyOrchestratorAgent, ReactOrchestratorAgent
 from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent, OrchestratorPlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
@@ -26,11 +26,11 @@ from src.evaluators.dataset_utils import create_langsmith_datasets
 
 def get_specialized_agents():
     return [
-        #GoogleDriveAgent(),
+        GoogleDriveAgent(),
         FileSystemAgent(),
-        #GitlabAgent(),
+        GitlabAgent(),
         ConfluenceAgent(),
-        #CodeAgent()
+        CodeAgent()
     ]
 
 async def basic_main():
@@ -45,18 +45,29 @@ async def planner_orchestrator_main():
     orchestrator_agent = DummyOrchestratorAgent(available_agents=special_agents)
     await main(specialized_agents=special_agents, planner_agent=planner_agent, orchestrator_agent=orchestrator_agent)
 
+async def orchestrator_only_main():
+    special_agents = get_specialized_agents()
+    orchestrator_agent = ReactOrchestratorAgent(available_agents=special_agents)
+    await main(specialized_agents=special_agents, planner_agent=None, orchestrator_agent=orchestrator_agent, planner_main_agent=False)
 
-async def main(specialized_agents: List[SpecializedAgent], planner_agent: PlannerAgent, orchestrator_agent: OrchestratorAgent):
+
+async def main(specialized_agents: List[SpecializedAgent], planner_agent: PlannerAgent, orchestrator_agent: OrchestratorAgent, planner_main_agent: bool = True):
     try:
         # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
         await init_specialized_agents(specialized_agents)
 
         formatter_agent = FormatterAgent()
-        main_agent = BasicMainAgent(
-            planner_agent=planner_agent,
-            orchestrator_agent=orchestrator_agent,
-            formatter_agent=formatter_agent
-        )
+        if planner_main_agent:
+            main_agent = BasicMainAgent(
+                planner_agent=planner_agent,
+                orchestrator_agent=orchestrator_agent,
+                formatter_agent=formatter_agent
+            )
+        else:
+            main_agent = OrchestratorOnlyMainAgent(
+                orchestrator_agent=orchestrator_agent,
+                formatter_agent=formatter_agent
+            )
 
         result = await main_agent.execute_agent_graph_with_exception_handling(
             {
@@ -214,11 +225,12 @@ async def pruebas():
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(planner_orchestrator_main())
+    asyncio.run(orchestrator_only_main())
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
     #asyncio.run(evaluate_main_agent(is_prueba=True))
+
     #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
 

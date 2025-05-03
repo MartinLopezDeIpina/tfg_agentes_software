@@ -144,6 +144,17 @@ User question:
 {user_query}
 """
 
+REACT_ORCHESTRATOR_PROMPT="""You are an agent orchestrator. Your task is to call different specialized agents to answer a question about a software project.
+
+You will receive a list of agents as tools to call and a question. You must analyze the question carefully and call ONLY the agents that are necessary to help answer the question effectively. For each agent you decide to call, create an appropriate individual question tailored to that agent's specific expertise or capabilities.
+
+-Do not answer the question if sufficient information is not available.
+-Do not call extra agents if the current responses contain enough information to answer the question.
+
+Project description: 
+{project_description}
+"""
+
 SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users questions based on the retrieved information. 
 Your task is to read the information that other agents have gathered and to structure your response in a markdown format.
 The plan should contain the answer reasoning, your only task is to structure a clear markdown response to the user's query. 

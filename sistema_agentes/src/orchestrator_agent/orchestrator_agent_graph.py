@@ -1,9 +1,13 @@
 import asyncio
+import json
+
+from langgraph.prebuilt import create_react_agent
 from abc import ABC, abstractmethod
 from typing import TypedDict, List
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolCall, ToolMessage
+from langchain_core.tools import BaseTool, tool
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
@@ -16,7 +20,9 @@ from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.specialized_agents.SpecializedAgent import SpecializedAgent, get_agents_description
 from src.specialized_agents.citations_tool.models import CitedAIMessage
-from static.prompts import ORCHESTRATOR_PROMPT
+from static.agent_descriptions import PROJECT_DESCRIPTION
+from static.prompts import ORCHESTRATOR_PROMPT, REACT_ORCHESTRATOR_PROMPT
+
 
 class OrchestratorAgentState(AgentState):
     # El high level plan representa lo que el orquestador tiene que responder, puede ser un paso de un plan o directamente una pregunta del usuario.
@@ -67,7 +73,6 @@ class OrchestratorAgent(BaseAgent, ABC):
     def process_result(self, agent_state: OrchestratorAgentState) -> List[CitedAIMessage]:
         specialized_agents_responses = agent_state.get("low_level_plan_execution_result")
         return specialized_agents_responses
-
 
     @staticmethod
     def get_tools_from_run_state(state: OrchestratorAgentState) -> List[str]:
@@ -271,3 +276,96 @@ class DummyOrchestratorAgent(OneStepOrchestratorAgent):
 
     async def prepare_prompt(self, state: OrchestratorAgentState) -> AgentState:
         return state
+
+class ReactOrchestratorAgent(OrchestratorAgent):
+
+    agent_tools: List[BaseTool]
+
+    def __init__(self,
+                 available_agents: List[SpecializedAgent],
+                 debug: bool = True
+                 ):
+        super().__init__(
+            available_agents=available_agents,
+            debug=debug
+        )
+
+        self.agent_tools = []
+        for agent in available_agents:
+            self.agent_tools.append(self.transform_specialized_agent_into_tool(agent))
+
+    async def prepare_prompt(self, state: OrchestratorAgentState) -> AgentState:
+        agents_description = get_agents_description(self.available_agents)
+        state["messages"] = []
+
+        state["messages"].extend([
+            SystemMessage(
+                content=REACT_ORCHESTRATOR_PROMPT.format(
+                    project_description=PROJECT_DESCRIPTION
+                )
+            ),
+            HumanMessage(
+                content=state["planner_high_level_plan"]
+            )
+        ])
+
+        return state
+
+
+    def transform_specialized_agent_into_tool(self, agent: SpecializedAgent) -> BaseTool:
+        @tool
+        async def call_agent(query: str):
+            """
+            Esta docstring será sustituida por la descripción del agente
+            """
+            result_state = await agent.execute_agent_graph_with_exception_handling(
+                input={
+                    "query": query,
+                    "messages": []
+                }
+            )
+            cited_ai_message = agent.process_result(result_state)
+        
+            return cited_ai_message.to_dict()
+        call_agent.__doc__ = agent.description
+        
+        return call_agent
+
+    def parse_results(selfs, state: OrchestratorAgentState) -> OrchestratorAgentState:
+        messages = state.get("messages")
+        if not messages:
+            return state
+
+        cited_ai_messages = []
+        for message in messages:
+            if isinstance(message, ToolMessage):
+                cited_message = CitedAIMessage.from_string(string=message.content)
+                if cited_message:
+                    cited_ai_messages.append(cited_message)
+
+        state["low_level_plan_execution_result"] = cited_ai_messages
+        return state
+
+
+
+    def create_orchestrate_agents_graph(self, state: OrchestratorAgentState) -> CompiledGraph:
+
+        graph_builder = StateGraph(OrchestratorAgentState)
+
+        react_graph = create_react_agent(
+            tools=self.agent_tools,
+            model=self.model
+        )
+
+        graph_builder.add_node("react_agent", react_graph)
+        graph_builder.add_node("parse_results", self.parse_results)
+
+        graph_builder.set_entry_point("react_agent")
+        graph_builder.add_edge("react_agent", "parse_results")
+
+        return graph_builder.compile()
+
+
+
+
+
