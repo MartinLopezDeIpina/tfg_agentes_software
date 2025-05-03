@@ -10,7 +10,7 @@ from langsmith import Client
 from src.BaseAgent import AgentState, BaseAgent
 from src.formatter_agent.models import FormatterResponse
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
-from src.planner_agent.models import PlannerResponse
+from src.planner_agent.models import PlannerResponse, PlanAIMessage
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import CitedAIMessage, Citation
@@ -73,7 +73,7 @@ class FormatterAgent(BaseAgent):
             )
         ]
         for message in state["messages"][1:]:
-            if isinstance(message, CitedAIMessage):
+            if isinstance(message, CitedAIMessage) or isinstance(message, PlanAIMessage):
                 formatter_agent_messages.append(message.format_to_ai_message())
             else:
                 formatter_agent_messages.append(message)

@@ -1,5 +1,7 @@
 from abc import abstractmethod
 from typing import List, Any
+
+from langchain_core.messages import BaseMessage, AIMessage
 from pydantic import BaseModel, Field
 
 from src.orchestrator_agent.models import AgentStep, OrchestratorPlan
@@ -33,7 +35,7 @@ class BasicPlannerResponse(PlannerResponse):
         return ""
 
 class OrchestratorPlannerResponse(PlannerResponse):
-    steps: List[OrchestratorPlan] = Field(description="The list of steps remaining to execute on the plan")
+    steps: List[OrchestratorPlan] = Field(description="The list of steps remaining to execute on the plan. Each step is a plan to execute one or more agents.")
 
     def _steps_to_string(self) -> str:
         steps_string = ""
@@ -41,3 +43,15 @@ class OrchestratorPlannerResponse(PlannerResponse):
             for i, step in enumerate(self.steps):
                 steps_string += f"Step {i}: {tab_all_lines_x_times(step.to_string())}\n"
         return steps_string
+
+class PlanAIMessage(BaseMessage):
+    def __init__(self, message: BaseMessage):
+        super().__init__(
+            type="ai_plan",
+            content=message.content,
+        )
+
+    def format_to_ai_message(self) -> AIMessage:
+        return AIMessage(
+            content=f"{self.content}"
+        )

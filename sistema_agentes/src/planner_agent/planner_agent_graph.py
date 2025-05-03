@@ -13,9 +13,9 @@ from config import default_reasoner_llm, default_llm
 from src.BaseAgent import BaseAgent, AgentState
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
-from src.planner_agent.few_shots_examples import planner_few_shots
+from src.planner_agent.few_shots_examples import planner_few_shots, orchestrator_planner_few_shots
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
-from src.planner_agent.models import PlannerResponse, BasicPlannerResponse, OrchestratorPlannerResponse
+from src.planner_agent.models import PlannerResponse, BasicPlannerResponse, OrchestratorPlannerResponse, PlanAIMessage
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent, get_agents_description
 from src.utils import tab_all_lines_x_times, print_markdown, get_list_from_string_comma_separated_values
@@ -32,8 +32,8 @@ class PlannerAgent(BaseAgent, ABC):
             self,
             planner_model: BaseChatModel = default_reasoner_llm,
             structure_model:BaseChatModel = default_llm,
-            max_steps: int = 2,
-            debug: bool = True
+            max_steps: int = 4,
+            debug: bool = True,
     ):
         super().__init__(
             name="planner_agent",
@@ -57,16 +57,18 @@ class PlannerAgent(BaseAgent, ABC):
 
     def format_planner_prompt(self, messages: List[BaseMessage], current_plan: PlannerResponse) -> str:
         initial_message = messages[0].content
-        planner_current_plan = current_plan.to_string()
 
         step_result = ""
         for message in messages[1:]:
-            step_result+= "\n-Researcher output:"
-            step_result += f"\n{tab_all_lines_x_times(message.content)}\n"
+            if isinstance(message, PlanAIMessage):
+                step_result+= "\n-Generated Plan:"
+                step_result += f"\n{tab_all_lines_x_times(message.content)}\n"
+            else:
+                step_result+= "\n-Researcher output:"
+                step_result += f"\n{tab_all_lines_x_times(message.content)}\n"
 
         prompt = PLANNER_PROMPT_AFTER.format(
             initial_prompt=initial_message,
-            previous_plan=planner_current_plan,
             step_result=step_result,
         )
 
@@ -128,21 +130,6 @@ class PlannerAgent(BaseAgent, ABC):
         result = await self.call_agent_evaluation(langsmith_client, evaluators)
         return result
 
-class BasicPlannerAgent(PlannerAgent):
-
-    def __init__(self,
-        planner_model: BaseChatModel = default_reasoner_llm,
-        structure_model:BaseChatModel = default_llm,
-        max_steps: int = 2,
-        debug: bool = True
-                 ):
-        super().__init__(
-            planner_model=planner_model,
-            structure_model=structure_model,
-            max_steps=max_steps,
-            debug=debug
-        )
-
     async def execute_from_dataset(self, inputs: dict) -> dict:
         """
         Si no hay mensajes en el dataset entonces es la primera iteración en el plan.
@@ -161,10 +148,17 @@ class BasicPlannerAgent(PlannerAgent):
             current_high_level_plan = None
             if current_plan_str:
                 current_plan_list = get_list_from_string_comma_separated_values(current_plan_str)
-                current_high_level_plan = PlannerResponse(
+                current_high_level_plan = BasicPlannerResponse(
                     finished=False,
                     plan_reasoning=current_plan_list[0],
                     steps=current_plan_list[1:],
+                )
+                messages.insert(1,
+                    PlanAIMessage(
+                        message=AIMessage(
+                            content=current_high_level_plan.to_string()
+                        )
+                    )
                 )
 
             run_state = await self.create_graph().ainvoke({
@@ -184,6 +178,21 @@ class BasicPlannerAgent(PlannerAgent):
                 "error": True
             }
 
+class BasicPlannerAgent(PlannerAgent):
+
+    def __init__(self,
+        planner_model: BaseChatModel = default_reasoner_llm,
+        structure_model:BaseChatModel = default_llm,
+        max_steps: int = 4,
+        debug: bool = True
+                 ):
+        super().__init__(
+            planner_model=planner_model,
+            structure_model=structure_model,
+            max_steps=max_steps,
+            debug=debug
+        )
+
     async def execute_planner_structure_agent(self, state: MainAgentState) -> MainAgentState:
         planner_scratchpad = state.get("planner_scratchpad")
         try:
@@ -195,8 +204,10 @@ class BasicPlannerAgent(PlannerAgent):
             )
 
             state["planner_high_level_plan"] = planner_result
-            state["messages"].append(AIMessage(
-                content=planner_result.to_string()
+            state["messages"].append(PlanAIMessage(
+                message=AIMessage(
+                    content=planner_result.to_string()
+                )
             ))
 
         except Exception as e:
@@ -230,7 +241,7 @@ class OrchestratorPlannerAgent(PlannerAgent):
     def __init__(self,
                  planner_model: BaseChatModel = default_reasoner_llm,
                  structure_model:BaseChatModel = default_llm,
-                 max_steps: int = 2,
+                 max_steps: int = 4,
                  debug: bool = True,
                  available_agents: List[SpecializedAgent] = None
                  ):
@@ -242,10 +253,7 @@ class OrchestratorPlannerAgent(PlannerAgent):
         )
         self.available_agents_description = get_agents_description(available_agents)
 
-    def execute_from_dataset(self, inputs: dict) -> dict:
-        pass
-
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    def prepare_prompt(self, state: AgentState) -> AgentState:
         messages = state["messages"]
         if not messages or len(messages) == 0:
             state["messages"] = [
@@ -254,7 +262,7 @@ class OrchestratorPlannerAgent(PlannerAgent):
                         project_description=PROJECT_DESCRIPTION,
                         user_query=state["query"],
                         available_agents=self.available_agents_description,
-                        few_shot_examples=""
+                        few_shot_examples=orchestrator_planner_few_shots
                     )
                 ),
             ]
@@ -271,8 +279,10 @@ class OrchestratorPlannerAgent(PlannerAgent):
             )
 
             state["planner_high_level_plan"] = planner_result
-            state["messages"].append(AIMessage(
-                content=planner_result.to_string()
+            state["messages"].append(PlanAIMessage(
+                message=AIMessage(
+                    content=planner_result.to_string()
+                )
             ))
 
         except Exception as e:
@@ -283,7 +293,6 @@ class OrchestratorPlannerAgent(PlannerAgent):
             )
         finally:
             return state
-        pass
 
 
 

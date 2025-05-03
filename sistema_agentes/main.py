@@ -49,7 +49,7 @@ async def main():
 
         main_graph = main_agent.create_graph()
         result = await main_graph.ainvoke({
-            "query": "Cuál es el commit del proyecto más reciente?",
+            "query": "Dime ejemplos en el código donde se aplique la guía de estilos del proyecto",
             "messages": []
         })
         """
@@ -133,6 +133,27 @@ async def evaluate_planner_agent():
 
     await planner_agent.evaluate_agent(langsmith_client=langsmith_client)
 
+async def evaluate_orchestrator_planner_agent():
+    agents = []
+    try:
+        langsmith_client = Client()
+
+        agents = [
+            GoogleDriveAgent(),
+            FileSystemAgent(),
+            GitlabAgent(),
+            ConfluenceAgent(),
+            CodeAgent()
+        ]
+
+        available_agents = await init_specialized_agents(agents)
+        planner_agent = OrchestratorPlannerAgent(available_agents=available_agents)
+
+        await planner_agent.evaluate_agent(langsmith_client=langsmith_client)
+
+    finally:
+        await agents[0].cleanup()
+
 async def evaluate_main_agent(is_prueba: bool = True):
     specialized_agents = [
         GoogleDriveAgent(),
@@ -190,7 +211,8 @@ if __name__ == '__main__':
     #asyncio.run(debug_agent())
     #asyncio.run(main())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    asyncio.run(evaluate_main_agent(is_prueba=True))
+    #asyncio.run(evaluate_main_agent(is_prueba=True))
+    #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
 
     #asyncio.run(pruebas())

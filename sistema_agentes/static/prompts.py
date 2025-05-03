@@ -86,6 +86,8 @@ PLANNER_PROMPT_INITIAL = """You are a software project information gatherer. You
 - If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
 - Clearly indicate which are the steps
 
+IMPORTANT: Your new plan should not contain steps that where previously executed and you don't want to repeat. Every step that you indicate will be executed.
+
 {few_shot_examples}
 
 User question:
@@ -93,10 +95,7 @@ User question:
 """
 PLANNER_PROMPT_AFTER = """{initial_prompt}
 
-The previous plan was: 
-{previous_plan}
-
-The execution result of the current step is:
+The execution of the current plan is:
 {step_result}
 """
 
@@ -127,8 +126,13 @@ You will receive the software project description and a sequence of available sp
 - Focus solely on information gathering, not answering.
 - You must create concise plans, with the minimum number of steps possible. If the query is straightforward, you should return a single step.
 - Execute steps sequentially, reviewing results as you go and dynamically adjusting the plan. If gathering information about a topic was not successful do not try to gather information about the exact same topic.
+- Each plan step will be executed sequentially, but multiple agents can be called in a single step. For example, gathering information about X might require to call multiple agents.
 - If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
 - Clearly indicate which are the steps
+
+IMPORTANT: Your new plan should not contain steps that where previously executed and you don't want to repeat. Every step that you indicate will be executed.
+
+{few_shot_examples}
 
 Project description: 
 {project_description}
