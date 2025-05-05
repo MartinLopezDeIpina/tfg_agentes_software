@@ -72,7 +72,9 @@ class FormatterAgent(BaseAgent):
                 content=state["query"]
             )
         ]
-        for message in state["messages"][1:]:
+        for message in state["messages"]:
+            if isinstance(message, SystemMessage):
+                continue
             if isinstance(message, CitedAIMessage) or isinstance(message, PlanAIMessage):
                 formatter_agent_messages.append(message.format_to_ai_message())
             else:

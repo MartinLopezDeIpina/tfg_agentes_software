@@ -1,17 +1,15 @@
 import asyncio
-from contextlib import AsyncExitStack
-from typing import List, Annotated
+from typing import List
 
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
-from langgraph.managed.is_last_step import RemainingStepsManager, RemainingSteps
+from langgraph.managed.is_last_step import RemainingSteps
 from langsmith import Client
 
 from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.pgvector_utils import PGVectorStore
 from src.formatter_agent.formatter_graph import FormatterAgent
-from src.main_graph import MainAgent, BasicMainAgent , OrchestratorOnlyMainAgent
+from src.main_agent.main_agent_builder import FlexibleAgentBuilder
+from src.main_agent.main_graph import BasicMainAgent , OrchestratorOnlyMainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
     DummyOrchestratorAgent, ReactOrchestratorAgent
@@ -22,7 +20,7 @@ from src.specialized_agents.confluence_agent.confluence_agent_graph import Confl
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
-from src.evaluators.dataset_utils import create_langsmith_datasets
+
 
 def get_specialized_agents():
     return [
@@ -222,10 +220,37 @@ async def pruebas():
     docs = await retriever.ainvoke(input="LKS next", top_k=5)
     print(docs)
 
+async def call_agent():
+    """
+    Configuraciones posibles main - planner - orchestrator:
+        - orchestrator_only, none, basic
+        - orchestrator_only, none, react
+        - basic, orchestrator_planner, dummy
+        - basic, basic, basic
+        - basic, basic, react
+    """
+    try:
+        # Construcción de agente con BasicMain + BasicPlanner + ReactOrchestrator (configuración válida)
+        builder = FlexibleAgentBuilder()
+        agent = (await (builder
+                       .reset()
+                       .with_main_agent_type("basic")
+                       .with_planner_type("basic")
+                       .with_orchestrator_type("react")
+                       .with_specialized_agents()
+                       .initialize_agents())).build()
+
+        result = await agent.execute_agent_graph_with_exception_handling({
+            "query": "Dime ejemplos en el código donde se aplique la guía de estilos del proyecto",
+            "messages": []
+        })
+    finally:
+        await MCPClient.cleanup()
+
 if __name__ == '__main__':
     load_dotenv()
 
-    asyncio.run(orchestrator_only_main())
+    #asyncio.run(orchestrator_only_main())
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
@@ -235,5 +260,8 @@ if __name__ == '__main__':
     #asyncio.run(evaluate_cached_confluence_agent())
 
     #asyncio.run(pruebas())
+    asyncio.run(call_agent())
+
+
 
 

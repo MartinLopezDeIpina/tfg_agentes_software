@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from abc import ABC, abstractmethod
 from typing import TypedDict, List
@@ -14,6 +16,7 @@ from langsmith import Client
 
 from config import default_llm
 from src.BaseAgent import BaseAgent, AgentState
+from src.db.postgres_connection_manager import PostgresPoolManager
 from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
 from src.orchestrator_agent.few_shots_examples import orchestrator_few_shots
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
@@ -259,7 +262,7 @@ class DummyOrchestratorAgent(OneStepOrchestratorAgent):
 
     def __init__(self,
                  available_agents: List[SpecializedAgent],
-                 debug: bool = True
+                 debug: bool = True,
                  ):
         super().__init__(
             available_agents=available_agents,
@@ -280,10 +283,14 @@ class DummyOrchestratorAgent(OneStepOrchestratorAgent):
 class ReactOrchestratorAgent(OrchestratorAgent):
 
     agent_tools: List[BaseTool]
+    react_graph: CompiledGraph
+    checkpointer: MemorySaver
+    max_steps: int
 
     def __init__(self,
                  available_agents: List[SpecializedAgent],
-                 debug: bool = True
+                 debug: bool = True,
+                 max_steps = 4
                  ):
         super().__init__(
             available_agents=available_agents,
@@ -293,6 +300,23 @@ class ReactOrchestratorAgent(OrchestratorAgent):
         self.agent_tools = []
         for agent in available_agents:
             self.agent_tools.append(self.transform_specialized_agent_into_tool(agent))
+        self.max_steps = max_steps
+
+    async def init_agent(self):
+        await self.init_checkpointer()
+
+    async def init_checkpointer(self):
+        """
+        Configura el checkpointer de PostgreSQL.
+        Si falla la conexión utilizar un MemorySaver normal sin manejo de concurrencia.
+        """
+        try:
+            postgres_manager = await PostgresPoolManager.get_instance()
+            self.checkpointer = postgres_manager.get_checkpointer()
+
+        except Exception as e:
+            print(f"Error conectando a postgresql, iniciando checkpointer básico: {e}")
+            self.checkpointer = MemorySaver()
 
     async def prepare_prompt(self, state: OrchestratorAgentState) -> AgentState:
         state["messages"] = []
@@ -350,26 +374,37 @@ class ReactOrchestratorAgent(OrchestratorAgent):
         state["low_level_plan_execution_result"] = cited_ai_messages
         return state
 
-
+    async def execute_react_graph(self, state: OrchestratorAgentState):
+        config = RunnableConfig(
+            max_concurrency=self.max_steps
+        )
+        react_messages = []
+        try:
+            result = await self.react_graph.ainvoke(
+                input=state,
+                config=config
+            )
+            react_messages = result["messages"]
+        except Exception as e:
+            print(f"Máxima concurrencia alcanzada en orquestador ReAct")
+            last_state = await self.checkpointer.aget(config)
+            react_messages = last_state["channel_values"].get("messages", [])
+        finally:
+            state["messages"].extend(react_messages)
 
     def create_orchestrate_agents_graph(self, state: OrchestratorAgentState) -> CompiledGraph:
-
         graph_builder = StateGraph(OrchestratorAgentState)
 
-        react_graph = create_react_agent(
+        self.react_graph = create_react_agent(
             tools=self.agent_tools,
             model=self.model
         )
 
-        graph_builder.add_node("react_agent", react_graph)
+        graph_builder.add_node("react_agent", self.execute_react_graph)
         graph_builder.add_node("parse_results", self.parse_results)
 
         graph_builder.set_entry_point("react_agent")
         graph_builder.add_edge("react_agent", "parse_results")
 
         return graph_builder.compile()
-
-
-
-
 

@@ -171,8 +171,9 @@ class SpecializedAgent(BaseAgent):
         except Exception as e:
             print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
             state["recursion_limit_exceded"] = True
-            last_state = await self.react_graph.aget_state(config)
-            messages = last_state.values.get("messages", [])
+            last_state = await self.checkpointer.aget(config)
+            #last_state = await self.react_graph.aget_state(config) -> utilizar el checkpointer en lugar del grafo
+            messages = last_state["channel_values"].get("messages", [])
             state["messages"] = messages
             return state
         
