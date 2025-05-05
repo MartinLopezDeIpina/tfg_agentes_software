@@ -49,9 +49,11 @@ class GitlabAgent(SpecializedAgent):
         )
 
     async def connect_to_mcp(self):
-        self.mcp_client = MCPClient(agent_tools=self.tools_str)
+        self.mcp_client = MCPClient.get_instance()
         await self.mcp_client.connect_to_gitlab_server()
-        self.tools = self.mcp_client.get_tools()
+
+        self.mcp_client.register_agent(self.name, self.tools_str)
+        self.tools = self.mcp_client.get_agent_tools(self.name)
 
     async def add_additional_tools(self):
         self.tools.extend(get_gitlab_agent_additional_tools())

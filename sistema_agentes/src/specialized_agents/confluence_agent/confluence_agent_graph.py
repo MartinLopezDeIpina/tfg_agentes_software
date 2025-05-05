@@ -40,9 +40,11 @@ class BaseConfluenceAgent(SpecializedAgent, ABC):
         )
 
     async def connect_to_mcp(self):
-        self.mcp_client = MCPClient(agent_tools=self.tools_str)
+        self.mcp_client = MCPClient.get_instance()
         await self.mcp_client.connect_to_confluence_server()
-        self.tools = self.mcp_client.get_tools()
+
+        self.mcp_client.register_agent(self.name, self.tools_str)
+        self.tools = self.mcp_client.get_agent_tools(self.name)
 
 
 class ConfluenceAgent(BaseConfluenceAgent):

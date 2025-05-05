@@ -295,7 +295,6 @@ class ReactOrchestratorAgent(OrchestratorAgent):
             self.agent_tools.append(self.transform_specialized_agent_into_tool(agent))
 
     async def prepare_prompt(self, state: OrchestratorAgentState) -> AgentState:
-        agents_description = get_agents_description(self.available_agents)
         state["messages"] = []
 
         state["messages"].extend([
@@ -313,6 +312,7 @@ class ReactOrchestratorAgent(OrchestratorAgent):
 
 
     def transform_specialized_agent_into_tool(self, agent: SpecializedAgent) -> BaseTool:
+        #todo: cambiar el nombre de la tool para que no tengan todos el mismo nombre y el cambio del docstring no funciona
         @tool
         async def call_agent(query: str):
             """
