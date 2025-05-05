@@ -34,7 +34,6 @@ class MCPClient:
             cls._instance._sessions = {}
             cls._instance._tools = {}
             cls._instance._agent_tools = {}
-            cls._instance.stdio_transports = {}
         return cls._instance
 
     @classmethod
@@ -137,7 +136,7 @@ class MCPClient:
         self._sessions[server_id] = session
 
         # Inicializar la sesión y cargar herramientas
-        await self._initialize_session(server_id)
+        await self._initialize_session_and_load_tools(server_id)
 
     async def connect_to_confluence_server(self):
         server_id = "confluence"
@@ -179,9 +178,9 @@ class MCPClient:
         self._sessions[server_id] = session
 
         # Inicializar la sesión y cargar herramientas
-        await self._initialize_session(server_id)
+        await self._initialize_session_and_load_tools(server_id)
 
-    async def _initialize_session(self, server_id: str):
+    async def _initialize_session_and_load_tools(self, server_id: str):
         """Inicializa una sesión y carga sus herramientas."""
         await self._sessions[server_id].initialize()
 

@@ -310,14 +310,13 @@ class ReactOrchestratorAgent(OrchestratorAgent):
 
         return state
 
-
     def transform_specialized_agent_into_tool(self, agent: SpecializedAgent) -> BaseTool:
-        #todo: cambiar el nombre de la tool para que no tengan todos el mismo nombre y el cambio del docstring no funciona
-        @tool
-        async def call_agent(query: str):
-            """
-            Esta docstring será sustituida por la descripción del agente
-            """
+        # Crear un nombre único basado en el agente
+        tool_name = f"call_{agent.name.lower()}"
+
+        # Definir la función con una docstring temporal
+        async def generic_agent_function(query: str):
+            """Esta docstring será sustituida por la descripción del agente"""
             result_state = await agent.execute_agent_graph_with_exception_handling(
                 input={
                     "query": query,
@@ -325,11 +324,16 @@ class ReactOrchestratorAgent(OrchestratorAgent):
                 }
             )
             cited_ai_message = agent.process_result(result_state)
-        
             return cited_ai_message.to_dict()
-        call_agent.__doc__ = agent.description
-        
-        return call_agent
+
+        # Establecer el nombre y la documentación
+        generic_agent_function.__name__ = tool_name
+        generic_agent_function.__doc__ = agent.description
+
+        # Aplicar el decorador de tool después de modificar el nombre y docstring -> sino no funciona
+        decorated_function = tool(generic_agent_function)
+
+        return decorated_function
 
     def parse_results(selfs, state: OrchestratorAgentState) -> OrchestratorAgentState:
         messages = state.get("messages")

@@ -225,11 +225,11 @@ async def pruebas():
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(orchestrator_only_main())
+    asyncio.run(orchestrator_only_main())
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    asyncio.run(evaluate_main_agent(is_prueba=True))
+    #asyncio.run(evaluate_main_agent(is_prueba=True))
 
     #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
