@@ -18,7 +18,8 @@ from config import default_llm
 from src.BaseAgent import BaseAgent, AgentState
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
-from src.orchestrator_agent.few_shots_examples import orchestrator_few_shots
+from src.orchestrator_agent.few_shots_examples import orchestrator_few_shots, few_shots_template, \
+    react_orchestrator_few_shots
 from src.orchestrator_agent.models import OrchestratorPlan, AgentStep
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from src.specialized_agents.SpecializedAgent import SpecializedAgent, get_agents_description
@@ -324,7 +325,8 @@ class ReactOrchestratorAgent(OrchestratorAgent):
         state["messages"].extend([
             SystemMessage(
                 content=REACT_ORCHESTRATOR_PROMPT.format(
-                    project_description=PROJECT_DESCRIPTION
+                    project_description=PROJECT_DESCRIPTION,
+                    few_shot_examples=react_orchestrator_few_shots
                 )
             ),
             HumanMessage(

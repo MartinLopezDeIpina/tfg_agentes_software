@@ -148,8 +148,13 @@ REACT_ORCHESTRATOR_PROMPT="""You are an agent orchestrator. Your task is to call
 
 You will receive a list of agents as tools to call and a question. You must analyze the question carefully and call ONLY the agents that are necessary to help answer the question effectively. For each agent you decide to call, create an appropriate individual question tailored to that agent's specific expertise or capabilities.
 
+If you execute more than one agents at a time, it will be executed in parallel. Some questions might need to sequentially wait for the response of another agent to call the necessary agent. 
+Execute in parallel agents that don't depend on each other (if any), and sequentially wait for the response before calling an agent whose query depends on other agents.
+
 -Do not answer the question if sufficient information is not available.
 -Do not call extra agents if the current responses contain enough information to answer the question.
+
+{few_shot_examples}
 
 Project description: 
 {project_description}

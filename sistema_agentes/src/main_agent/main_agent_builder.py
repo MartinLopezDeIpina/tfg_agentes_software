@@ -143,7 +143,7 @@ class FlexibleAgentBuilder:
                 GoogleDriveAgent(),
                 FileSystemAgent(),
                 GitlabAgent(),
-                ConfluenceAgent(),
+                CachedConfluenceAgent(),
                 CodeAgent()
             ]
         else:
