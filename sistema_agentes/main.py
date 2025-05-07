@@ -1,65 +1,35 @@
 import asyncio
-from contextlib import AsyncExitStack
-from typing import List, Annotated
+from typing import List
 
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
-from langgraph.managed.is_last_step import RemainingStepsManager, RemainingSteps
+from langgraph.managed.is_last_step import RemainingSteps
 from langsmith import Client
 
 from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.pgvector_utils import PGVectorStore
 from src.formatter_agent.formatter_graph import FormatterAgent
-from src.main_graph import MainAgent
+from src.main_agent.main_agent_builder import FlexibleAgentBuilder
+from src.main_agent.main_graph import BasicMainAgent , OrchestratorOnlyMainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.orchestrator_agent.orchestrator_agent_graph import  OrchestratorAgent
-from src.planner_agent.planner_agent_graph import  PlannerAgent
+from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
+    DummyOrchestratorAgent, ReactOrchestratorAgent
+from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent, OrchestratorPlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent, CachedConfluenceAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
-from src.evaluators.dataset_utils import create_langsmith_datasets
 
-async def main():
 
-    specialized_agents = [
+def get_specialized_agents():
+    return [
         GoogleDriveAgent(),
         FileSystemAgent(),
         GitlabAgent(),
         ConfluenceAgent(),
         CodeAgent()
     ]
-
-    try:
-        # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
-        available_agents = await init_specialized_agents(specialized_agents)
-
-        planner_agent = PlannerAgent()
-        orchestrator_agent = OrchestratorAgent(available_agents)
-        formatter_agent = FormatterAgent()
-        main_agent = MainAgent(
-            planner_agent=planner_agent,
-            orchestrator_agent=orchestrator_agent,
-            formatter_agent=formatter_agent
-        )
-
-        """
-        main_graph = main_agent.create_graph()
-        result = await main_graph.ainvoke({
-            "query": "Cuál es el commit del proyecto más reciente?",
-            "messages": []
-        })
-        """
-        orchestrator_graph = orchestrator_agent.create_graph()
-        result = await orchestrator_graph.ainvoke({
-            "planner_high_level_plan": "Explicame el funcionamiento de la plantilla de admin"
-        })
-
-    finally:
-        await MCPClient.cleanup()
 
 async def init_specialized_agents(specialized_agents: List[SpecializedAgent]) -> List[SpecializedAgent]:
     available_agents = []
@@ -132,39 +102,33 @@ async def evaluate_planner_agent():
 
     await planner_agent.evaluate_agent(langsmith_client=langsmith_client)
 
-async def evaluate_main_agent(is_prueba: bool = True):
-    specialized_agents = [
-        GoogleDriveAgent(),
-        FileSystemAgent(),
-        GitlabAgent(),
-        CachedConfluenceAgent(),
-        CodeAgent()
-    ]
-
+async def evaluate_orchestrator_planner_agent():
+    agents = []
     try:
-        # crear los agentes conectandolos de forma secuencial -> esto debería hacerse solo al inicio del programa
-        available_agents = await init_specialized_agents(specialized_agents)
-
-        planner_agent = PlannerAgent()
-        orchestrator_agent = OrchestratorAgent(available_agents)
-        formatter_agent = FormatterAgent()
-        main_agent = MainAgent(
-            planner_agent=planner_agent,
-            orchestrator_agent=orchestrator_agent,
-            formatter_agent=formatter_agent
-        )
-
         langsmith_client = Client()
-        await main_agent.evaluate_agent(langsmith_client=langsmith_client, is_prueba=is_prueba)
+
+        agents = [
+            GoogleDriveAgent(),
+            FileSystemAgent(),
+            GitlabAgent(),
+            ConfluenceAgent(),
+            CodeAgent()
+        ]
+
+        available_agents = await init_specialized_agents(agents)
+        planner_agent = OrchestratorPlannerAgent(available_agents=available_agents)
+
+        await planner_agent.evaluate_agent(langsmith_client=langsmith_client)
+
     finally:
-        await specialized_agents[0].cleanup()
+        await agents[0].cleanup()
 
 async def debug_agent():
-    agent = CachedConfluenceAgent()
+    agent = CodeAgent()
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
-            "query":  "Is there any login file?",
+            "query":  "Qué sistemas de despliegue hay disponibles?",
             "remaining_steps": RemainingSteps(2)
 
         })
@@ -173,7 +137,7 @@ async def debug_agent():
     finally:
         await agent.cleanup()
 
-async def pruebas():
+async def pruebas_pgvector_store():
     store = PGVectorStore(
         collection_name="official_documentation"
     )
@@ -183,15 +147,62 @@ async def pruebas():
     docs = await retriever.ainvoke(input="LKS next", top_k=5)
     print(docs)
 
+async def call_agent():
+    """
+    Configuraciones posibles main - planner - orchestrator:
+        - orchestrator_only, basic
+        - orchestrator_only, none, react
+        - basic, orchestrator_planner, dummy
+        - basic, basic, basic
+        - basic, basic, react
+    """
+    try:
+        # Construcción de agente con BasicMain + BasicPlanner + ReactOrchestrator (configuración válida)
+        builder = FlexibleAgentBuilder()
+        agent = (await (builder
+                       .reset()
+                       .with_main_agent_type("orchestrator_only")
+                       .with_planner_type("none")
+                       .with_orchestrator_type("react")
+                       .with_specialized_agents()
+                       .initialize_agents())).build()
+
+        result = await agent.execute_agent_graph_with_exception_handling({
+            "query": "Dime ejemplos en el código donde se aplique la guía de estilos del proyecto",
+            "messages": []
+        })
+    finally:
+        await MCPClient.cleanup()
+
+async def evaluate_main_agent(is_prueba: bool = True):
+    try:
+        builder = FlexibleAgentBuilder()
+        ls_client = Client()
+        agent = (await (builder
+                        .reset()
+                        .with_main_agent_type("orchestrator_only")
+                        .with_planner_type("none")
+                        .with_orchestrator_type("react")
+                        .with_specialized_agents()
+                        .initialize_agents())).build()
+        await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
+    finally:
+        await MCPClient.cleanup()
+
+
 if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(debug_agent())
-    #asyncio.run(main())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    asyncio.run(evaluate_main_agent(is_prueba=False))
+    asyncio.run(evaluate_main_agent(is_prueba=True))
+
+    #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
 
     #asyncio.run(pruebas())
+    #asyncio.run(call_agent())
+
+
 
 

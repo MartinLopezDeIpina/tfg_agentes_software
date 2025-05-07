@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import List
 
 from langchain.chains.question_answering.map_reduce_prompt import messages
@@ -19,18 +20,15 @@ from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CitedAIMessage
 
 
-class MainAgent(BaseAgent):
+class MainAgent(BaseAgent, ABC):
 
-    planner_agent: PlannerAgent
     orchestrator_agent: OrchestratorAgent
     formatter_agent: FormatterAgent
 
     def __init__(
             self,
-            planner_agent: PlannerAgent,
-            orchestrator_agent: OrchestratorAgent,
-            formatter_agent: FormatterAgent,
-            debug=True
+            debug=True,
+            formatter_agent: FormatterAgent = None,
                  ):
 
         super().__init__(
@@ -38,9 +36,44 @@ class MainAgent(BaseAgent):
             model=None,
             debug=debug
         )
+        self.formatter_agent = formatter_agent or FormatterAgent()
+
+    async def execute_formatter_graph(self, state: MainAgentState):
+        messages = state.get("messages")
+        query = state.get("query")
+        result = await self.formatter_agent.execute_agent_graph_with_exception_handling({
+            "query": query,
+            "messages": messages
+        })
+        formatter_result = self.formatter_agent.process_result(result)
+        state["formatter_result"] = formatter_result
+        return state
+
+    def process_result(self, agent_state: MainAgentState) -> CitedAIMessage:
+        return agent_state.get("formatter_result")
+
+    async def evaluate_agent(self, langsmith_client: Client, is_prueba: bool = False):
+        evaluators = [
+            JudgeLLMEvaluator(),
+            CiteEvaluator()
+        ]
+        return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba)
+
+class BasicMainAgent(MainAgent):
+
+    planner_agent: PlannerAgent
+
+    def __init__(self,
+                 planner_agent: PlannerAgent,
+                 orchestrator_agent: OrchestratorAgent,
+                 formatter_agent: FormatterAgent
+                 ):
+        super().__init__(
+            formatter_agent = formatter_agent
+        )
         self.planner_agent = planner_agent
         self.orchestrator_agent = orchestrator_agent
-        self.formatter_agent = formatter_agent
+
 
     async def execute_orchestrator_graph(self, state: MainAgentState) -> MainAgentState:
         if "planner_high_level_plan" in state:
@@ -76,19 +109,6 @@ class MainAgent(BaseAgent):
 
         return state
 
-    async def execute_formatter_graph(self, state: MainAgentState):
-        messages = state.get("messages")
-        query = state.get("query")
-        result = await self.formatter_agent.execute_agent_graph_with_exception_handling({
-            "query": query,
-            "messages": messages
-        })
-        formatter_result = self.formatter_agent.process_result(result)
-        state["formatter_result"] = formatter_result
-        return state
-
-
-
     def create_graph(self) -> CompiledGraph:
 
         graph_builder = StateGraph(MainAgentState)
@@ -108,12 +128,44 @@ class MainAgent(BaseAgent):
 
         return graph_builder.compile()
 
-    def process_result(self, agent_state: MainAgentState) -> CitedAIMessage:
-        return agent_state.get("formatter_result")
+class OrchestratorOnlyMainAgent(MainAgent):
+    def __init__(self,
+                 orchestrator_agent: OrchestratorAgent,
+                 formatter_agent: FormatterAgent,
+                 debug: bool = True
+                 ):
+        super().__init__(
+            formatter_agent=formatter_agent,
+            debug=debug
+        )
+        self.orchestrator_agent = orchestrator_agent
 
-    async def evaluate_agent(self, langsmith_client: Client, is_prueba: bool = False):
-        evaluators = [
-            JudgeLLMEvaluator(),
-            CiteEvaluator()
-        ]
-        return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba)
+    async def execute_orchestrator_direct(self, state: MainAgentState) -> MainAgentState:
+        # Procesar la consulta directamente con el orquestrador, sin un plan estructurado
+        result = await self.orchestrator_agent.execute_agent_graph_with_exception_handling({
+            "planner_high_level_plan": state["query"],
+        })
+        specialized_agents_responses = self.orchestrator_agent.process_result(result)
+        if specialized_agents_responses:
+            state["messages"].extend(specialized_agents_responses)
+
+        return state
+
+    async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
+        print(f"--> Ejecutando agente {self.name} (sin planificador)")
+        state["messages"] = []
+        return state
+
+    def create_graph(self) -> CompiledGraph:
+        graph_builder = StateGraph(MainAgentState)
+
+        graph_builder.add_node("prepare", self.prepare_prompt)
+        graph_builder.add_node("orchestrator", self.execute_orchestrator_direct)
+        graph_builder.add_node("formatter", self.execute_formatter_graph)
+
+        graph_builder.set_entry_point("prepare")
+        graph_builder.add_edge("prepare", "orchestrator")
+        graph_builder.add_edge("orchestrator", "formatter")
+
+        return graph_builder.compile()
+

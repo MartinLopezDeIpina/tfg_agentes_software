@@ -3,10 +3,14 @@ import json
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import List, Tuple, Any
+
+import pydantic
+
 from config import REPO_ROOT_ABSOLUTE_PATH, OFFICIAL_DOCS_RELATIVE_PATH, CODE_REPO_ROOT_ABSOLUTE_PATH, GITLAB_PROJECT_URL, GITLAB_API_URL, GITLAB_PROJECT_NORMAL_URL
 
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool
+import json
 
 
 @dataclass
@@ -57,6 +61,51 @@ class CitedAIMessage(BaseMessage):
             content=f"{self.content}\nCitations:\n{citations_str}"
         )
 
+    def to_dict(self):
+        """Serializa el objeto CitedAIMessage a JSON"""
+        try:
+            citations_serialized = [citation.__str__() for citation in self.citations]
+            return {
+                "type": "CitedAIMessage",
+                "data": {
+                    "message_type": self.type,
+                    "content": self.content,
+                    "citations": citations_serialized
+                }
+            }
+        except Exception as e:
+            print(f"Error serializando CitedAIMessage: {e}")
+
+    @staticmethod
+    def from_string(string: str):
+        """Reconstruye un objeto CitedAIMessage desde una cadena JSON"""
+        try:
+            json_data = json.loads(string)
+
+            if json_data.get("type") != "CitedAIMessage":
+                raise ValueError("El JSON no contiene un CitedAIMessage válido")
+
+            data = json_data.get("data", {})
+            content = data.get("content", "")
+            citations_str = data.get("citations", [])
+
+            # Reconstruir las citations
+            citations = []
+            for citation_str in citations_str:
+                citation = Citation.from_string(citation_str)
+                if citation:
+                    citations.append(citation)
+
+            # Crear un mensaje base para pasar al constructor
+            base_message = AIMessage(content=content)
+
+            return CitedAIMessage(
+                message=base_message,
+                citations=citations
+            )
+        except Exception as e:
+            print(f"Error al deserializar CitedAIMessage: {e}")
+            return None
 
 class ResponseParser(ABC):
     kwargs: dict

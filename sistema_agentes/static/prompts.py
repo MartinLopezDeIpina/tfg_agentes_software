@@ -86,6 +86,8 @@ PLANNER_PROMPT_INITIAL = """You are a software project information gatherer. You
 - If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
 - Clearly indicate which are the steps
 
+IMPORTANT: Your new plan should not contain steps that where previously executed and you don't want to repeat. Every step that you indicate will be executed.
+
 {few_shot_examples}
 
 User question:
@@ -93,10 +95,7 @@ User question:
 """
 PLANNER_PROMPT_AFTER = """{initial_prompt}
 
-The previous plan was: 
-{previous_plan}
-
-The execution result of the current step is:
+The execution of the current plan is:
 {step_result}
 """
 
@@ -118,6 +117,47 @@ The available agents are:
 {available_agents}
 
 {few_shots_examples}
+"""
+
+ORCHESTRATOR_PLANNER_PROMPT="""You are planner which has to create a plan to solve a user's question about a software project.
+
+You will receive the software project description and a sequence of available specialized agents description, your task is to create a brief plan on how to solve the plan calling the available agents. 
+
+- Focus solely on information gathering, not answering.
+- You must create concise plans, with the minimum number of steps possible. If the query is straightforward, you should return a single step.
+- Execute steps sequentially, reviewing results as you go and dynamically adjusting the plan. If gathering information about a topic was not successful do not try to gather information about the exact same topic.
+- Each plan step will be executed sequentially, but multiple agents can be called in a single step. For example, gathering information about X might require to call multiple agents.
+- If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
+- Clearly indicate which are the steps
+
+IMPORTANT: Your new plan should not contain steps that where previously executed and you don't want to repeat. Every step that you indicate will be executed.
+
+{few_shot_examples}
+
+Project description: 
+{project_description}
+
+Available agents: 
+{available_agents}
+
+User question:
+{user_query}
+"""
+
+REACT_ORCHESTRATOR_PROMPT="""You are an agent orchestrator. Your task is to call different specialized agents to answer a question about a software project.
+
+You will receive a list of agents as tools to call and a question. You must analyze the question carefully and call ONLY the agents that are necessary to help answer the question effectively. For each agent you decide to call, create an appropriate individual question tailored to that agent's specific expertise or capabilities.
+
+If you execute more than one agents at a time, it will be executed in parallel. Some questions might need to sequentially wait for the response of another agent to call the necessary agent. 
+Execute in parallel agents that don't depend on each other (if any), and sequentially wait for the response before calling an agent whose query depends on other agents.
+
+-Do not answer the question if sufficient information is not available.
+-Do not call extra agents if the current responses contain enough information to answer the question.
+
+{few_shot_examples}
+
+Project description: 
+{project_description}
 """
 
 SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users questions based on the retrieved information. 
@@ -154,3 +194,4 @@ REACT_SUMMARIZER_SYSTEM_PROMPT="""You are a response summary generator.
 An agent has failed to answer a user's question, your task is to generate a useful response with the available information. 
 DO NOT hallucinate information, just answer with the available resources.
 """
+

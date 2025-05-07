@@ -27,3 +27,5 @@ It has direct access to the software project code, with source code, deployment 
 It can search for specific implementation details or software architecture concepts. 
 It can also cite the source code or the files in it. 
 """
+
+PROJECT_DESCRIPTION="""IA Core Tools es una plataforma interna de LKS Next para el desarrollo y gestión de aplicaciones de inteligencia artificial basadas en RAG", "Permite crear, configurar y desplegar agentes de IA conectados a repositorios de conocimiento", "Facilita la integración de grandes modelos de lenguaje con bases de conocimiento personalizadas", "Incluye una interfaz web con un entorno de pruebas (playground) para interactuar con los agentes"""

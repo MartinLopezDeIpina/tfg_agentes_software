@@ -1,7 +1,6 @@
 import asyncio
 import os
 from typing import List, Dict
-from contextlib import AsyncExitStack
 
 from langchain_core.tools import BaseTool
 from mcp import ClientSession, StdioServerParameters, stdio_client
@@ -11,41 +10,41 @@ from config import GITLAB_API_URL
 
 from config import REPO_ROOT_ABSOLUTE_PATH
 from src.mcp_client.tool_wrapper import patch_tool_with_exception_handling
-from src.globals import global_exit_stack, global_tools, global_sessions
+from src.globals import global_exit_stack
 
 """
-Se crea un cliente MCP por cada agente. 
+Se crea un cliente MCP con una instancia singleton, cada agente guarda un puntero a la instancia. 
 Para cada servidor MCP se crea una sesión. Las sesiones pueden ser compartidas entre clientes si más de un cliente se conecta a un servidor.
 Un cliente puede conectarse a varias sesiones. 
-Cada cliente tiene una lista de tools que filtra desde las disponibles en sus sesiones.
+Se guarda una lista de nombres de tools para cada agente. Cuando se solicitan las tools de un agente, se filtran desde todas las tools disponibles.
 """
 class MCPClient:
-    """Cliente MCP con conexiones compartidas entre instancias"""
+    _instance = None
 
-    def __init__(self, agent_tools: List[str] = None):
-        """
-        Solo se cargarán las tools indicadas en agent_tools para pasarle al agente únicamente las tools necesarias.
-        Si no se indica ninguna se cargarán todas.
-        """
-        self.agent_tools = agent_tools or []
-        self.sessions = {}
-        self.tools = {}
-        self.stdio_transports = {}
+    # sesiones con servidores, diccionario de server_id, Session
+    _sessions: Dict[str, ClientSession] = {}
+    # tools disponibles por cada servidor
+    _tools: Dict[str, List[BaseTool]] = {}
+    # Nombres de las tools requeridas por cada agente
+    _agent_tools: Dict[str, List[str]] = {}
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(MCPClient, cls).__new__(cls)
+            cls._instance._sessions = {}
+            cls._instance._tools = {}
+            cls._instance._agent_tools = {}
+        return cls._instance
+
+    @classmethod
+    def get_instance(cls):
+        return cls._instance or cls()
+
+    def register_agent(self, agent_name: str, tools: List[str]):
+        self._agent_tools[agent_name] = tools
 
     def _check_if_session_exists(self, server_id: str) -> bool:
-        """
-        Verifica si ya existe una sesión para el servidor especificado.
-        Si existe, configura la sesión y tools para este cliente.
-
-        Args:
-            server_id: ID del servidor a verificar
-
-        Returns:
-            bool: True si la sesión existe y fue configurada, False en caso contrario
-        """
-        if server_id in global_sessions:
-            self.sessions[server_id] = global_sessions[server_id]
-            self.tools[server_id] = self._filter_tools(server_id)
+        if server_id in self._sessions:
             return True
         return False
 
@@ -130,18 +129,14 @@ class MCPClient:
 
         # Establecer la conexión usando el exit_stack global
         stdio_transport = await global_exit_stack.enter_async_context(stdio_client(stdio_params))
-        self.stdio_transports[server_id] = stdio_transport
         stdio, write = stdio_transport
 
         # Crear la sesión
         session = await global_exit_stack.enter_async_context(ClientSession(stdio, write))
-
-        # Guardar la sesión a nivel global y en la instancia actual
-        global_sessions[server_id] = session
-        self.sessions[server_id] = session
+        self._sessions[server_id] = session
 
         # Inicializar la sesión y cargar herramientas
-        await self._initialize_session(server_id)
+        await self._initialize_session_and_load_tools(server_id)
 
     async def connect_to_confluence_server(self):
         server_id = "confluence"
@@ -180,62 +175,53 @@ class MCPClient:
         session = await global_exit_stack.enter_async_context(
             ClientSession(streams[0], streams[1])
         )
-
-        # Guardar la sesión a nivel global y en la instancia actual
-        global_sessions[server_id] = session
-        self.sessions[server_id] = session
+        self._sessions[server_id] = session
 
         # Inicializar la sesión y cargar herramientas
-        await self._initialize_session(server_id)
+        await self._initialize_session_and_load_tools(server_id)
 
-    async def _initialize_session(self, server_id: str):
+    async def _initialize_session_and_load_tools(self, server_id: str):
         """Inicializa una sesión y carga sus herramientas."""
-        await self.sessions[server_id].initialize()
+        await self._sessions[server_id].initialize()
 
         # Cargar herramientas de langchain solo si no se han cargado antes
-        if server_id not in global_tools:
-            tools = await load_mcp_tools(self.sessions[server_id])
+        if server_id not in self._tools:
+            tools = await load_mcp_tools(self._sessions[server_id])
             wrapped_tools = [patch_tool_with_exception_handling(tool) for tool in tools]
-            global_tools[server_id] = wrapped_tools
-
-        # Filtrar herramientas para este cliente
-        self.tools[server_id] = self._filter_tools(server_id)
+            self._tools[server_id] = wrapped_tools
 
         # Listar herramientas disponibles para debug
         print(f"\nConectado al servidor {server_id} con herramientas:",
-              [tool.name for tool in self.tools[server_id]])
-
-    def _filter_tools(self, server_id: str) -> List[BaseTool]:
-        """Filtrar herramientas según la lista agent_tools"""
-        if server_id not in global_tools:
-            return []
-
-        if not self.agent_tools:
-            return global_tools[server_id]
-
-        return [tool for tool in global_tools[server_id]
-                if tool.name in self.agent_tools]
+              [tool.name for tool in self._tools[server_id]])
 
     async def call_tool(self, server_id: str, tool_name: str, tool_args: dict):
-        if server_id not in self.sessions:
+        if server_id not in self._sessions:
             raise ValueError(f"No hay conexión con el servidor ID {server_id}")
 
-        result = await self.sessions[server_id].call_tool(tool_name, tool_args)
+        result = await self._sessions[server_id].call_tool(tool_name, tool_args)
         return result
 
-    def get_tools(self) -> List[BaseTool]:
+    def get_agent_tools(self, agent_name: str) -> List[BaseTool]:
+        """Obtiene todas las herramientas disponibles para un agente específico."""
+        if agent_name not in self._agent_tools:
+            return []
+
+        requested_tool_names = self._agent_tools[agent_name]
         all_tools = []
-        for tools in self.tools.values():
-            all_tools.extend(tools)
+        # Iterar por todos los servidores para encontrar herramientas coincidentes
+        for server_id, server_tools in self._tools.items():
+            matching_tools = [tool for tool in server_tools if tool.name in requested_tool_names]
+            all_tools.extend(matching_tools)
+
         return all_tools
 
     def get_specific_server_tools(self, server_id: str) -> List[BaseTool]:
-        if server_id not in self.tools:
+        if server_id not in self._tools:
             raise ValueError(f"No hay herramientas para el servidor ID {server_id}")
-        return self.tools[server_id]
+        return self._tools[server_id]
 
     def get_all_server_ids(self) -> List[str]:
-        return list(self.sessions.keys())
+        return list(self._sessions.keys())
 
     @staticmethod
     async def cleanup():

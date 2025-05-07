@@ -18,7 +18,13 @@ class AgentStep(BaseModel):
         description="Query or instruction that will be sent to the agent"
     )
 
+    def to_string(self):
+        return f"{self.agent_name}: {self.query}"
+
 class OrchestratorPlan(BaseModel):
     steps_to_complete: List[AgentStep] = Field(
         description="List of steps that should be completed in parallel. Each step will be an agent call."
     )
+
+    def to_string(self) -> str:
+        return "-\n".join([step.to_string() for step in self.steps_to_complete])

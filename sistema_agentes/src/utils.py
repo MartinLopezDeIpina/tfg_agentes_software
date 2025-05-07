@@ -39,7 +39,3 @@ def read_file_content(file: Path) -> str:
         print(f"Error leyendo fichero {file}")
         return ""
 
-
-
-
-

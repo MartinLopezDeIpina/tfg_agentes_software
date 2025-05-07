@@ -36,9 +36,11 @@ class GoogleDriveAgent(SpecializedAgent):
         )
 
     async def connect_to_mcp(self):
-        self.mcp_client = MCPClient(agent_tools=self.tools_str)
+        self.mcp_client = MCPClient.get_instance()
         await self.mcp_client.connect_to_google_drive_server()
-        self.tools = self.mcp_client.get_tools()
+
+        self.mcp_client.register_agent(self.name, self.tools_str)
+        self.tools = self.mcp_client.get_agent_tools(self.name)
 
     async def prepare_prompt(self, state: AgentState) -> AgentState:
         files_tool = None

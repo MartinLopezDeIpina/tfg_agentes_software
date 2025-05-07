@@ -10,7 +10,7 @@ from langsmith import Client
 from src.BaseAgent import AgentState, BaseAgent
 from src.formatter_agent.models import FormatterResponse
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
-from src.planner_agent.models import PlannerResponse
+from src.planner_agent.models import PlannerResponse, PlanAIMessage
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import CitedAIMessage, Citation
@@ -27,8 +27,8 @@ def get_citations_string(citations: List[Citation]) -> str:
         )
     return citation_str
 
+# todo: se podría hacer un formatter que solo coja el último mensaje y las citas y solo haga print del resultado, para usarlo con el ReactOrchestratorAgent
 class FormatterAgentState(AgentState):
-    messages: List[BaseMessage]
     available_citations: List[Citation]
 
     current_try: int
@@ -72,8 +72,10 @@ class FormatterAgent(BaseAgent):
                 content=state["query"]
             )
         ]
-        for message in state["messages"][1:]:
-            if isinstance(message, CitedAIMessage):
+        for message in state["messages"]:
+            if isinstance(message, SystemMessage):
+                continue
+            if isinstance(message, CitedAIMessage) or isinstance(message, PlanAIMessage):
                 formatter_agent_messages.append(message.format_to_ai_message())
             else:
                 formatter_agent_messages.append(message)
