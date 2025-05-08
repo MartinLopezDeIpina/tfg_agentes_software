@@ -2,11 +2,13 @@ import os
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 import asyncio
+
+from langgraph.store.postgres import AsyncPostgresStore
+from langgraph.store.postgres.base import PoolConfig
 from psycopg_pool import AsyncConnectionPool
-from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from config import psycopg_connection_string
+from config import psycopg_connection_string, default_embedding_llm
 from src.globals import global_exit_stack
 
 class PostgresPoolManager:
@@ -25,6 +27,7 @@ class PostgresPoolManager:
     _initialized = False
     _lock = asyncio.Lock()
     _engine = None
+    _memory_store = None
 
     @classmethod
     async def get_instance(cls):
@@ -43,7 +46,6 @@ class PostgresPoolManager:
                     db_port=os.getenv("DB_PORT")
                     db_name=os.getenv("DB_NAME")
                     connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-                    # todo sacar eso de config
                     connection_kwargs = {
                         "autocommit": True,
                         "prepare_threshold": 0,
@@ -63,8 +65,24 @@ class PostgresPoolManager:
                     # Crear el checkpointer usando el pool
                     cls._checkpointer = AsyncPostgresSaver(cls._pool)
 
+                    cls._memory_store = await global_exit_stack.enter_async_context(
+                        AsyncPostgresStore.from_conn_string(
+                            conn_string=connection_string,
+                            index={
+                                "dims": 1536,
+                                "embed": default_embedding_llm,
+                                "fields": ["concept"]
+                            },
+                            pool_config=PoolConfig(
+                                min_size=2,
+                                max_size=5
+                            )
+                        )
+                    )
+
                     # Configurar las tablas en PostgreSQL
                     await cls._checkpointer.setup()
+                    await cls._memory_store.setup()
 
                     cls._initialized = True
                     print(f"PostgreSQL pool inicializado")
@@ -77,6 +95,11 @@ class PostgresPoolManager:
             raise RuntimeError("PostgresPoolManager no inicializado")
         return self._checkpointer
 
+    def get_memory_store(self):
+        if not self._initialized:
+            raise RuntimeError("PostgresPoolManager no inicializado")
+        return self._memory_store
+
     def get_connection(self):
         """
         Devolver directamente una conexión del pool de conexiones
@@ -88,7 +111,7 @@ class PostgresPoolManager:
 
     @classmethod
     def get_engine(cls):
-        """Devuelve un Engine Síncrono de SQLAlchemy utilizando la misma configuración que el pool de conexiones"""
+        """Devuelve un Engine Asíncrono de SQLAlchemy utilizando la misma configuración que el pool de conexiones"""
 
         connection_string = psycopg_connection_string
         return create_async_engine(connection_string, echo=False)

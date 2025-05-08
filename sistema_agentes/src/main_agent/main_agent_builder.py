@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import List, Optional, Dict, Set, Tuple, Callable
+
+from src.db.postgres_connection_manager import PostgresPoolManager
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_agent.main_graph import MainAgent, BasicMainAgent, OrchestratorOnlyMainAgent
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
@@ -202,7 +204,7 @@ class FlexibleAgentBuilder:
 
         return True
 
-    def build(self) -> MainAgent:
+    async def build(self) -> MainAgent:
         """Construye y devuelve la instancia del agente principal validando la compatibilidad"""
         self.validate()
 
@@ -210,17 +212,21 @@ class FlexibleAgentBuilder:
             self._formatter_agent = FormatterAgent()
 
         # Construir el tipo de agente principal adecuado
+        main_agent = None
         if self._main_agent_type == MainAgentType.BASIC:
-            return BasicMainAgent(
+            main_agent = BasicMainAgent(
                 planner_agent=self._planner_agent,
                 orchestrator_agent=self._orchestrator_agent,
-                formatter_agent=self._formatter_agent
+                formatter_agent=self._formatter_agent,
             )
         elif self._main_agent_type == MainAgentType.ORCHESTRATOR_ONLY:
-            return OrchestratorOnlyMainAgent(
+            main_agent = OrchestratorOnlyMainAgent(
                 orchestrator_agent=self._orchestrator_agent,
                 formatter_agent=self._formatter_agent
             )
 
-        # Este código no debería ejecutarse si la validación es correcta
+        if main_agent:
+            await main_agent.init_memory_store()
+            return main_agent
+
         raise ValueError("Tipo de agente principal no implementado")

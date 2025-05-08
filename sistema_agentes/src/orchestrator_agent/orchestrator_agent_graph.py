@@ -2,6 +2,7 @@ import asyncio
 import json
 
 from langchain_core.runnables import RunnableConfig
+from langchain_core.stores import InMemoryStore
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from abc import ABC, abstractmethod

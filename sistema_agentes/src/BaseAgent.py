@@ -5,6 +5,7 @@ from typing import List, TypedDict, Callable
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.runnables.graph import CurveStyle, NodeStyles
+from langchain_core.stores import BaseStore
 from langgraph.graph.graph import CompiledGraph
 
 from langsmith import Client, evaluate, aevaluate, EvaluationResult
@@ -46,7 +47,7 @@ class BaseAgent(ABC):
         self.prompt = prompt
 
     @abstractmethod
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    async def prepare_prompt(self, state, store):
         """
         Prepara los mensajes del sistema y usuario para este agente.
         Utiliza algunas de las tools para proporcionar información contextual al agente.

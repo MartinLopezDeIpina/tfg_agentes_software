@@ -62,6 +62,8 @@ The proyect repository tree is:
 
 Some code chunks relevant to the question are:
 {initial_retrieved_docs}
+
+{memory_docs}
 """
 
 gitlab_agent_system_prompt = """"You are a GitLab researcher assistant. Your task is to answer the user's question based on the GitLab available project.
@@ -193,5 +195,10 @@ Generated solution:
 REACT_SUMMARIZER_SYSTEM_PROMPT="""You are a response summary generator.
 An agent has failed to answer a user's question, your task is to generate a useful response with the available information. 
 DO NOT hallucinate information, just answer with the available resources.
+"""
+
+MEMORY_SUMMARIZER_PROMPT="""You are a technical concept extractor. Your task is to distill the key technical information from an agent's response about a software project into a single concise paragraph.
+The agent response will answer a question about a software project, basing in some source information. Your task is to explain all the concepts in a single short paragraph.
+Limit your summary to 75 words maximum. Be precise, technical, and information-dense.
 """
 

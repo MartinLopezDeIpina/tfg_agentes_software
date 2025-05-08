@@ -2,11 +2,16 @@ import asyncio
 from typing import List
 
 from dotenv import load_dotenv
+from langchain.memory.entity import BaseEntityStore
+from langchain_core.stores import InMemoryStore
+from langgraph.graph import StateGraph
 from langgraph.managed.is_last_step import RemainingSteps
 from langsmith import Client
 
+from src.BaseAgent import AgentState
 from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.pgvector_utils import PGVectorStore
+from src.db.postgres_connection_manager import PostgresPoolManager
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
 from src.main_agent.main_graph import BasicMainAgent , OrchestratorOnlyMainAgent
@@ -156,19 +161,20 @@ async def call_agent():
         - basic, basic, basic
         - basic, basic, react
     """
+
     try:
         # Construcción de agente con BasicMain + BasicPlanner + ReactOrchestrator (configuración válida)
         builder = FlexibleAgentBuilder()
-        agent = (await (builder
+        agent = await (await (builder
                        .reset()
-                       .with_main_agent_type("orchestrator_only")
-                       .with_planner_type("none")
-                       .with_orchestrator_type("react")
-                       .with_specialized_agents()
+                       .with_main_agent_type("basic")
+                       .with_planner_type("basic")
+                       .with_orchestrator_type("basic")
+                       .with_specialized_agents([CodeAgent(use_memory=True)])
                        .initialize_agents())).build()
 
         result = await agent.execute_agent_graph_with_exception_handling({
-            "query": "Dime ejemplos en el código donde se aplique la guía de estilos del proyecto",
+            "query": "Qué tipos de despliegue hay disponibles?",
             "messages": []
         })
     finally:
@@ -189,19 +195,58 @@ async def evaluate_main_agent(is_prueba: bool = True):
     finally:
         await MCPClient.cleanup()
 
+class Clase:
+    def __init__(self):
+        pass
+    async def prueba_nodo(self, state, store):
+        print("prueba")
+        return state
+
+    async def prueba(self):
+        grafo = StateGraph(AgentState)
+
+        grafo.add_node("prueba", self.prueba_nodo)
+
+        grafo.set_entry_point("prueba")
+        db = await PostgresPoolManager.get_instance()
+        memory_store = db.get_memory_store()
+        compilado = grafo.compile(store=memory_store)
+
+        await compilado.ainvoke(input={})
+
+class ClaseB(Clase):
+    def __init__(self):
+        pass
+    async def prueba_nodo(self, state, store):
+        await super().prueba_nodo(state, store)
+        print("prueba b")
+        return state
+
+async def prueba_b():
+    code_agent = CodeAgent(use_memory=True)
+    await code_agent.init_agent()
+
+    respuesta = await code_agent.execute_agent_graph_with_exception_handling(input={
+        "query": "Qué tipos de despliegue existen?"
+    })
+
 
 if __name__ == '__main__':
     load_dotenv()
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    asyncio.run(evaluate_main_agent(is_prueba=True))
+    #asyncio.run(evaluate_main_agent(is_prueba=True))
 
     #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
 
-    #asyncio.run(pruebas())
-    #asyncio.run(call_agent())
+    #asyncio.run(prueba())
+    #clase = ClaseB()
+    #asyncio.run(clase.prueba())
+    asyncio.run(call_agent())
+
+    #asyncio.run(prueba_b())
 
 
 

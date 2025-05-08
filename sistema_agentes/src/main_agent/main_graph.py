@@ -4,11 +4,13 @@ from typing import List
 from langchain.chains.question_answering.map_reduce_prompt import messages
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.runnables.graph import CurveStyle, NodeStyles, MermaidDrawMethod
+from langchain_core.stores import BaseStore
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
 from src.BaseAgent import AgentState, BaseAgent
+from src.db.postgres_connection_manager import PostgresPoolManager
 from src.evaluators.cite_references_evaluator import CiteEvaluator
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.formatter_agent.formatter_graph import FormatterAgent
@@ -24,6 +26,7 @@ class MainAgent(BaseAgent, ABC):
 
     orchestrator_agent: OrchestratorAgent
     formatter_agent: FormatterAgent
+    memory_store: BaseStore
 
     def __init__(
             self,
@@ -59,6 +62,11 @@ class MainAgent(BaseAgent, ABC):
         ]
         return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba)
 
+    async def init_memory_store(self):
+        postgre = await PostgresPoolManager().get_instance()
+        store = postgre.get_memory_store()
+        self.memory_store = store
+
 class BasicMainAgent(MainAgent):
 
     planner_agent: PlannerAgent
@@ -66,14 +74,13 @@ class BasicMainAgent(MainAgent):
     def __init__(self,
                  planner_agent: PlannerAgent,
                  orchestrator_agent: OrchestratorAgent,
-                 formatter_agent: FormatterAgent
+                 formatter_agent: FormatterAgent,
                  ):
         super().__init__(
             formatter_agent = formatter_agent
         )
         self.planner_agent = planner_agent
         self.orchestrator_agent = orchestrator_agent
-
 
     async def execute_orchestrator_graph(self, state: MainAgentState) -> MainAgentState:
         if "planner_high_level_plan" in state:
@@ -102,6 +109,7 @@ class BasicMainAgent(MainAgent):
         return "orchestrator"
 
     async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
+
         print(f"--> Ejecutando agente {self.name}")
 
         state["planner_current_step"] = 0
@@ -125,8 +133,8 @@ class BasicMainAgent(MainAgent):
         graph_builder.set_entry_point("prepare")
         graph_builder.add_edge("prepare", "planner")
         graph_builder.add_edge("orchestrator", "planner")
-
-        return graph_builder.compile()
+        
+        return graph_builder.compile(store=self.memory_store)
 
 class OrchestratorOnlyMainAgent(MainAgent):
     def __init__(self,
@@ -167,5 +175,5 @@ class OrchestratorOnlyMainAgent(MainAgent):
         graph_builder.add_edge("prepare", "orchestrator")
         graph_builder.add_edge("orchestrator", "formatter")
 
-        return graph_builder.compile()
+        return graph_builder.compile(store=self.memory_store)
 
