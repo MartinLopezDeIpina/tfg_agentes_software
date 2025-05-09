@@ -1,8 +1,11 @@
 from pathlib import Path
 from typing import List
 
+from langgraph.store.base import Item
 from rich.console import Console
 from rich.markdown import Markdown
+
+from src.specialized_agents.citations_tool.models import Citation
 
 
 def tab_all_lines_x_times(text: str, times: int = 1) -> str:
@@ -38,4 +41,21 @@ def read_file_content(file: Path) -> str:
     except Exception as e:
         print(f"Error leyendo fichero {file}")
         return ""
+    
+def get_memory_prompt_from_docs(memory_docs: List[Item]):
+    """
+    Devuelve la descripción de varios documentos extraídos de una colección de memoria
+    """
+    if len(memory_docs) > 0:
+        string = "Memory concepts:"
+        for i, memory in enumerate(memory_docs):
+            cites = [Citation.from_string(citation) for citation in memory.value.get("cites")]
+            cites_string = f"-Cited documents: {",".join([cite.doc_name for cite in cites])}"
+            memory_string = f"\n{i}: {memory.value.get("concept")}\n\t{cites_string}"
+            string += tab_all_lines_x_times(memory_string)
+        return string
+    else:
+        return ""
+
+
 

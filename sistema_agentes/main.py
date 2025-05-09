@@ -62,7 +62,7 @@ async def evaluate_confluence_agent():
     await evaluate_specialized_agent(ConfluenceAgent())
 
 async def evaluate_cached_confluence_agent():
-    await evaluate_specialized_agent(CachedConfluenceAgent())
+    await evaluate_specialized_agent(CachedConfluenceAgent(use_memory=False))
 
 async def evaluate_code_agent():
     await evaluate_specialized_agent(CodeAgent())
@@ -129,13 +129,12 @@ async def evaluate_orchestrator_planner_agent():
         await agents[0].cleanup()
 
 async def debug_agent():
-    agent = CodeAgent()
+    agent = CachedConfluenceAgent()
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
             "query":  "Qué sistemas de despliegue hay disponibles?",
             "remaining_steps": RemainingSteps(2)
-
         })
     except Exception as e:
         print(f"Error ejecutando agente {agent.name}: {e}")
@@ -155,7 +154,7 @@ async def pruebas_pgvector_store():
 async def call_agent():
     """
     Configuraciones posibles main - planner - orchestrator:
-        - orchestrator_only, basic
+        - orchestrator_only, none, basic
         - orchestrator_only, none, react
         - basic, orchestrator_planner, dummy
         - basic, basic, basic
@@ -170,7 +169,13 @@ async def call_agent():
                        .with_main_agent_type("basic")
                        .with_planner_type("basic")
                        .with_orchestrator_type("basic")
-                       .with_specialized_agents([CodeAgent(use_memory=True)])
+                       .with_specialized_agents([
+                            CodeAgent(use_memory=True),
+                            CachedConfluenceAgent(use_memory=True),
+                            GitlabAgent(use_memory=True),
+                            FileSystemAgent(use_memory=True),
+                            GoogleDriveAgent(use_memory=True),
+                        ])
                        .initialize_agents())).build()
 
         result = await agent.execute_agent_graph_with_exception_handling({
@@ -184,7 +189,7 @@ async def evaluate_main_agent(is_prueba: bool = True):
     try:
         builder = FlexibleAgentBuilder()
         ls_client = Client()
-        agent = (await (builder
+        agent = await (await (builder
                         .reset()
                         .with_main_agent_type("orchestrator_only")
                         .with_planner_type("none")
@@ -194,42 +199,6 @@ async def evaluate_main_agent(is_prueba: bool = True):
         await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
     finally:
         await MCPClient.cleanup()
-
-class Clase:
-    def __init__(self):
-        pass
-    async def prueba_nodo(self, state, store):
-        print("prueba")
-        return state
-
-    async def prueba(self):
-        grafo = StateGraph(AgentState)
-
-        grafo.add_node("prueba", self.prueba_nodo)
-
-        grafo.set_entry_point("prueba")
-        db = await PostgresPoolManager.get_instance()
-        memory_store = db.get_memory_store()
-        compilado = grafo.compile(store=memory_store)
-
-        await compilado.ainvoke(input={})
-
-class ClaseB(Clase):
-    def __init__(self):
-        pass
-    async def prueba_nodo(self, state, store):
-        await super().prueba_nodo(state, store)
-        print("prueba b")
-        return state
-
-async def prueba_b():
-    code_agent = CodeAgent(use_memory=True)
-    await code_agent.init_agent()
-
-    respuesta = await code_agent.execute_agent_graph_with_exception_handling(input={
-        "query": "Qué tipos de despliegue existen?"
-    })
-
 
 if __name__ == '__main__':
     load_dotenv()
@@ -246,7 +215,6 @@ if __name__ == '__main__':
     #asyncio.run(clase.prueba())
     asyncio.run(call_agent())
 
-    #asyncio.run(prueba_b())
 
 
 

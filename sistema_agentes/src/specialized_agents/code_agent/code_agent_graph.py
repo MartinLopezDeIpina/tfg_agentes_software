@@ -51,7 +51,7 @@ class CodeAgent(SpecializedAgent):
         self.tools = self.mcp_client.get_agent_tools(self.name)
 
 
-    async def prepare_prompt(self, state, store):
+    async def prepare_prompt(self, state: SpecializedAgentState, store = None):
         state = await super().prepare_prompt(state=state, store=store)
         rag_tool = None
         tree_tool = None

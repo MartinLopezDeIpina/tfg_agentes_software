@@ -24,6 +24,7 @@ GITLAB_PROJECT_NORMAL_URL="https://gitlab.devops.lksnext.com/lks/genai/ia-core-t
 default_llm = ChatOpenAI(
     model="gpt-4.1-mini"
 )
+
 default_reasoner_llm = ChatOpenAI(
     model="o4-mini"
 )

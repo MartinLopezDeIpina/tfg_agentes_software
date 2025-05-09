@@ -26,7 +26,7 @@ from src.db.postgres_connection_manager import PostgresPoolManager
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import DataSource, CitedAIMessage
-from src.utils import tab_all_lines_x_times
+from src.utils import tab_all_lines_x_times, get_memory_prompt_from_docs
 from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
 
 from static.prompts import REACT_SUMMARIZER_SYSTEM_PROMPT, MEMORY_SUMMARIZER_PROMPT
@@ -92,15 +92,16 @@ class SpecializedAgent(BaseAgent):
         """
         pass
 
-    async def prepare_prompt(self, state, store):
+    async def prepare_prompt(self, state: SpecializedAgentState, store: AsyncPostgresStore) -> SpecializedAgentState:
         if self.use_memory:
             try:
                 memory_docs = await store.asearch(("documents", self.name), query=state.get("query"), limit=self.k_memory_docs)
-                state["memory_docs"] = memory_docs
-                #todo: obtener los objetos citation y pasarlos en string con la función ya definia al estado
+                state["memory_docs"] = get_memory_prompt_from_docs(memory_docs)
             except Exception as e:
                 print(f"Error obteniendo memoria en agente {self.name}")
-                state["memory_docs"] = ""
+
+        if not state.get("memory_docs"):
+            state["memory_docs"] = ""
 
         return state
 
@@ -194,7 +195,6 @@ class SpecializedAgent(BaseAgent):
             print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
             state["recursion_limit_exceded"] = True
             last_state = await self.checkpointer.aget(config)
-            #last_state = await self.react_graph.aget_state(config) -> utilizar el checkpointer en lugar del grafo
             messages = last_state["channel_values"].get("messages", [])
             state["messages"] = messages
             return state

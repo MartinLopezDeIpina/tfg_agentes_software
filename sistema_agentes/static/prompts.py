@@ -13,6 +13,8 @@ Do not answer the user's question if sufficient information is not available in 
 
 The files in the folder are as follows:
 {google_drive_files_info}
+
+{memory_docs}
 """
 filesystem_agent_system_prompt = """You are a filesystem researcher agent, your data source is the the official documentation of a software project, external to its repository. 
 Your task is to answer questions based on the files in the official documentation.
@@ -24,6 +26,8 @@ If it is clear which document will contain information for the query, you can re
 The available directory is: {available_directory}
 The available files are: 
 {available_files}
+
+{memory_docs}
 """
 
 confluence_system_prompt="""You are a Confluence researcher assistant. Your task is to answer the user's question based on the Confluence documentation.
@@ -40,6 +44,8 @@ If the query search returns relevant but not enough information, search for the 
 
 The available Confluence pages are: 
 {confluence_pages_preview}
+
+{memory_docs}
 """
 
 cached_confluence_system_prompt="""You are a Confluence researcher assistant. Your task is to answer the user's question based on the Confluence documentation.
@@ -48,6 +54,8 @@ Do not answer the question if sufficient information is not available.
 
 The available Confluence pages are: 
 {confluence_pages_preview}
+
+{memory_docs}
 """
 
 code_agent_system_prompt="""You are a code researcher assistant. Your task is to answer the user's question based on the code repository.
@@ -77,6 +85,8 @@ Remember to cite the ISSUES and COMMITS that you use to gather information with 
 
 The tools will retrieve information from the following GitLab project:
 {gitlab_project_statistics}
+
+{memory_docs}
 """
 
 PLANNER_PROMPT_INITIAL = """You are a software project information gatherer. Your task is to create a concise abstract plan to collect information needed for the user's question. 

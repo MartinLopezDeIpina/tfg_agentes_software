@@ -8,7 +8,7 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
 from config import OFFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
 from src.BaseAgent import AgentState
-from src.specialized_agents.SpecializedAgent import SpecializedAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent, SpecializedAgentState
 from src.specialized_agents.citations_tool.models import CodeDataSource, FileSystemDataSource
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.filesystem_agent.additional_tools import get_docs_rag_tool, \
@@ -18,7 +18,7 @@ from static.prompts import CITE_REFERENCES_PROMPT, filesystem_agent_system_promp
 
 
 class FileSystemAgent(SpecializedAgent):
-    def __init__(self, model: BaseChatModel = None):
+    def __init__(self, model: BaseChatModel = None, use_memory: bool = False):
         super().__init__(
             name="file_system_agent",
             description=FILE_SYSTEM_AGENT_DESCRIPTION,
@@ -43,7 +43,8 @@ class FileSystemAgent(SpecializedAgent):
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
                 agent_prompt=filesystem_agent_system_prompt
-            )
+            ),
+            use_memory=use_memory
         )
 
     async def connect_to_mcp(self):
@@ -57,7 +58,8 @@ class FileSystemAgent(SpecializedAgent):
         additional_tools = await get_file_system_agent_additional_tools()
         self.tools.extend(additional_tools)
 
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    async def prepare_prompt(self, state: SpecializedAgentState, store = None) -> SpecializedAgentState:
+        state = await super().prepare_prompt(state=state, store=store)
         dir_tool = None
         for tool in self.tools:
             if tool.name == "directory_tree":
@@ -75,7 +77,8 @@ class FileSystemAgent(SpecializedAgent):
             SystemMessage(
                 self.prompt.format(
                     available_directory=directory_path,
-                    available_files=dir_str
+                    available_files=dir_str,
+                    memory_docs=state.get("memory_docs")
                 )
             ),
             HumanMessage(
