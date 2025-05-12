@@ -10,7 +10,7 @@ from langsmith import Client
 
 from src.BaseAgent import AgentState
 from src.db.documentation_indexer import AsyncPGVectorRetriever
-from src.db.pgvector_utils import PGVectorStore
+from src.db.pgvector_utils import PGVectorStore, delete_all_memory_documents
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
@@ -171,15 +171,15 @@ async def call_agent():
                        .with_orchestrator_type("basic")
                        .with_specialized_agents([
                             CodeAgent(use_memory=True),
-                            CachedConfluenceAgent(use_memory=True),
-                            GitlabAgent(use_memory=True),
-                            FileSystemAgent(use_memory=True),
-                            GoogleDriveAgent(use_memory=True),
+                            #CachedConfluenceAgent(use_memory=True),
+                            #GitlabAgent(use_memory=True),
+                            #FileSystemAgent(use_memory=True),
+                            #GoogleDriveAgent(use_memory=True),
                         ])
                        .initialize_agents())).build()
 
         result = await agent.execute_agent_graph_with_exception_handling({
-            "query": "Qué tipos de despliegue hay disponibles?",
+            "query": "Qué entornos de despliegue existen en el proyecto?",
             "messages": []
         })
     finally:
@@ -199,6 +199,10 @@ async def evaluate_main_agent(is_prueba: bool = True):
         await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
     finally:
         await MCPClient.cleanup()
+        
+async def delete_memory_docs():
+    store = (await PostgresPoolManager.get_instance()).get_memory_store()
+    await delete_all_memory_documents(store=store)
 
 if __name__ == '__main__':
     load_dotenv()
@@ -214,6 +218,8 @@ if __name__ == '__main__':
     #clase = ClaseB()
     #asyncio.run(clase.prueba())
     asyncio.run(call_agent())
+    
+    #asyncio.run(delete_memory_docs())
 
 
 

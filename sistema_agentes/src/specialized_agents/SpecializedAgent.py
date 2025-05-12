@@ -18,6 +18,8 @@ from langsmith import Client
 
 from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
+from src.db.pgvector_utils import save_agent_memory_in_store, hybrid_memory_similarity_counter_search, \
+    increment_memory_docs_counter
 from src.evaluators.cite_references_evaluator import CiteEvaluator
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.formatter_agent.formatter_graph import get_citations_string
@@ -95,7 +97,8 @@ class SpecializedAgent(BaseAgent):
     async def prepare_prompt(self, state: SpecializedAgentState, store: AsyncPostgresStore) -> SpecializedAgentState:
         if self.use_memory:
             try:
-                memory_docs = await store.asearch(("documents", self.name), query=state.get("query"), limit=self.k_memory_docs)
+                memory_docs = await hybrid_memory_similarity_counter_search(store=store, agent_name=self.name, query=state.get("query"), k_docs=self.k_memory_docs)
+                await increment_memory_docs_counter(store=store, memory_docs=memory_docs)
                 state["memory_docs"] = get_memory_prompt_from_docs(memory_docs)
             except Exception as e:
                 print(f"Error obteniendo memoria en agente {self.name}")
@@ -249,13 +252,15 @@ class SpecializedAgent(BaseAgent):
         summarizer_response = await self.model.ainvoke(prompt)
         stored_data = {
             "concept": summarizer_response.content,
-            "cites": available_cites_serialized
+            "cites": available_cites_serialized,
+            "access_count": 0
         }
 
-        await store.aput(
-            namespace=("documents", self.name),
+        await save_agent_memory_in_store(
+            store=store,
+            values = stored_data,
             key=uuid.uuid4().__str__(),
-            value=stored_data
+            agent_name=self.name
         )
 
     def create_graph(self) -> CompiledGraph:

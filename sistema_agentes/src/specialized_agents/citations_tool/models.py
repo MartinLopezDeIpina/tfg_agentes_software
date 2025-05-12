@@ -215,10 +215,6 @@ class GitlabResponseParser(ResponseParser):
         finally:
             return available_documents
 
-
-
-
-
 class DataSource(ABC):
     url: str
     get_documents_tool_name: str | List[str]
