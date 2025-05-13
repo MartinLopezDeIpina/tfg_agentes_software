@@ -4,7 +4,6 @@ from typing import List
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_core.stores import BaseStore, InMemoryStore
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
@@ -18,11 +17,9 @@ from langsmith import Client
 
 from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
-from src.db.pgvector_utils import save_agent_memory_in_store, hybrid_memory_similarity_counter_search, \
-    increment_memory_docs_counter
+from src.db.langchain_store_utils import get_and_manage_agent_memory_docs, save_agent_memory_in_store
 from src.evaluators.cite_references_evaluator import CiteEvaluator
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
-from src.formatter_agent.formatter_graph import get_citations_string
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
@@ -97,8 +94,7 @@ class SpecializedAgent(BaseAgent):
     async def prepare_prompt(self, state: SpecializedAgentState, store: AsyncPostgresStore) -> SpecializedAgentState:
         if self.use_memory:
             try:
-                memory_docs = await hybrid_memory_similarity_counter_search(store=store, agent_name=self.name, query=state.get("query"), k_docs=self.k_memory_docs)
-                await increment_memory_docs_counter(store=store, memory_docs=memory_docs)
+                memory_docs = await get_and_manage_agent_memory_docs(store=store, agent_name=self.name, query=state.get("query"), k_docs=self.k_memory_docs)
                 state["memory_docs"] = get_memory_prompt_from_docs(memory_docs)
             except Exception as e:
                 print(f"Error obteniendo memoria en agente {self.name}")

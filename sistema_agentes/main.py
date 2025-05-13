@@ -10,14 +10,13 @@ from langsmith import Client
 
 from src.BaseAgent import AgentState
 from src.db.documentation_indexer import AsyncPGVectorRetriever
-from src.db.pgvector_utils import PGVectorStore, delete_all_memory_documents
+from src.db.pgvector_utils import PGVectorStore
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
 from src.main_agent.main_graph import BasicMainAgent , OrchestratorOnlyMainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
-    DummyOrchestratorAgent, ReactOrchestratorAgent
+from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, DummyOrchestratorAgent, ReactOrchestratorAgent
 from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent, OrchestratorPlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
@@ -179,7 +178,7 @@ async def call_agent():
                        .initialize_agents())).build()
 
         result = await agent.execute_agent_graph_with_exception_handling({
-            "query": "Qué entornos de despliegue existen en el proyecto?",
+            "query": "Cómo se gestionan las migraciones de la base de datos?",
             "messages": []
         })
     finally:
@@ -195,6 +194,13 @@ async def evaluate_main_agent(is_prueba: bool = True):
                         .with_planner_type("none")
                         .with_orchestrator_type("react")
                         .with_specialized_agents()
+                        .with_specialized_agents([
+                            CodeAgent(use_memory=True),
+                            #CachedConfluenceAgent(use_memory=True),
+                            #GitlabAgent(use_memory=True),
+                            #FileSystemAgent(use_memory=True),
+                            #GoogleDriveAgent(use_memory=True),
+                        ])
                         .initialize_agents())).build()
         await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
     finally:

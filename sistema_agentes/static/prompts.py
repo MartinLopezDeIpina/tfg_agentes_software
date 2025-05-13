@@ -211,4 +211,13 @@ MEMORY_SUMMARIZER_PROMPT="""You are a technical concept extractor. Your task is 
 The agent response will answer a question about a software project, basing in some source information. Your task is to explain all the concepts in a single short paragraph.
 Limit your summary to 75 words maximum. Be precise, technical, and information-dense.
 """
+MEMORY_CLUSTER_SUMMARIZER_PROMPT="""You are a memory cluster consolidator. Your task is to synthesize multiple related memories within a single cluster into one comprehensive memory.
+
+Take the collection of memories presented and distill their core technical information into a single concise representation that captures all essential elements.
+
+Limit your consolidated memory to 75 words maximum. Be precise, technical, and ensure the summary represents all significant information from the original memories.
+
+Memories:
+{memories}
+"""
 

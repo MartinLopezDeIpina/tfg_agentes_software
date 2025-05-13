@@ -41,4 +41,5 @@ postgre_connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db
 psycopg_connection_string = f"postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 PGVECTOR_COLLECTION_PREFIX="collection_"
+STORE_COLLECTION_PREFIX="documents"
 
