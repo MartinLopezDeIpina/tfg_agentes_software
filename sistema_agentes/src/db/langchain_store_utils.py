@@ -1,5 +1,7 @@
 import ast
 import asyncio
+import json
+import uuid
 from collections import defaultdict
 from typing import Sequence, List, Dict, Any, Tuple
 
@@ -15,6 +17,7 @@ from sklearn.manifold import TSNE
 
 from config import STORE_COLLECTION_PREFIX, default_llm
 from src.db.postgres_connection_manager import PostgresPoolManager
+from src.utils import get_list_string_with_indexes
 from static.prompts import MEMORY_CLUSTER_SUMMARIZER_PROMPT
 
 
@@ -122,7 +125,7 @@ async def fetch_store_items_with_embeddings(agent_name: str,limit: int = 10000) 
         print(f"Error buscando items en store {prefix}: {e}")
         return []
 
-def find_optimal_clusters_elbow(data, max_k=25, min_k = 2, separation_factor=0.25, visualize_elbow=True):
+def find_optimal_clusters_elbow(data, max_k=25, min_k = 2, separation_factor=0, visualize_elbow=True):
     max_k = min(max_k, len(data))
     K = range(min_k, max_k + 1)
 
@@ -203,38 +206,63 @@ async def group_memory_clusters(agent_name: str, visualize=True) -> defaultdict[
         print(f"Error creando clusters de memoria: {e}")
         return defaultdict(list)
 
-async def create_cluster_grouped_memories(store: AsyncPostgresStore, clustered_memories: defaultdict[Any, List]):
+async def create_and_put_cluster_memories_in_store(store: AsyncPostgresStore, clustered_memories: defaultdict[Any, List], agent_name: str):
     summarizer_llm = default_llm
     inputs = []
-    cluster_keys = []  # Solo almacenará las claves de los clusters que serán procesados
-
-    for key, value in clustered_memories.items():
-        # No resumir si el cluster solo tiene un elemento
+    # Lista de listas que contienen las citas únicas
+    grouped_cites = []
+    
+    for value in clustered_memories.values():
         if len(value) == 1:
             continue
 
-        memories_content = value["content"]
-        input = SystemMessage(
-            content=MEMORY_CLUSTER_SUMMARIZER_PROMPT.format(
-                memories=memories_content
+        memories_content = [memory_value["value"]["concept"] for memory_value in value]
+        memories_str = get_list_string_with_indexes(memories_content)
+        input = [
+            SystemMessage(
+                content=MEMORY_CLUSTER_SUMMARIZER_PROMPT.format(
+                    memories=memories_str
+                )
             )
-        )
+        ]
         inputs.append(input)
-        cluster_keys.append(key)
+
+        # Quedarse con la lista de citas sin repetidos, distinguiendo por su url
+        unique_cites_dict = {}
+        for memory in value:
+            for cite in memory["value"]["cites"]:
+                unique_cites_dict[json.loads(cite)["data"].get("doc_url")] = cite
+        unique_cites_list = list(unique_cites_dict.values())
+        grouped_cites.append(unique_cites_list)
 
     results = await summarizer_llm.abatch(inputs=inputs)
 
-    cluster_summaries = {}
-    for i, result in enumerate(results):
-        cluster_key = cluster_keys[i]
-        cluster_summaries[cluster_key] = result
+    # Añadir todos los clusters comprimidos asíncronamente
+    put_opeartions = [
+        (
+            PutOp(
+                namespace=(STORE_COLLECTION_PREFIX, agent_name),
+                key=str(uuid.uuid4()),
+                value={
+                    "concept": result.content,
+                    "cites": grouped_cites[i]
+                }
+            )
+        )
+        for i, result in enumerate(results)
+    ]
+    await store.abatch(put_opeartions)
 
-    # Ahora puedes devolver los resúmenes o guardarlos
-    return cluster_summaries
-
-
-async def delete_cluster_memories(store: AsyncPostgresStore, clustered_memories: [Any, List]):
-    pass
+async def delete_cluster_memories(store: AsyncPostgresStore, clustered_memories: [Any, List], agent_name: str):
+    delete_ops = []
+    namespace = (STORE_COLLECTION_PREFIX, agent_name)
+    for cluster_memories in clustered_memories.values():
+        if len(cluster_memories) > 1:
+            delete_ops.extend([
+                store.adelete(namespace=namespace, key=cluster_memory["key"])
+                for cluster_memory in cluster_memories
+            ])
+    await asyncio.gather(*delete_ops)
 
 async def get_and_manage_agent_memory_docs(store: AsyncPostgresStore, agent_name: str, query: str, k_docs: int = 5, similarity_weight: float = 0.75, counter_weight: float = 0.25, cluster_threshold: int = 10):
     """
@@ -247,14 +275,14 @@ async def get_and_manage_agent_memory_docs(store: AsyncPostgresStore, agent_name
 
     agent_memory_count = await count_agent_memory_documents(agent_name=agent_name)
     if agent_memory_count > cluster_threshold:
+        print(f"Agrupando memoria de agente {agent_name}...")
         clustered_memories = await group_memory_clusters(agent_name)
         # Si no se consigue crear correctamente los resúmenes entonces no eliminar las memorias
         try:
-            await create_cluster_grouped_memories(store=store, clustered_memories=clustered_memories)
+            await create_and_put_cluster_memories_in_store(store=store, clustered_memories=clustered_memories, agent_name=agent_name)
+            await delete_cluster_memories(store=store, clustered_memories=clustered_memories, agent_name=agent_name)
         except Exception as e:
             print(f"Error ejecutando summarizer de memorias: {e}")
-
-        await delete_cluster_memories(store=store, clustered_memories=clustered_memories)
 
     return memory_docs
 

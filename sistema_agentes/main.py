@@ -10,6 +10,7 @@ from langsmith import Client
 
 from src.BaseAgent import AgentState
 from src.db.documentation_indexer import AsyncPGVectorRetriever
+from src.db.langchain_store_utils import delete_all_memory_documents
 from src.db.pgvector_utils import PGVectorStore
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.formatter_agent.formatter_graph import FormatterAgent
@@ -226,8 +227,4 @@ if __name__ == '__main__':
     asyncio.run(call_agent())
     
     #asyncio.run(delete_memory_docs())
-
-
-
-
-
+    #asyncio.run(evaluate_main_agent(is_prueba=True))
