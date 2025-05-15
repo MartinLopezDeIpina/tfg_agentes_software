@@ -13,6 +13,7 @@ from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.langchain_store_utils import delete_all_memory_documents
 from src.db.pgvector_utils import PGVectorStore
 from src.db.postgres_connection_manager import PostgresPoolManager
+from src.evaluators.dataset_utils import create_langsmith_datasets, create_main_agent_memory_partitioned_datasets
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
 from src.main_agent.main_graph import BasicMainAgent , OrchestratorOnlyMainAgent
@@ -191,9 +192,9 @@ async def evaluate_main_agent(is_prueba: bool = True):
         ls_client = Client()
         agent = await (await (builder
                         .reset()
-                        .with_main_agent_type("orchestrator_only")
-                        .with_planner_type("none")
-                        .with_orchestrator_type("react")
+                        .with_main_agent_type("basic")
+                        .with_planner_type("basic")
+                        .with_orchestrator_type("basic")
                         .with_specialized_agents()
                         .with_specialized_agents([
                             CodeAgent(use_memory=True),
@@ -204,6 +205,7 @@ async def evaluate_main_agent(is_prueba: bool = True):
                         ])
                         .initialize_agents())).build()
         await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
+        #await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba, dataset_name="evaluate_main_agent_memory", dataset_split="test")
     finally:
         await MCPClient.cleanup()
         
@@ -213,6 +215,8 @@ async def delete_memory_docs():
 
 if __name__ == '__main__':
     load_dotenv()
+
+    #asyncio.run(delete_memory_docs())
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
@@ -224,7 +228,8 @@ if __name__ == '__main__':
     #asyncio.run(prueba())
     #clase = ClaseB()
     #asyncio.run(clase.prueba())
-    asyncio.run(call_agent())
+    #asyncio.run(call_agent())
     
-    #asyncio.run(delete_memory_docs())
-    #asyncio.run(evaluate_main_agent(is_prueba=True))
+    asyncio.run(evaluate_main_agent(is_prueba=True))
+
+    #create_main_agent_memory_partitioned_datasets()

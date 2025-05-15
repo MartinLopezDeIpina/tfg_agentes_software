@@ -3,6 +3,7 @@ from typing import List
 
 import pandas as pd
 from langsmith import Client
+from langsmith.schemas import ExampleCreate
 
 from pandas import DataFrame
 from tqdm import tqdm
@@ -117,3 +118,38 @@ def create_langsmith_datasets(dataset_prueba: bool = False, agents_to_update: Li
         if dataset_prueba:
             agent = f"{agent}_prueba"
         create_agent_dataset(langsmith_client, agent, agent_df, input_column_names)
+
+def create_main_agent_memory_partitioned_datasets(split_train_proportion: float = 0.8):
+    num_train_per_one_test = int(1 / (1 - split_train_proportion))
+
+    langsmith_client = Client()
+    dataset_name = "evaluate_main_agent_memory"
+
+    dataset = search_langsmith_dataset(langsmith_client = langsmith_client, dataset_name = "evaluate_main_agent")
+    if not dataset:
+        print(f"Error dividiendo particiones")
+        return
+
+    memory_dataset = create_or_empty_langsmith_dataset(langsmith_client=langsmith_client, dataset_name=dataset_name)
+    examples = langsmith_client.list_examples(dataset_id=dataset.id)
+    new_examples = []
+    for i, example in enumerate(examples):
+        if i % num_train_per_one_test == 0:
+            split = "test"
+        else:
+            split = "train"
+
+        new_example = ExampleCreate(
+            inputs=example.inputs,
+            outputs=example.outputs,
+            metadata=example.metadata,
+            split=split
+        )
+        new_examples.append(new_example)
+
+    langsmith_client.create_examples(
+        dataset_id=memory_dataset.id,
+        examples=new_examples
+    )
+    print(f"Dataset {dataset_name} creado correctamente")
+

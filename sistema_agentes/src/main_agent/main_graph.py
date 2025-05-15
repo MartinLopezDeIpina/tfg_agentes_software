@@ -55,12 +55,12 @@ class MainAgent(BaseAgent, ABC):
     def process_result(self, agent_state: MainAgentState) -> CitedAIMessage:
         return agent_state.get("formatter_result")
 
-    async def evaluate_agent(self, langsmith_client: Client, is_prueba: bool = False):
+    async def evaluate_agent(self, langsmith_client: Client, is_prueba: bool = False, dataset_name: str = None, dataset_split: str = None):
         evaluators = [
             JudgeLLMEvaluator(),
             CiteEvaluator()
         ]
-        return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba)
+        return await self.call_agent_evaluation(langsmith_client=langsmith_client, evaluators=evaluators, is_prueba=is_prueba, dataset_name=dataset_name, dataset_split=dataset_split)
 
     async def init_memory_store(self):
         postgre = await PostgresPoolManager().get_instance()
