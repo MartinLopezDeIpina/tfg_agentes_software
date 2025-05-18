@@ -14,7 +14,7 @@ from src.specialized_agents.citations_tool.models import CodeDataSource
 from static.agent_descriptions import CODE_AGENT_DESCRIPTION
 
 from src.specialized_agents.SpecializedAgent import SpecializedAgent, SpecializedAgentState
-from static.prompts import CITE_REFERENCES_PROMPT, code_agent_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, code_agent_system_prompt, MEMORIES_PROMPT
 
 
 class CodeAgent(SpecializedAgent):
@@ -38,7 +38,8 @@ class CodeAgent(SpecializedAgent):
                 tool_args={}
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=code_agent_system_prompt
+                agent_prompt=code_agent_system_prompt,
+                memories_prompt=MEMORIES_PROMPT if use_memory else ""
             ),
             use_memory=use_memory
         )
@@ -67,19 +68,18 @@ class CodeAgent(SpecializedAgent):
         })
 
         proyect_tree, initial_retrieved_docs = await asyncio.gather(tree_task, rag_task)
-
         messages = [
             SystemMessage(
                 self.prompt.format(
                     proyect_tree=proyect_tree,
                     initial_retrieved_docs=initial_retrieved_docs,
-                    memory_docs=state.get("memory_docs")
                 )
-            ),
+            )
+        ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )
-
         ]
+
         state["messages"] = messages
         return state

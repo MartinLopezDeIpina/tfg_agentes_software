@@ -33,7 +33,7 @@ from static.prompts import REACT_SUMMARIZER_SYSTEM_PROMPT, MEMORY_SUMMARIZER_PRO
 
 class SpecializedAgentState(AgentState):
     recursion_limit_exceded: bool
-    memory_docs: str
+    memory_docs: List[AIMessage]
 
 class SpecializedAgent(BaseAgent):
 
@@ -76,7 +76,7 @@ class SpecializedAgent(BaseAgent):
         self.data_sources = data_sources or []
         self.max_steps = max_steps
         self.use_memory = use_memory
-        self.k_memory_docs = 4
+        self.k_memory_docs = k_memory_docs
 
 
     @abstractmethod
@@ -98,9 +98,9 @@ class SpecializedAgent(BaseAgent):
                 state["memory_docs"] = get_memory_prompt_from_docs(memory_docs)
             except Exception as e:
                 print(f"Error obteniendo memoria en agente {self.name}")
-
-        if not state.get("memory_docs"):
-            state["memory_docs"] = ""
+                state["memory_docs"] = []
+        else:
+            state["memory_docs"] = []
 
         return state
 

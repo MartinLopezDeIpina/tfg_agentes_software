@@ -14,7 +14,7 @@ from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.filesystem_agent.additional_tools import get_docs_rag_tool, \
     get_file_system_agent_additional_tools
 from static.agent_descriptions import FILE_SYSTEM_AGENT_DESCRIPTION
-from static.prompts import CITE_REFERENCES_PROMPT, filesystem_agent_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, filesystem_agent_system_prompt, MEMORIES_PROMPT
 
 
 class FileSystemAgent(SpecializedAgent):
@@ -42,7 +42,8 @@ class FileSystemAgent(SpecializedAgent):
                 }
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=filesystem_agent_system_prompt
+                agent_prompt=filesystem_agent_system_prompt,
+                memories_prompt=MEMORIES_PROMPT if use_memory else ""
             ),
             use_memory=use_memory
         )
@@ -78,9 +79,9 @@ class FileSystemAgent(SpecializedAgent):
                 self.prompt.format(
                     available_directory=directory_path,
                     available_files=dir_str,
-                    memory_docs=state.get("memory_docs")
                 )
-            ),
+            )
+            ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )

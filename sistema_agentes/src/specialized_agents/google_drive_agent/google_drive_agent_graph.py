@@ -11,7 +11,8 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from src.specialized_agents.SpecializedAgent import SpecializedAgent, SpecializedAgentState
 
 from static.agent_descriptions import GOOGLE_DRIVE_AGENT_DESCRIPTION
-from static.prompts import CITE_REFERENCES_PROMPT, google_drive_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, google_drive_system_prompt, MEMORIES_PROMPT
+
 
 class GoogleDriveAgent(SpecializedAgent):
     def __init__(self, model: BaseChatModel = None, use_memory: bool = False):
@@ -31,7 +32,8 @@ class GoogleDriveAgent(SpecializedAgent):
             ],
             data_sources=[GoogleDriveDataSource("gdrive_list_files_json")],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=google_drive_system_prompt
+                agent_prompt=google_drive_system_prompt,
+                memories_prompt = MEMORIES_PROMPT if use_memory else ""
             ),
             use_memory=use_memory
         )
@@ -59,9 +61,9 @@ class GoogleDriveAgent(SpecializedAgent):
             SystemMessage(
                 self.prompt.format(
                     google_drive_files_info=files_str,
-                    memory_docs=state.get("memory_docs")
                 )
-            ),
+            )
+            ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )

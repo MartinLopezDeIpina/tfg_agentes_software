@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List
 
-from langgraph.store.base import Item
+from langchain_core.messages import AIMessage
+from langgraph.store.base import Item, SearchItem
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -42,20 +43,21 @@ def read_file_content(file: Path) -> str:
         print(f"Error leyendo fichero {file}")
         return ""
     
-def get_memory_prompt_from_docs(memory_docs: List[Item]):
+def get_memory_prompt_from_docs(memory_docs: List[SearchItem]) -> List[AIMessage]:
     """
     Devuelve la descripción de varios documentos extraídos de una colección de memoria
     """
-    if len(memory_docs) > 0:
-        string = "Memory concepts:"
-        for i, memory in enumerate(memory_docs):
-            cites = [Citation.from_string(citation) for citation in memory.value.get("cites")]
-            cites_string = f"-Cited documents: {",".join([cite.doc_name for cite in cites])}"
-            memory_string = f"\n{i}: {memory.value.get("concept")}\n\t{cites_string}"
-            string += tab_all_lines_x_times(memory_string)
-        return string
-    else:
-        return ""
+    memories_list = []
+    for i, memory in enumerate(memory_docs):
+        cites = [Citation.from_string(citation) for citation in memory.value.get("cites")]
+        cites_string = f"-Cited documents: {",".join([cite.doc_name for cite in cites])}"
+        memory_string = f"Memory passage {i}: {memory.value.get("concept")}\n\t{cites_string}"
+        memories_list.append(
+            AIMessage(
+                content=memory_string
+            )
+        )
+    return memories_list
 
 
 

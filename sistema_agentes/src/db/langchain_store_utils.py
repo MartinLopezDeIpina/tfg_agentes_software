@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Sequence, List, Dict, Any, Tuple
 
 import numpy as np
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, AIMessage
 from langgraph.store.base import PutOp
 from langgraph.store.postgres import AsyncPostgresStore
 from langgraph_sdk.schema import SearchItem
@@ -264,7 +264,7 @@ async def delete_cluster_memories(store: AsyncPostgresStore, clustered_memories:
             ])
     await asyncio.gather(*delete_ops)
 
-async def get_and_manage_agent_memory_docs(store: AsyncPostgresStore, agent_name: str, query: str, k_docs: int = 5, similarity_weight: float = 0.75, counter_weight: float = 0.25, cluster_threshold: int = 10):
+async def get_and_manage_agent_memory_docs(store: AsyncPostgresStore, agent_name: str, query: str, k_docs: int = 5, similarity_weight: float = 0.75, counter_weight: float = 0.25, cluster_threshold: int = 10) -> List[SearchItem]:
     """
     Obtiene k elementos de memoria relevantes para la consulta.
     Incrementa el access_count de todos en uno

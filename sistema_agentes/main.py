@@ -13,7 +13,8 @@ from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.langchain_store_utils import delete_all_memory_documents
 from src.db.pgvector_utils import PGVectorStore
 from src.db.postgres_connection_manager import PostgresPoolManager
-from src.evaluators.dataset_utils import create_langsmith_datasets, create_main_agent_memory_partitioned_datasets
+from src.evaluators.dataset_utils import create_langsmith_datasets, create_main_agent_memory_partitioned_datasets, \
+    create_easy_and_hard_datasets, create_question_classifier_dataset
 from src.formatter_agent.formatter_graph import FormatterAgent
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
 from src.main_agent.main_graph import BasicMainAgent , OrchestratorOnlyMainAgent
@@ -23,6 +24,7 @@ from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgen
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent, CachedConfluenceAgent
+from src.specialized_agents.difficulty_classifier_agent.difficulty_classifier_graph import ClassifierAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
@@ -198,14 +200,14 @@ async def evaluate_main_agent(is_prueba: bool = True):
                         .with_specialized_agents()
                         .with_specialized_agents([
                             CodeAgent(use_memory=True),
-                            #CachedConfluenceAgent(use_memory=True),
-                            #GitlabAgent(use_memory=True),
-                            #FileSystemAgent(use_memory=True),
-                            #GoogleDriveAgent(use_memory=True),
+                            CachedConfluenceAgent(use_memory=True),
+                            GitlabAgent(use_memory=True),
+                            FileSystemAgent(use_memory=True),
+                            GoogleDriveAgent(use_memory=True),
                         ])
                         .initialize_agents())).build()
-        await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
-        #await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba, dataset_name="evaluate_main_agent_memory", dataset_split="test")
+        #await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
+        await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba, dataset_name="evaluate_main_agent_memory", dataset_split="test")
     finally:
         await MCPClient.cleanup()
         
@@ -213,10 +215,40 @@ async def delete_memory_docs():
     store = (await PostgresPoolManager.get_instance()).get_memory_store()
     await delete_all_memory_documents(store=store)
 
+async def prueba():
+    try:
+        builder_simple = FlexibleAgentBuilder()
+        builder_simple.with_main_agent_type("orchestrator_only") \
+            .with_planner_type("none") \
+            .with_orchestrator_type("basic") \
+            .with_specialized_agents([CodeAgent(use_memory=False)])
+        await builder_simple.initialize_agents()
+        simple_agent = await builder_simple.build()
+
+        builder_complex = FlexibleAgentBuilder()
+        builder_complex.with_main_agent_type("basic") \
+            .with_planner_type("basic") \
+            .with_orchestrator_type("react") \
+            .with_specialized_agents([CodeAgent(use_memory=False)])
+        await builder_complex.initialize_agents()
+        complex_agent = await builder_complex.build()
+
+        query= "Qué formas de despliegue hay disponibles en el proyecto?"
+
+        task1 = simple_agent.execute_agent_graph_with_exception_handling(input={"query": query, "messages": []})
+        task2 = complex_agent.execute_agent_graph_with_exception_handling(input={"query": query, "messages": []})
+
+        await asyncio.gather(*[task1, task2])
+    finally:
+        await MCPClient.cleanup()
+
+async def evaluate_classifier_agent():
+    agent = ClassifierAgent()
+    await agent.evaluate_agent(langsmith_client=Client())
+
 if __name__ == '__main__':
     load_dotenv()
 
-    #asyncio.run(delete_memory_docs())
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
@@ -230,6 +262,12 @@ if __name__ == '__main__':
     #asyncio.run(clase.prueba())
     #asyncio.run(call_agent())
     
-    asyncio.run(evaluate_main_agent(is_prueba=True))
+    #asyncio.run(evaluate_main_agent(is_prueba=True))
 
     #create_main_agent_memory_partitioned_datasets()
+
+    #asyncio.run(delete_memory_docs())
+    #create_easy_and_hard_datasets()
+    #asyncio.run(prueba())
+    #create_question_classifier_dataset()
+    asyncio.run(evaluate_classifier_agent())

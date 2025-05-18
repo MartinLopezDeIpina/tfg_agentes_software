@@ -13,7 +13,8 @@ from src.specialized_agents.SpecializedAgent import SpecializedAgent, Specialize
 from src.specialized_agents.citations_tool.models import ConfluenceDataSource
 from src.utils import tab_all_lines_x_times
 from static.agent_descriptions import CONFLUENCE_AGENT_DESCRIPTION
-from static.prompts import CITE_REFERENCES_PROMPT, confluence_system_prompt, cached_confluence_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, confluence_system_prompt, cached_confluence_system_prompt, \
+    MEMORIES_PROMPT
 
 
 class BaseConfluenceAgent(SpecializedAgent, ABC):
@@ -35,7 +36,8 @@ class BaseConfluenceAgent(SpecializedAgent, ABC):
                 }
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=prompt
+                agent_prompt=prompt,
+                memories_prompt=MEMORIES_PROMPT if use_memory else ""
             ),
             use_memory=use_memory
         )
@@ -82,9 +84,9 @@ class ConfluenceAgent(BaseConfluenceAgent):
             SystemMessage(
                 self.prompt.format(
                     confluence_pages_preview=confluence_pages_preview,
-                    memory_docs=state.get("memory_docs")
                 )
-            ),
+            )
+        ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )
@@ -147,9 +149,9 @@ class CachedConfluenceAgent(BaseConfluenceAgent):
             SystemMessage(
                 self.prompt.format(
                     confluence_pages_preview=confluence_pages_preview,
-                    memory_docs=state.get("memory_docs")
                 )
-            ),
+            )
+        ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )

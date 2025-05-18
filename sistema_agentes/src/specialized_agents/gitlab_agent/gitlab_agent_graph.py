@@ -16,7 +16,7 @@ from src.specialized_agents.SpecializedAgent import SpecializedAgent, Specialize
 from src.specialized_agents.citations_tool.models import GitLabDataSource
 from src.specialized_agents.gitlab_agent.additional_tools import get_gitlab_agent_additional_tools
 from static.agent_descriptions import GITLAB_AGENT_DESCRIPTION
-from static.prompts import CITE_REFERENCES_PROMPT, gitlab_agent_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, gitlab_agent_system_prompt, MEMORIES_PROMPT
 
 
 class GitlabAgent(SpecializedAgent):
@@ -45,7 +45,8 @@ class GitlabAgent(SpecializedAgent):
                 ]
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=gitlab_agent_system_prompt
+                agent_prompt=gitlab_agent_system_prompt,
+                memories_prompt = MEMORIES_PROMPT if use_memory else ""
             ),
             use_memory=use_memory
         )
@@ -74,9 +75,9 @@ class GitlabAgent(SpecializedAgent):
             SystemMessage(
                 self.prompt.format(
                     gitlab_project_statistics=stats_result,
-                    memory_docs=state.get("memory_docs")
                 )
-            ),
+            )
+        ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )
