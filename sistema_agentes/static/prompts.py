@@ -224,3 +224,9 @@ The key distinction is specificity and accessibility of information - general pr
 
 Question to classify: {question}
 """
+CLASSIFIER_BERT_PROMPT="""Clasificar dificultad: 
+    
+{question}
+
+FÁCIL: información general, bien documentada, fundamental
+DIFÍCIL: implementaciones específicas, componentes concretos, personas responsables, acceso no evidente"""
