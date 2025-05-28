@@ -132,7 +132,7 @@ async def evaluate_orchestrator_planner_agent():
         await agents[0].cleanup()
 
 async def debug_agent():
-    agent = CodeAgent(use_memory=True)
+    agent = CodeAgent(use_memory=False)
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
@@ -170,14 +170,14 @@ async def call_agent():
         agent = await (await (builder
                        .reset()
                        .with_main_agent_type("basic")
-                       .with_planner_type("basic")
-                       .with_orchestrator_type("basic")
+                       .with_planner_type("orchestrator_planner")
+                       .with_orchestrator_type("dummy")
                        .with_specialized_agents([
-                            CodeAgent(use_memory=True),
-                            #CachedConfluenceAgent(use_memory=True),
-                            #GitlabAgent(use_memory=True),
-                            #FileSystemAgent(use_memory=True),
-                            #GoogleDriveAgent(use_memory=True),
+                            CodeAgent(use_memory=False),
+                            #CachedConfluenceAgent(use_memory=False),
+                            #GitlabAgent(use_memory=False),
+                            #FileSystemAgent(use_memory=False),
+                            #GoogleDriveAgent(use_memory=False),
                         ])
                        .initialize_agents())).build()
 
@@ -194,8 +194,8 @@ async def evaluate_main_agent(is_prueba: bool = True):
         ls_client = Client()
         agent = await (await (builder
                         .reset()
-                        .with_main_agent_type("orchestrator_only")
-                        .with_planner_type("none")
+                        .with_main_agent_type("basic")
+                        .with_planner_type("basic")
                         .with_orchestrator_type("react")
                         .with_specialized_agents()
                         .initialize_agents())).build()
@@ -303,7 +303,7 @@ if __name__ == '__main__':
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    #asyncio.run(evaluate_main_agent(is_prueba=False))
+    asyncio.run(evaluate_main_agent(is_prueba=False))
 
     #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
@@ -322,7 +322,7 @@ if __name__ == '__main__':
     #asyncio.run(prueba())
     #create_question_classifier_dataset()
     #asyncio.run(evaluate_classifier_agent())
-    asyncio.run(evaluate_double_main_agent())
+    #asyncio.run(evaluate_double_main_agent())
     #asyncio.run(probar_modelo_hf())
     #asyncio.run(execute_double_main_agent())
     #printear_graficos()

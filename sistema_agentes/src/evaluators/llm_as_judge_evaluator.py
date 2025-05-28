@@ -7,13 +7,14 @@ from langsmith.evaluation import EvaluationResults
 from langsmith.schemas import Example, Run
 from pydantic import StrictFloat
 
+from config import default_judge_llm
 from src.evaluators.base_evaluator import BaseEvaluator
 from src.evaluators.models import JudgeLLMResponse
 from src.utils import get_list_from_string_comma_separated_values, get_list_string_with_indexes
 from static.prompts import LLM_JUDGE_PROMPT
 
 async def get_llm_as_a_judge_evaluation(solution_list: List[str], run_result: dict, run_state: dict) -> JudgeLLMResponse:
-    model = ChatOpenAI(model="gpt-4o-mini")
+    model = default_judge_llm
     structured_llm = model.with_structured_output(JudgeLLMResponse)
     ground_truth_list = get_list_string_with_indexes(solution_list)
     model_evaluation = await structured_llm.ainvoke(

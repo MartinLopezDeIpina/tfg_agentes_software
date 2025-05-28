@@ -180,6 +180,7 @@ class SpecializedAgent(BaseAgent):
             configurable={"thread_id": thread_id}
         )
 
+        result = {}
         try:
             result = await self.react_graph.ainvoke(
                 input={
@@ -189,14 +190,19 @@ class SpecializedAgent(BaseAgent):
             )
             if result["messages"][-1].content == "Sorry, need more steps to process this request.":
                 raise Exception("Recursion limit reached")
-            return result
         except Exception as e:
             print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
             state["recursion_limit_exceded"] = True
             last_state = await self.checkpointer.aget(config)
             messages = last_state["channel_values"].get("messages", [])
             state["messages"] = messages
-            return state
+            result = state
+        finally:
+            # El modelo mistral devuelve a veces el contenido en listas, convertirlo a texto
+            for message in result["messages"]:
+                if not isinstance(message.content, str) and isinstance(message, AIMessage):
+                    message.content = str(message.content)
+            return result
 
     async def generate_summarized_response(self, state: SpecializedAgentState):
         messages = state.get("messages")

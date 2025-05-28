@@ -80,6 +80,13 @@ class FormatterAgent(BaseAgent):
             else:
                 formatter_agent_messages.append(message)
 
+        # Añadir de nuevo la consulta para que el modelo de mistral no de error.
+        formatter_agent_messages.append(
+            HumanMessage(
+                content=state["query"]
+            )
+        )
+
         state["messages"] = formatter_agent_messages
         return state
 
