@@ -5,11 +5,12 @@ from typing import List
 from dotenv import load_dotenv
 from langgraph.managed.is_last_step import RemainingSteps
 from langsmith import Client
+from sklearn.datasets import make_blobs
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
 from config import default_llm
 from src.db.documentation_indexer import AsyncPGVectorRetriever
-from src.db.langchain_store_utils import delete_all_memory_documents
+from src.db.langchain_store_utils import delete_all_memory_documents, visualize_clusters, print_elbow_graph
 from src.db.pgvector_utils import PGVectorStore
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.difficulty_classifier_agent.double_main_agent import DoubleMainAgent
@@ -131,7 +132,7 @@ async def evaluate_orchestrator_planner_agent():
         await agents[0].cleanup()
 
 async def debug_agent():
-    agent = CachedConfluenceAgent()
+    agent = CodeAgent(use_memory=True)
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
@@ -267,6 +268,34 @@ async def probar_modelo_hf():
     resultado = classifier("Qué metodología de gestión se utiliza?")
     print(resultado)
 
+def printear_graficos():
+    # Generar datos de ejemplo
+    n_samples = 100
+    n_features = 50  # Dimensionalidad original alta
+    n_clusters = 4
+
+    # Crear vectores de ejemplo (simulando embeddings de documentos)
+    vectors, true_labels = make_blobs(n_samples=n_samples,
+                                     centers=n_clusters,
+                                     n_features=n_features,
+                                     random_state=42)
+
+    # Llamar a la función mejorada
+    visualize_clusters(vectors, true_labels, agent_name="Agente Ejemplo")
+    # Valores de K probados
+
+    K = list(range(1, 11))  # De 1 a 10 clusters
+
+    # Distorsiones simuladas (típicamente decrecen con tendencia de codo)
+    distortions = [150, 80, 50, 30, 22, 18, 15, 13, 11, 10]
+
+    # Parámetros del método del codo
+    optimal_k = 4  # Suponiendo que 4 es el k óptimo
+    elbow_idx = 2  # Índice donde está el verdadero codo (K=3)
+    adjusted_idx = 3  # Índice ajustado por algún criterio adicional (K=4)
+
+    # Llamar a la función mejorada
+    print_elbow_graph(K, distortions, optimal_k, elbow_idx, adjusted_idx)
 
 if __name__ == '__main__':
     load_dotenv()
@@ -296,3 +325,4 @@ if __name__ == '__main__':
     asyncio.run(evaluate_double_main_agent())
     #asyncio.run(probar_modelo_hf())
     #asyncio.run(execute_double_main_agent())
+    #printear_graficos()

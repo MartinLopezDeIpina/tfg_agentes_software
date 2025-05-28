@@ -156,8 +156,6 @@ def create_main_agent_memory_partitioned_datasets(split_train_proportion: float 
     print(f"Dataset {dataset_name} creado correctamente")
 
 def create_easy_and_hard_datasets():
-    import pandas as pd
-    import json
 
     evaluations_location = f"{REPO_ROOT_ABSOLUTE_PATH}/sistema_agentes/src/evaluators/eval_results/main_agent"
     complex_system_result_df = pd.read_csv(f"{evaluations_location}/planificador_orquestador.csv")
@@ -187,7 +185,7 @@ def create_easy_and_hard_datasets():
         score_simple = simple_system_result_df.loc[ejemplo_id, 'llm-as-a-judge']
         query = complex_system_result_df.loc[ejemplo_id, 'query']
 
-        # Nuevo criterio: es difícil si el complejo es mejor que el simple
+        # es difícil si el complejo es mejor que el simple
         # O si cualquiera de los dos sistemas tiene precisión < 0.5
         if score_complex > score_simple or score_simple < 0.5 or score_complex < 0.5:
             ejemplos_dificiles.append({

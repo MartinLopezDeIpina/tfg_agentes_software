@@ -125,6 +125,72 @@ async def fetch_store_items_with_embeddings(agent_name: str,limit: int = 10000) 
         print(f"Error buscando items en store {prefix}: {e}")
         return []
 
+
+def visualize_clusters(vectors, labels, agent_name):
+    # Reducir dimensionalidad para visualización con t-SNE
+    tsne = TSNE(n_components=2, random_state=42, perplexity=5)
+    reduced_data = tsne.fit_transform(vectors)
+
+    # Configuración de estilo global
+    plt.rcParams.update({
+        'font.size': 38,  # Aumentado de 14 a 18
+        'axes.labelsize': 32,  # Etiquetas de ejes especialmente grandes
+        'xtick.labelsize': 22,
+        'ytick.labelsize':22
+    })
+
+    # Crear gráfico de dispersión con tamaño de figura ajustado
+    plt.figure(figsize=(10, 8))
+
+    # Aumentar tamaño de los puntos (s=150 en vez del valor por defecto ~20-30)
+    scatter = plt.scatter(reduced_data[:, 0], reduced_data[:, 1],
+                          c=labels, cmap='viridis', s=150, alpha=0.8)
+
+    plt.xlabel('Dimensión 1', fontsize=24)
+    plt.ylabel('Dimensión 2', fontsize=24)
+
+    # Ajustar márgenes para evitar recortes
+    plt.tight_layout(pad=3.0)
+
+    # Añadir cuadrícula para mejor referencia visual
+    plt.grid(True, linestyle='--', alpha=0.3)
+
+    plt.show()
+
+
+def print_elbow_graph(K, distortions, optimal_k, elbow_idx, adjusted_idx):
+    plt.rcParams.update({
+        'axes.labelsize': 32,
+        'xtick.labelsize': 22,
+        'ytick.labelsize': 22,
+        'font.size': 14
+        })
+
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(K, distortions, 'bo-', linewidth=6, markersize=20)
+
+    # Etiquetas con mayor tamaño
+    plt.xlabel('Número de clusters (k)', fontsize=24)
+    plt.ylabel('Suma de distancias cuadráticas', fontsize=24)
+
+    # Líneas de referencia más gruesas
+    # Marcar el punto óptimo
+    plt.axvline(x=optimal_k, color='r', linestyle='--', linewidth=5,
+                label=f'k óptimo = {optimal_k}')
+
+
+    # Leyenda más grande y con borde para destacar
+    plt.legend(fontsize=24, frameon=True, facecolor='white', edgecolor='gray')
+
+    # Cuadrícula mejorada
+    plt.grid(True, linestyle='--', alpha=0.7)
+
+    # Ajustar márgenes
+    plt.tight_layout(pad=3.0)
+
+    plt.show()
+
 def find_optimal_clusters_elbow(data, max_k=25, min_k = 2, separation_factor=0, visualize_elbow=True):
     max_k = min(max_k, len(data))
     K = range(min_k, max_k + 1)
@@ -147,24 +213,7 @@ def find_optimal_clusters_elbow(data, max_k=25, min_k = 2, separation_factor=0, 
     optimal_k = K[min(max(0, adjusted_idx), len(K) - 1)]
 
     if visualize_elbow:
-        plt.figure(figsize=(12, 6))
-        plt.plot(K, distortions, 'bo-')
-        plt.xlabel('Número de clusters (k)')
-        plt.ylabel('Distorsión (suma de distancias cuadráticas)')
-        plt.title('Método del codo para determinar k óptimo')
-
-        # Marcar el punto óptimo
-        plt.axvline(x=optimal_k, color='r', linestyle='--',
-                   label=f'k óptimo = {optimal_k}')
-
-        # Marcar el punto del codo "puro" si es diferente del ajustado
-        if elbow_idx + 1 != adjusted_idx + 1:
-            plt.axvline(x=K[elbow_idx], color='g', linestyle=':',
-                       label=f'Codo real = {K[elbow_idx]}')
-
-        plt.legend()
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.show()
+        print_elbow_graph(K, distortions, optimal_k, elbow_idx, adjusted_idx)
 
     # Aplicar K-means con el número óptimo de clusters
     optimal_kmeans = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
@@ -189,17 +238,7 @@ async def group_memory_clusters(agent_name: str, visualize=True) -> defaultdict[
 
         # 6. Visualizar clusters
         if visualize:
-            # Reducir dimensionalidad para visualización con t-SNE. Perplexity determina cuantos vecinos tener en cuenta, debe ser menos a num docs.
-            tsne = TSNE(n_components=2, random_state=42, perplexity=5)
-            reduced_data = tsne.fit_transform(vectors)
-
-            # Crear gráfico de dispersión
-            plt.figure(figsize=(10, 8))
-            scatter = plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=labels, cmap='viridis')
-            plt.title(f'Clustering de documentos para {agent_name}')
-            plt.xlabel('Dimensión 1')
-            plt.ylabel('Dimensión 2')
-            plt.show()
+            visualize_clusters(vectors, labels, agent_name)
 
         return clusters
     except Exception as e:
