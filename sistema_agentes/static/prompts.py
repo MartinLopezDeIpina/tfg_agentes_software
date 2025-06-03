@@ -1,9 +1,11 @@
 CITE_REFERENCES_PROMPT="""{agent_prompt}
+{memories_prompt}
 If a document is going to be used to answer the question, cite it with the cite_document tool.
 You can also cite the information source you have access to: cite it using the indicated document_name, as it is explained in the cite_tool description. 
 IMPORTANT: YOU CAN NOT USE A DOCUMENT'S INFORMATION TO ANSWER A QUESTION IF IT WAS NOT CITED
 IMPORTANT: IF YOU MENTION A FILE'S NAME OR ID, YOU MUST MENTION IN WHICH INFORMATION SOURCE IT IS STORED
 """
+MEMORIES_PROMPT = """You will be provided with a series of memory passages. You MUST consider them as information resources too."""
 
 google_drive_system_prompt="""You are a Google Drive researcher agent. 
 You will be provided with a list of files in a folder, including their names and IDs. Your job is to decide which files, if any, are relevant to the user's query, retrieve their contents, and provide a comprehensive answer.
@@ -19,7 +21,8 @@ Your task is to answer questions based on the files in the official documentatio
 
 Use the available tools to gather the required information to answer the user's question. 
 You should call the rag tool to retrieve relevant chunks, after that, consider if you should read the whole file.
-If it is clear which document will contain information for the query, you can read it without calling the rag tool 
+If it is clear which document will contain information for the query, you can read it without calling the rag tool.
+The tools to interact with the file system must be used with the absolute path.
 
 The available directory is: {available_directory}
 The available files are: 
@@ -195,3 +198,35 @@ An agent has failed to answer a user's question, your task is to generate a usef
 DO NOT hallucinate information, just answer with the available resources.
 """
 
+MEMORY_SUMMARIZER_PROMPT="""You are a technical concept extractor. Your task is to distill the key technical information from an agent's response about a software project into a single concise paragraph.
+The agent response will answer a question about a software project, basing in some source information. Your task is to explain all the concepts in a single short paragraph.
+Limit your summary to 75 words maximum. Be precise, technical, and information-dense.
+"""
+MEMORY_CLUSTER_SUMMARIZER_PROMPT="""You are a memory cluster consolidator. Your task is to synthesize multiple related memories within a single cluster into one comprehensive memory.
+
+Take the collection of memories presented and distill their core technical information into a single concise representation that captures all essential elements.
+
+Limit your consolidated memory to 75 words maximum. Be precise, technical, and ensure the summary represents all significant information from the original memories.
+
+Memories:
+{memories}
+"""
+
+CLASSIFIER_AGENT_PROMPT="""Classify the following question as "EASY" or "HARD" based on this conceptual distinction:
+
+EASY: Questions about general project knowledge that would typically be found in standard documentation and available to most team members. These questions address overall project aspects without requiring specialized knowledge of specific implementations, individual responsibilities, or internal technical details.
+
+HARD: Questions that require specific technical knowledge about particular implementations, components, algorithms, or individual responsibilities. These questions typically cannot be answered from general documentation alone and would require specialized knowledge, access to internal resources, or familiarity with specific technical details of the project.
+
+The key distinction is specificity and accessibility of information - general project knowledge (EASY) versus specific technical implementations or responsibilities (HARD).
+
+{few_shot_examples}
+
+Question to classify: {question}
+"""
+CLASSIFIER_BERT_PROMPT="""Clasificar dificultad: 
+    
+{question}
+
+FÁCIL: información general, bien documentada, fundamental
+DIFÍCIL: implementaciones específicas, componentes concretos, personas responsables, acceso no evidente"""

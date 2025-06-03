@@ -2,6 +2,7 @@ import asyncio
 from typing import TypedDict, List
 
 from langchain_core.language_models import BaseChatModel
+from langchain_core.stores import BaseStore
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
@@ -11,15 +12,15 @@ from langgraph.graph.graph import CompiledGraph
 
 from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.specialized_agents.SpecializedAgent import SpecializedAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent, SpecializedAgentState
 from src.specialized_agents.citations_tool.models import GitLabDataSource
 from src.specialized_agents.gitlab_agent.additional_tools import get_gitlab_agent_additional_tools
 from static.agent_descriptions import GITLAB_AGENT_DESCRIPTION
-from static.prompts import CITE_REFERENCES_PROMPT, gitlab_agent_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, gitlab_agent_system_prompt, MEMORIES_PROMPT
 
 
 class GitlabAgent(SpecializedAgent):
-    def __init__(self, model: BaseChatModel = None):
+    def __init__(self, model: BaseChatModel = None, use_memory: bool = False):
         super().__init__(
             name="gitlab_agent",
             description=GITLAB_AGENT_DESCRIPTION,
@@ -44,8 +45,10 @@ class GitlabAgent(SpecializedAgent):
                 ]
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=gitlab_agent_system_prompt
-            )
+                agent_prompt=gitlab_agent_system_prompt,
+                memories_prompt = MEMORIES_PROMPT if use_memory else ""
+            ),
+            use_memory=use_memory
         )
 
     async def connect_to_mcp(self):
@@ -58,7 +61,8 @@ class GitlabAgent(SpecializedAgent):
     async def add_additional_tools(self):
         self.tools.extend(get_gitlab_agent_additional_tools())
 
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    async def prepare_prompt(self, state: SpecializedAgentState, store = None) -> SpecializedAgentState:
+        state = await super().prepare_prompt(state=state, store=store)
         stats_tool = None
         for tool in self.tools:
             if tool.name == "get_gitlab_project_statistics":
@@ -70,9 +74,10 @@ class GitlabAgent(SpecializedAgent):
         messages = [
             SystemMessage(
                 self.prompt.format(
-                    gitlab_project_statistics=stats_result
+                    gitlab_project_statistics=stats_result,
                 )
-            ),
+            )
+        ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )

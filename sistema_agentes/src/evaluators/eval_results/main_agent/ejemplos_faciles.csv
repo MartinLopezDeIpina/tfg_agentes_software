@@ -1,0 +1,28 @@
+id,query
+535a07a5-28e9-4226-b28e-635ab59996bd,¿Qué herramienta específica se utiliza para gestionar las tareas del proyecto (Jira Trello GitHub Projects etc.)? ¿podrías proporcionar algún ejemplo de tarea?
+ff5ffdff-0181-423f-8e82-3c9bf450da87,¿Quiénes son los actores o usuarios que interactúan con el sistema y cómo lo hacen?
+8a4691ac-f438-44bd-a6c7-73fef801764f,¿Cuáles son las mejores prácticas de seguridad establecidas que debo aplicar en mi código para este proyecto? ¿Puedes proporcionar algún ejemplo en que se aplique en el código?
+81e11826-eb31-4204-bf91-65f0581d723f,¿Qué herramientas o procesos se utilizan para gestionar las dependencias en este proyecto?
+0357a1e7-b1c3-4f58-bf0c-dc0e2d43ef4f,¿Cuál es el objetivo principal y la finalidad del proyecto?
+19e83248-f7b4-40f6-990b-1bc72d71ea4c,¿Qué herramientas específicas se utilizan para gestionar las migraciones de esquemas de base de datos? ¿Podrías proporcionarme un ejemplo en el código?
+70273f29-4891-490c-9a53-0f955d1291c6,¿Dónde puedo encontrar la documentación técnica actualizada para las tecnologías o herramientas específicas que necesito utilizar?
+b5644402-f239-4c63-b345-633044dfc6d4,¿Existe documentación formal del modelo de negocio o dominio? ¿Dónde se encuentra?
+61969571-592a-4db6-8367-5575d0fb9aec,¿Cuál es el procedimiento establecido para documentar cambios en el código? ¿Podrías proporcionar un ejemplo real de este proceso?
+996d3433-f425-4b4a-809c-5052be685729,¿Cuáles son todas las tecnologías frameworks y lenguajes utilizados en el proyecto? Podrías proporcionarme ejemplos en el código fuente de estos?
+bd60d43c-1a16-48da-af19-f4027eba0fa8,¿Cuál es la estructura detallada de clases interfaces y objetos dentro del contenedor de aplicación web?
+b348324a-afb6-4c60-84da-3a8b1254b731,¿Puedes mostrarme la jerarquía completa de llamadas para el método invoke_rag_with_repo en ModelTools?
+b733699d-b143-4f6e-abf9-6b3be125e093,"¿Cuál es el proceso completo para contribuir código al proyecto, desde la asignación hasta la integración?"
+0a4fd4f4-8020-4a71-87ed-6b196b5e913d,¿Qué nivel de participación tiene el cliente en el proceso de desarrollo y toma de decisiones?
+e15a8c9d-ac0c-42b1-bb8b-196e77515bab,Proporciona ejemplos donde se aplican los principios de la guía de código
+96c3ab84-71ce-45a2-8eed-047d7a4a4df3,¿Cuáles son las funcionalidades principales que incluye el proyecto?
+beeb9769-1f73-426d-a8c6-5a64976ee690,¿Existen tareas marcadas como good first issues para nuevos contribuyentes? ¿Dónde puedo encontrarlas?
+8ec80ce4-ba3a-4e25-9618-3129ff538da1,¿Cuáles son los estándares definidos para la nomenclatura y gestión de branches commits y pull requests? ¿podrías proporcionar ejemplos?
+2d011383-7f26-43ac-b42e-71c300c1b899,¿En qué sistema o plataforma se documentan y gestionan los requisitos del proyecto? ¿Podrías decirme cómo acceder a estos?
+71c2b199-7557-49ef-8a17-1a571d0884c9,Proporciona ejemplos donde se aplican los principios de la guía de estilos visual
+b1321cb4-2166-4279-8932-28edb5537634,¿Qué protocolos patrones o estándares se utilizan para la comunicación la aplicación web y la base de datos?
+9bbf9f4b-dc22-4917-9909-9cc3ff833457,¿Qué IDE o editor es recomendado para este proyecto y qué configuraciones específicas requiere?
+805b6641-c59b-4758-bd97-97ed36052ac4,¿Cuál es el proceso paso a paso para configurar mi entorno de desarrollo local?
+fee2d277-d0ff-42c4-8727-1182536a6904,¿Quién ha implementado la funcionalidad de embeddings de Mistral?
+04bf1388-8d36-4589-8342-6bfc557e03de,¿Cuáles son los canales oficiales de comunicación del equipo (chat email videollamadas) y para qué se usa cada una?
+fd5db527-a845-4b2d-8d10-e51b2caabe1c,¿Qué aplicaciones servicios o contenedores principales conforman el sistema y cuál es la función de cada uno?
+6790d22e-ef2e-4998-9373-5d27b58899af,¿Existen una guía o manual de despliegue con docker para el proyecto? ¿Puedes explicarme el funcionamiento de este despliegue?

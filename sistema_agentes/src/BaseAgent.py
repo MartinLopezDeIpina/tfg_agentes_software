@@ -2,9 +2,11 @@ import os.path
 from abc import ABC, abstractmethod
 from typing import List, TypedDict, Callable
 
+from langchain.smith import RunEvalConfig
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, AIMessage
 from langchain_core.runnables.graph import CurveStyle, NodeStyles
+from langchain_core.stores import BaseStore
 from langgraph.graph.graph import CompiledGraph
 
 from langsmith import Client, evaluate, aevaluate, EvaluationResult
@@ -46,7 +48,7 @@ class BaseAgent(ABC):
         self.prompt = prompt
 
     @abstractmethod
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    async def prepare_prompt(self, state, store):
         """
         Prepara los mensajes del sistema y usuario para este agente.
         Utiliza algunas de las tools para proporcionar información contextual al agente.
@@ -97,15 +99,20 @@ class BaseAgent(ABC):
                "error": True
             }
 
-    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False, evaluation_name: str = None):
+    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False, evaluation_name: str = None, dataset_name: str = None, dataset_split: str = None):
         if not evaluation_name:
             evaluation_name = f"{self.name} evaluation"
 
         evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
 
-        agent_name = self.name if not is_prueba else f"{self.name}_prueba"
-        dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=agent_name)
-        if not dataset:
+        if not dataset_name:
+            dataset_name = self.name if not is_prueba else f"{self.name}_prueba"
+            dataset_name = f"evaluate_{dataset_name}"
+
+        splits = [dataset_split] if dataset_split else []
+        data=langsmith_client.list_examples(dataset_name=dataset_name, splits=splits)
+
+        if not data:
             print(f"Evaluation dataset for {self.name} not found")
             return
 
@@ -113,7 +120,7 @@ class BaseAgent(ABC):
 
         results = await aevaluate(
             run_function,
-            data=dataset,
+            data=data,
             client=langsmith_client,
             evaluators=evaluator_functions,
             max_concurrency=max_conc,

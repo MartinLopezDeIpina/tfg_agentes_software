@@ -1,25 +1,33 @@
 import asyncio
+import os
 from typing import List
 
 from dotenv import load_dotenv
 from langgraph.managed.is_last_step import RemainingSteps
 from langsmith import Client
+from sklearn.datasets import make_blobs
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
+from config import default_llm
 from src.db.documentation_indexer import AsyncPGVectorRetriever
+from src.db.langchain_store_utils import delete_all_memory_documents, visualize_clusters, print_elbow_graph
 from src.db.pgvector_utils import PGVectorStore
-from src.formatter_agent.formatter_graph import FormatterAgent
+from src.db.postgres_connection_manager import PostgresPoolManager
+from src.difficulty_classifier_agent.double_main_agent import DoubleMainAgent
+from src.evaluators.dataset_utils import create_question_classifier_dataset, create_langsmith_datasets
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
-from src.main_agent.main_graph import BasicMainAgent , OrchestratorOnlyMainAgent
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
-    DummyOrchestratorAgent, ReactOrchestratorAgent
-from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent, OrchestratorPlannerAgent
+from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
+from src.planner_agent.planner_agent_graph import PlannerAgent, OrchestratorPlannerAgent
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.specialized_agents.confluence_agent.confluence_agent_graph import ConfluenceAgent, CachedConfluenceAgent
+from src.difficulty_classifier_agent.difficulty_classifier_graph import ClassifierAgent
 from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
 from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
 from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
+from langchain_huggingface.llms import HuggingFacePipeline
+from huggingface_hub import login
 
 
 def get_specialized_agents():
@@ -57,7 +65,7 @@ async def evaluate_confluence_agent():
     await evaluate_specialized_agent(ConfluenceAgent())
 
 async def evaluate_cached_confluence_agent():
-    await evaluate_specialized_agent(CachedConfluenceAgent())
+    await evaluate_specialized_agent(CachedConfluenceAgent(use_memory=False))
 
 async def evaluate_code_agent():
     await evaluate_specialized_agent(CodeAgent())
@@ -124,13 +132,12 @@ async def evaluate_orchestrator_planner_agent():
         await agents[0].cleanup()
 
 async def debug_agent():
-    agent = CodeAgent()
+    agent = CodeAgent(use_memory=False)
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
             "query":  "Qué sistemas de despliegue hay disponibles?",
             "remaining_steps": RemainingSteps(2)
-
         })
     except Exception as e:
         print(f"Error ejecutando agente {agent.name}: {e}")
@@ -150,25 +157,32 @@ async def pruebas_pgvector_store():
 async def call_agent():
     """
     Configuraciones posibles main - planner - orchestrator:
-        - orchestrator_only, basic
+        - orchestrator_only, none, basic
         - orchestrator_only, none, react
         - basic, orchestrator_planner, dummy
         - basic, basic, basic
         - basic, basic, react
     """
+
     try:
         # Construcción de agente con BasicMain + BasicPlanner + ReactOrchestrator (configuración válida)
         builder = FlexibleAgentBuilder()
-        agent = (await (builder
+        agent = await (await (builder
                        .reset()
-                       .with_main_agent_type("orchestrator_only")
-                       .with_planner_type("none")
-                       .with_orchestrator_type("react")
-                       .with_specialized_agents()
+                       .with_main_agent_type("basic")
+                       .with_planner_type("orchestrator_planner")
+                       .with_orchestrator_type("dummy")
+                       .with_specialized_agents([
+                            CodeAgent(use_memory=False),
+                            CachedConfluenceAgent(use_memory=False),
+                            GitlabAgent(use_memory=False),
+                            FileSystemAgent(use_memory=False),
+                            GoogleDriveAgent(use_memory=False),
+                        ])
                        .initialize_agents())).build()
 
         result = await agent.execute_agent_graph_with_exception_handling({
-            "query": "Dime ejemplos en el código donde se aplique la guía de estilos del proyecto",
+            "query": "Cómo se gestionan las migraciones de la base de datos?",
             "messages": []
         })
     finally:
@@ -178,31 +192,137 @@ async def evaluate_main_agent(is_prueba: bool = True):
     try:
         builder = FlexibleAgentBuilder()
         ls_client = Client()
-        agent = (await (builder
+        agent = await (await (builder
                         .reset()
-                        .with_main_agent_type("orchestrator_only")
-                        .with_planner_type("none")
+                        .with_main_agent_type("basic")
+                        .with_planner_type("basic")
                         .with_orchestrator_type("react")
                         .with_specialized_agents()
                         .initialize_agents())).build()
         await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
+        #await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba, dataset_name="evaluate_main_agent_memory", dataset_split="test")
+    finally:
+        await MCPClient.cleanup()
+        
+async def delete_memory_docs():
+    store = (await PostgresPoolManager.get_instance()).get_memory_store()
+    await delete_all_memory_documents(store=store)
+
+async def init_double_main_agent() -> DoubleMainAgent:
+    builder_simple = FlexibleAgentBuilder()
+    builder_simple.with_main_agent_type("orchestrator_only") \
+        .with_planner_type("none") \
+        .with_orchestrator_type("react") \
+        .with_specialized_agents()
+    await builder_simple.initialize_agents()
+    simple_agent = await builder_simple.build()
+
+    builder_complex = FlexibleAgentBuilder()
+    builder_complex.with_main_agent_type("basic") \
+        .with_planner_type("orchestrator_planner") \
+        .with_orchestrator_type("dummy") \
+        .with_specialized_agents()
+    await builder_complex.initialize_agents()
+    complex_agent = await builder_complex.build()
+
+    classifier_agent = ClassifierAgent(
+        use_tuned_model=True
+    )
+
+    double_main_agent = DoubleMainAgent(
+        classifier_agent=classifier_agent,
+        simple_main_agent=simple_agent,
+        complex_main_agent=complex_agent
+    )
+    await double_main_agent.init_memory_store()
+
+    return double_main_agent
+
+async def execute_double_main_agent():
+    try:
+        double_main_agent = await init_double_main_agent()
+        query= "Qué formas de despliegue hay disponibles en el proyecto?"
+        result = await double_main_agent.execute_agent_graph_with_exception_handling(
+            input={"query": query}
+        )
     finally:
         await MCPClient.cleanup()
 
+async def evaluate_double_main_agent():
+    try:
+        double_main_agent = await init_double_main_agent()
+        await double_main_agent.evaluate_agent(langsmith_client=Client(), is_prueba=False)
+    finally:
+        await MCPClient.cleanup()
+
+async def evaluate_classifier_agent():
+    agent = ClassifierAgent(use_tuned_model=True)
+    await agent.evaluate_agent(langsmith_client=Client())
+
+async def probar_modelo_hf():
+    login(token=os.getenv("HUGGINGFACEHUB_API_TOKEN"))
+    model_id = "MartinElMolon/RoBERTa_question_difficulty_classifier"
+
+    classifier = pipeline("text-classification", model=model_id)
+
+    resultado = classifier("Qué metodología de gestión se utiliza?")
+    print(resultado)
+
+def printear_graficos():
+    # Generar datos de ejemplo
+    n_samples = 100
+    n_features = 50  # Dimensionalidad original alta
+    n_clusters = 4
+
+    # Crear vectores de ejemplo (simulando embeddings de documentos)
+    vectors, true_labels = make_blobs(n_samples=n_samples,
+                                     centers=n_clusters,
+                                     n_features=n_features,
+                                     random_state=42)
+
+    # Llamar a la función mejorada
+    visualize_clusters(vectors, true_labels, agent_name="Agente Ejemplo")
+    # Valores de K probados
+
+    K = list(range(1, 11))  # De 1 a 10 clusters
+
+    # Distorsiones simuladas (típicamente decrecen con tendencia de codo)
+    distortions = [150, 80, 50, 30, 22, 18, 15, 13, 11, 10]
+
+    # Parámetros del método del codo
+    optimal_k = 4  # Suponiendo que 4 es el k óptimo
+    elbow_idx = 2  # Índice donde está el verdadero codo (K=3)
+    adjusted_idx = 3  # Índice ajustado por algún criterio adicional (K=4)
+
+    # Llamar a la función mejorada
+    print_elbow_graph(K, distortions, optimal_k, elbow_idx, adjusted_idx)
 
 if __name__ == '__main__':
     load_dotenv()
 
+
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    asyncio.run(evaluate_main_agent(is_prueba=True))
+    #asyncio.run(evaluate_main_agent(is_prueba=False))
 
     #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
 
-    #asyncio.run(pruebas())
-    #asyncio.run(call_agent())
+    #asyncio.run(prueba())
+    #clase = ClaseB()
+    #asyncio.run(clase.prueba())
+    asyncio.run(call_agent())
+    
+    #asyncio.run(evaluate_main_agent(is_prueba=True))
 
+    #create_main_agent_memory_partitioned_datasets()
 
-
-
+    #asyncio.run(delete_memory_docs())
+    #create_easy_and_hard_datasets()
+    #asyncio.run(prueba())
+    #create_question_classifier_dataset()
+    #asyncio.run(evaluate_classifier_agent())
+    #asyncio.run(evaluate_double_main_agent())
+    #asyncio.run(probar_modelo_hf())
+    #asyncio.run(execute_double_main_agent())
+    #printear_graficos()

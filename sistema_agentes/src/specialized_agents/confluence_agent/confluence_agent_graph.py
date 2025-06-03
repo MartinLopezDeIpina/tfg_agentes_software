@@ -9,15 +9,16 @@ from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 
 from src.BaseAgent import AgentState
 from src.mcp_client.mcp_multi_client import MCPClient
-from src.specialized_agents.SpecializedAgent import SpecializedAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent, SpecializedAgentState
 from src.specialized_agents.citations_tool.models import ConfluenceDataSource
 from src.utils import tab_all_lines_x_times
 from static.agent_descriptions import CONFLUENCE_AGENT_DESCRIPTION
-from static.prompts import CITE_REFERENCES_PROMPT, confluence_system_prompt, cached_confluence_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, confluence_system_prompt, cached_confluence_system_prompt, \
+    MEMORIES_PROMPT
 
 
 class BaseConfluenceAgent(SpecializedAgent, ABC):
-    def __init__(self, prompt: str, model: BaseChatModel = None, prompt_only_tools: List[str] = None):
+    def __init__(self, prompt: str, model: BaseChatModel = None, prompt_only_tools: List[str] = None, use_memory: bool = False):
         super().__init__(
             name="confluence_agent",
             description=CONFLUENCE_AGENT_DESCRIPTION,
@@ -35,8 +36,10 @@ class BaseConfluenceAgent(SpecializedAgent, ABC):
                 }
             )],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=prompt
-            )
+                agent_prompt=prompt,
+                memories_prompt=MEMORIES_PROMPT if use_memory else ""
+            ),
+            use_memory=use_memory
         )
 
     async def connect_to_mcp(self):
@@ -51,7 +54,7 @@ class ConfluenceAgent(BaseConfluenceAgent):
     def __init__(self, model: BaseChatModel = None, ):
         super().__init__(prompt=confluence_system_prompt, prompt_only_tools=[], model=model)
 
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    async def prepare_prompt(self, state: SpecializedAgentState, store = None) -> SpecializedAgentState:
         pages_tool = None
         for tool in self.tools:
             if tool.name == "confluence_search":
@@ -82,7 +85,8 @@ class ConfluenceAgent(BaseConfluenceAgent):
                 self.prompt.format(
                     confluence_pages_preview=confluence_pages_preview,
                 )
-            ),
+            )
+        ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )
@@ -91,17 +95,19 @@ class ConfluenceAgent(BaseConfluenceAgent):
         return state
 
 class CachedConfluenceAgent(BaseConfluenceAgent):
-    def __init__(self, model: BaseChatModel = None):
+    def __init__(self, model: BaseChatModel = None, use_memory: bool = False):
         super().__init__(
             prompt=cached_confluence_system_prompt,
             prompt_only_tools=[
                 "confluence_search",
                 "confluence_get_page"
             ],
-            model=model
+            model=model,
+            use_memory=use_memory
         )
 
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    async def prepare_prompt(self, state: SpecializedAgentState, store = None) -> SpecializedAgentState:
+        state = await super().prepare_prompt(state=state, store=store)
         get_page_tool = None
         search_tool = None
         for tool in self.tools:
@@ -144,7 +150,8 @@ class CachedConfluenceAgent(BaseConfluenceAgent):
                 self.prompt.format(
                     confluence_pages_preview=confluence_pages_preview,
                 )
-            ),
+            )
+        ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )

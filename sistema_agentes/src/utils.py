@@ -1,8 +1,12 @@
 from pathlib import Path
 from typing import List
 
+from langchain_core.messages import AIMessage
+from langgraph.store.base import Item, SearchItem
 from rich.console import Console
 from rich.markdown import Markdown
+
+from src.specialized_agents.citations_tool.models import Citation
 
 
 def tab_all_lines_x_times(text: str, times: int = 1) -> str:
@@ -38,4 +42,22 @@ def read_file_content(file: Path) -> str:
     except Exception as e:
         print(f"Error leyendo fichero {file}")
         return ""
+    
+def get_memory_prompt_from_docs(memory_docs: List[SearchItem]) -> List[AIMessage]:
+    """
+    Devuelve la descripción de varios documentos extraídos de una colección de memoria
+    """
+    memories_list = []
+    for i, memory in enumerate(memory_docs):
+        cites = [Citation.from_string(citation) for citation in memory.value.get("cites")]
+        cites_string = f"-Cited documents: {",".join([cite.doc_name for cite in cites])}"
+        memory_string = f"Memory passage {i}: {memory.value.get("concept")}\n\t{cites_string}"
+        memories_list.append(
+            AIMessage(
+                content=memory_string
+            )
+        )
+    return memories_list
+
+
 

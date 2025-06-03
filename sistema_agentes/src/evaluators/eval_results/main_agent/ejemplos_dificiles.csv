@@ -1,0 +1,20 @@
+id,query
+c02809aa-cf56-43b6-b351-8474f908558a,¿Existe un flujo de trabajo definido para el desarrollo de las interfaces visuales?
+a05aacd7-ac59-4907-a64a-0ff448d25bd3,¿Qué patrones o protocolos de comunicación se utilizan entre los componentes dentro del contenedor apliación web?
+1809a907-0b69-4d29-93b2-2d0a5d320a40,¿Qué estrategias o patrones se aplican para optimizar el rendimiento de las consultas a bases de datos? ¿Podrías proporcionar ejemplos en el código fuente?
+35603b1e-c126-41ba-99f1-03badec5533b,¿Qué principios de diseño (SOLID DRY) o buenas prácticas de código se aplican en el proyecto? proporciona ejemplos de código
+faab0211-5611-486d-8932-c439d241ba1e,¿Cuál es la URL completa del repositorio de código y cómo puedo acceder a él?
+fadead62-6a12-4b40-9c08-6899e5e21585,Quiero implementar el panel del administrador ¿existe algún tipo de documentación para ello?
+f14158ef-2baf-471b-8213-ce4bf03e442a,¿Qué licencias de software se aplican al código del proyecto? ¿Cuáles consideraciones legales deben tenerse en cuenta?
+9c770672-6b30-4304-bd13-29e12c3ee2b4,¿Quién es el cliente final o usuario principal de esta aplicación y cuál es su contexto de uso?
+95a9e1ca-4988-4494-8bca-3fe6305525f9,¿Dónde puedo encontrar la documentación sobre el diseño visual y la experiencia de usuario a implementar?
+6ff5dcf5-4e35-4ca9-a9b3-0555ec35abe1,¿Cuáles son los métodos más complejos o difíciles de entender en el código y por qué?
+c3d7f3cd-84ec-4430-846b-1935ab39ceec,¿Qué sistemas externos se integran o comunican con este sistema cómo se integran en el código fuente?
+c0d83ce9-2075-4681-85c1-bdc5bbddf375,¿Qué credenciales o permisos necesito para acceder a cada entorno (VPN usuarios certificados etc.)?
+09d75250-26eb-49b8-9f5c-9cd77ed325c3,¿Qué fuentes de documentación existen para el proyecto y dónde puedo encontrarlas (API / guías / licencias / estándares)?
+d521e09f-d8a1-46c1-befc-21f05c923a3f,¿Cuál es la estructura y funcionamiento detallada de clases interfaces y objetos dentro del componente tools de la aplicación web?
+a4df8a58-8f68-432e-a0c4-edabedf770f4,¿Qué reuniones periódicas o ceremonias están establecidas en el proyecto y cuál es su propósito? ¿Cuáles son los objetivos y entregables esperados para estos?
+2f76d70f-de53-4806-91a8-99701e3cc117,¿Qué documentación específica debo consultar para implementar el frontend del login?
+0d9366da-be1d-4da3-a4bf-b96f530373ec,¿Qué recursos formativos están disponibles sobre las tecnologías utilizadas en el proyecto?
+76673e6a-904a-4e00-be20-fd324b66c730,¿Quién es el líder del proyecto o responsable final de las decisiones? ¿Podrías proporcionar issues que este haya creado?
+a2280820-b114-490a-93f5-e31f786cafc6,¿Cuáles son los niveles de permiso o roles definidos para cada tipo de actor en el sistema? ¿Puedes proporcionar los niveles de privilegio de cada uno?
