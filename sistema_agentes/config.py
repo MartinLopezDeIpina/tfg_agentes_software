@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_mistralai import ChatMistralAI
 
@@ -30,11 +31,29 @@ default_reasoner_llm = ChatOpenAI(
 )
 
 """
+default_llm = ChatOpenAI(
+    model="gpt-4.1-nano"
+)
+default_reasoner_llm = ChatOpenAI(
+    model="gpt-4.1-nano"
+)
+"""
+
+
+"""
 default_llm = ChatMistralAI(
     model="mistral-medium-latest"
 )
 default_reasoner_llm = ChatMistralAI(
     model="mistral-large-latest"
+)
+"""
+"""
+default_llm = ChatGroq(
+    model="llama-3.1-8b-instant"
+)
+default_reasoner_llm = ChatGroq(
+    model="llama-3.1-8b-instant"
 )
 """
 

@@ -174,10 +174,10 @@ async def call_agent():
                        .with_orchestrator_type("dummy")
                        .with_specialized_agents([
                             CodeAgent(use_memory=False),
-                            #CachedConfluenceAgent(use_memory=False),
-                            #GitlabAgent(use_memory=False),
-                            #FileSystemAgent(use_memory=False),
-                            #GoogleDriveAgent(use_memory=False),
+                            CachedConfluenceAgent(use_memory=False),
+                            GitlabAgent(use_memory=False),
+                            FileSystemAgent(use_memory=False),
+                            GoogleDriveAgent(use_memory=False),
                         ])
                        .initialize_agents())).build()
 
@@ -303,7 +303,7 @@ if __name__ == '__main__':
 
     #asyncio.run(debug_agent())
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    asyncio.run(evaluate_main_agent(is_prueba=False))
+    #asyncio.run(evaluate_main_agent(is_prueba=False))
 
     #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
@@ -311,7 +311,7 @@ if __name__ == '__main__':
     #asyncio.run(prueba())
     #clase = ClaseB()
     #asyncio.run(clase.prueba())
-    #asyncio.run(call_agent())
+    asyncio.run(call_agent())
     
     #asyncio.run(evaluate_main_agent(is_prueba=True))
 
