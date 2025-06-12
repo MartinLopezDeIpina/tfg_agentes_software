@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code standards
+
+Use descriptive variables and function names. Follow the clean code rules, but in a moderated manner. Use comments only when necessary.
+
+Generalize when possible, create abstract solutions that consider all cases instead of multiple if statements.
+
+## Considerations
+
+The project is single threaded, do not create additional threads. All concurrency must be asyncrhonous concurrency. 
+
 ## Project Overview
 
 This is a Spanish university thesis (TFG) implementing a sophisticated multi-agent AI system for intelligent assistance. The architecture combines multiple specialized agents with vector-based retrieval and advanced orchestration patterns.
