@@ -1,8 +1,8 @@
-import asyncio
 import time
 
-from flask import Blueprint, request, jsonify
-from main import call_agent, call_agent_web
+from quart import Blueprint, request, jsonify
+from src.web_app.agent_manager import AgentManager
+from src.web_app.model_configs import get_available_models
 
 bp = Blueprint('api', __name__)
 
@@ -11,51 +11,26 @@ def prueba():
     return "Hello, World!"
 
 @bp.route('/call_test')
-def test():
-    return asyncio.run(call_agent())
+async def test():
+    agent_manager = AgentManager.get_instance()
+    return await agent_manager.handle_query(
+        model="agente-simple",
+        messages=[{"role": "user", "content": "¿Cómo se gestionan las migraciones de la base de datos?"}]
+    )
 
 @bp.route('/api/models', methods=['GET'])
 def get_models():
     """Return available agent models for OpenWebGUI"""
     return {
         "object": "list",
-        "data": [
-            {
-                "id": "agente-completo",
-                "object": "model",
-                "created": 1677652288,
-                "owned_by": "sistema-agentes",
-                "description": "Agente completo con todos los MCP servers (Código, Confluence, FileSystem, Google Drive)"
-            },
-            {
-                "id": "agente-codigo",
-                "object": "model", 
-                "created": 1677652288,
-                "owned_by": "sistema-agentes",
-                "description": "Agente especializado en análisis de código"
-            },
-            {
-                "id": "agente-simple",
-                "object": "model",
-                "created": 1677652288, 
-                "owned_by": "sistema-agentes",
-                "description": "Agente simple con funcionalidades básicas (Código y FileSystem)"
-            },
-            {
-                "id": "agente-clasificador",
-                "object": "model",
-                "created": 1677652288,
-                "owned_by": "sistema-agentes", 
-                "description": "Agente inteligente que clasifica consultas y usa el agente apropiado"
-            }
-        ]
+        "data": get_available_models()
     }
 
 @bp.route('/api/chat/completions', methods=['POST'])
-def completions():
+async def completions():
     """OpenWebGUI compatible chat completions endpoint"""
     try:
-        data = request.get_json()
+        data = await request.get_json()
         if not data:
             return jsonify({"error": {"message": "No JSON data provided"}}), 400
         
@@ -75,13 +50,14 @@ def completions():
 
         print(f"Processing request with {len(messages)} messages, model: {model}")
         
-        # Call the agentic system
-        result = asyncio.run(call_agent_web(
+        # Call the agentic system using AgentManager
+        agent_manager = AgentManager.get_instance()
+        result = await agent_manager.handle_query(
             model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens
-        ))
+        )
 
         if not result:
             result = "Lo siento, no pude procesar tu consulta en este momento."

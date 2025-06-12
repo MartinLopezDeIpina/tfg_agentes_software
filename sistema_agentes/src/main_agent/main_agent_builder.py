@@ -157,17 +157,8 @@ class FlexibleAgentBuilder:
         self._formatter_agent = formatter_agent if formatter_agent else FormatterAgent()
         return self
 
-    async def initialize_agents(self) -> 'FlexibleAgentBuilder':
-        """Inicializa los agentes especializados y crea las instancias de planner y orchestrator"""
-        # Inicializar agentes especializados
-        self._available_agents = []
-        for agent in self._specialized_agents:
-            try:
-                await agent.init_agent()
-                self._available_agents.append(agent)
-            except Exception as e:
-                print(f"Error conectando agente {agent.name}: {e}")
-
+    async def _initialize_common_agents(self) -> None:
+        """Initialize formatter, planner and orchestrator agents"""
         # Crear el agente formateador si no existe
         if not self._formatter_agent:
             self._formatter_agent = FormatterAgent()
@@ -189,6 +180,30 @@ class FlexibleAgentBuilder:
             self._orchestrator_agent = ReactOrchestratorAgent(available_agents=self._available_agents, max_steps=2)
             await self._orchestrator_agent.init_agent()
 
+    async def initialize_agents(self) -> 'FlexibleAgentBuilder':
+        """Inicializa los agentes especializados y crea las instancias de planner y orchestrator"""
+        # Inicializar agentes especializados
+        self._available_agents = []
+        for agent in self._specialized_agents:
+            try:
+                await agent.init_agent()
+                self._available_agents.append(agent)
+            except Exception as e:
+                print(f"Error conectando agente {agent.name}: {e}")
+
+        # Initialize common agents (formatter, planner, orchestrator)
+        await self._initialize_common_agents()
+        
+        return self
+
+    async def initialize_skipping_specialized_agents_initialization(self) -> 'FlexibleAgentBuilder':
+        """Initialize agents using already initialized specialized agents (skips specialized agent initialization)"""
+        # Use the provided specialized agents as available agents (they are already initialized)
+        self._available_agents = self._specialized_agents
+
+        # Initialize common agents (formatter, planner, orchestrator)
+        await self._initialize_common_agents()
+        
         return self
 
     def validate(self) -> bool:
