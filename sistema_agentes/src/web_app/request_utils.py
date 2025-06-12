@@ -8,3 +8,4 @@ def parse_model(model: str) -> BaseChatModel:
         return ChatOpenAI(model=model)
     elif model == "mistral-medium-latest":
         return ChatMistralAI(model=model)
+

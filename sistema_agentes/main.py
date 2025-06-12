@@ -152,7 +152,111 @@ async def pruebas_pgvector_store():
     docs = await retriever.ainvoke(input="LKS next", top_k=5)
     print(docs)
 
-async def call_agent():
+def get_agent_configuration(model=None):
+    """
+    Map OpenWebGUI model names to agent configurations
+    """
+    model_configs = {
+        "agente-codigo": {
+            "main_type": "basic",
+            "planner_type": "basic",
+            "orchestrator_type": "react",
+            "agents": [CodeAgent(use_memory=False)]
+        },
+        "agente-completo": {
+            "main_type": "basic",
+            "planner_type": "orchestrator_planner",
+            "orchestrator_type": "dummy",
+            "agents": [
+                CodeAgent(use_memory=False),
+                CachedConfluenceAgent(use_memory=False),
+                FileSystemAgent(use_memory=False),
+                GoogleDriveAgent(use_memory=False),
+            ]
+        },
+        "agente-simple": {
+            "main_type": "orchestrator_only",
+            "planner_type": "none",
+            "orchestrator_type": "react",
+            "agents": [
+                CodeAgent(use_memory=False),
+            ]
+        },
+        "agente-clasificador": {
+            "use_double_agent": True
+        }
+    }
+
+    # Default configuration
+    return model_configs.get(model, model_configs["agente-completo"])
+
+async def call_agent_web(model=None, messages=None, temperature=0.7, max_tokens=150):
+    try:
+        # Extract the latest user message as the query
+        query = "¿En qué puedo ayudarte?"  # Default fallback
+        conversation_messages = []
+        
+        if messages and len(messages) > 0:
+            # Get the latest user message as the main query
+            for msg in reversed(messages):
+                if msg.get('role') == 'user':
+                    query = msg.get('content', query)
+                    break
+            
+            # Prepare conversation history for the agent (exclude the current query)
+            conversation_messages = [
+                {"role": msg.get('role'), "content": msg.get('content', '')}
+                for msg in messages[:-1]
+            ]
+
+        # Get agent configuration based on model
+        config = get_agent_configuration(model)
+        
+        # Handle special case: double agent (classifier-based)
+        if config.get("use_double_agent"):
+            double_agent = await init_double_main_agent()
+            result = await double_agent.execute_agent_graph_with_exception_handling({
+                "query": query,
+                "messages": conversation_messages
+            })
+        else:
+            # Build standard agent configuration
+            builder = FlexibleAgentBuilder()
+            agent = await (await (builder
+                           .reset()
+                           .with_main_agent_type(config["main_type"])
+                           .with_planner_type(config["planner_type"])
+                           .with_orchestrator_type(config["orchestrator_type"])
+                           .with_specialized_agents(config["agents"])
+                           .initialize_agents())).build()
+
+            result = await agent.execute_agent_graph_with_exception_handling({
+                "query": query,
+                "messages": conversation_messages
+            })
+        
+        # Extract the formatted result
+        try:
+            if "formatter_result" in result:
+                return result["formatter_result"]
+            elif "response" in result:
+                return result["response"]
+            else:
+                return str(result)
+        except Exception as e:
+            return f"Error al formatear el resultado: {str(e)}"
+    
+    except Exception as e:
+        print(f"Error en call_agent_web: {str(e)}")
+        return f"Error ejecutando el agente: {str(e)}"
+    
+    finally:
+        try:
+            await MCPClient.cleanup()
+        except Exception as cleanup_error:
+            print(f"Error en cleanup: {str(cleanup_error)}")
+
+async def call_agent(model=None, messages=None, temperature=0.7, max_tokens=150):
     """
     Configuraciones posibles main - planner - orchestrator:
         - orchestrator_only, none, basic
@@ -162,6 +266,23 @@ async def call_agent():
         - basic, basic, react
     """
     try:
+        # Extract the latest user message as the query
+        query = "Cómo se gestionan las migraciones de la base de datos?"  # Default fallback
+        conversation_messages = []
+        
+        if messages and len(messages) > 0:
+            # Get the latest user message as the main query
+            for msg in reversed(messages):
+                if msg.get('role') == 'user':
+                    query = msg.get('content', query)
+                    break
+            
+            # Prepare conversation history for the agent
+            conversation_messages = [
+                {"role": msg.get('role'), "content": msg.get('content', '')}
+                for msg in messages[:-1]  # Exclude the latest message since it's the query
+            ]
+
         # Construcción de agente con BasicMain + BasicPlanner + ReactOrchestrator (configuración válida)
         builder = FlexibleAgentBuilder()
         agent = await (await (builder
@@ -171,21 +292,26 @@ async def call_agent():
                        .with_orchestrator_type("dummy")
                        .with_specialized_agents([
                             CodeAgent(use_memory=False),
-                            #CachedConfluenceAgent(use_memory=False),
+                            CachedConfluenceAgent(use_memory=False),
                             #GitlabAgent(use_memory=False),
-                            #FileSystemAgent(use_memory=False),
+                            FileSystemAgent(use_memory=False),
                             #GoogleDriveAgent(use_memory=False),
                         ])
                        .initialize_agents())).build()
 
         result = await agent.execute_agent_graph_with_exception_handling({
-            "query": "Cómo se gestionan las migraciones de la base de datos?",
-            "messages": []
+            "query": query,
+            "messages": conversation_messages
         })
+        
         try:
             return result["formatter_result"]
         except Exception as e:
-            return "Error al formatear el resultado: " + str(e)
+            return f"Error al formatear el resultado: {str(e)}"
+    
+    except Exception as e:
+        return f"Error ejecutando el agente: {str(e)}"
+    
     finally:
         await MCPClient.cleanup()
 

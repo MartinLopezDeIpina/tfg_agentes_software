@@ -25,7 +25,7 @@ if __name__ == '__main__':
                              "app/static/vendor"]
                             )
     """
-    #file_chunker.chunk_repo("/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files")
+    file_chunker.chunk_repo("/home/martin/tfg_agentes_software/servidor_mcp_bd_codigo/tests/chunker/example_files")
 
     #file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")
     #file_chunker.visualize_chunks_with_references("/home/martin/open_source/ia-core-tools")
