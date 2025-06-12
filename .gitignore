@@ -22,6 +22,8 @@ servidor_mcp_google_drive/node_modules/*
 servidor_mcp_google_drive/dist/*
 servidor_mcp_google_drive/.idea/*
 
+frontend/.venv/*
+
 # Python cache files
 __pycache__/
 **/__pycache__/

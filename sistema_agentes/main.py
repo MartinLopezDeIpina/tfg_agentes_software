@@ -8,13 +8,11 @@ from langsmith import Client
 from sklearn.datasets import make_blobs
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
-from config import default_llm
 from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.langchain_store_utils import delete_all_memory_documents, visualize_clusters, print_elbow_graph
 from src.db.pgvector_utils import PGVectorStore
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.difficulty_classifier_agent.double_main_agent import DoubleMainAgent
-from src.evaluators.dataset_utils import create_question_classifier_dataset, create_langsmith_datasets
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
@@ -163,7 +161,6 @@ async def call_agent():
         - basic, basic, basic
         - basic, basic, react
     """
-
     try:
         # Construcción de agente con BasicMain + BasicPlanner + ReactOrchestrator (configuración válida)
         builder = FlexibleAgentBuilder()
@@ -174,10 +171,10 @@ async def call_agent():
                        .with_orchestrator_type("dummy")
                        .with_specialized_agents([
                             CodeAgent(use_memory=False),
-                            CachedConfluenceAgent(use_memory=False),
-                            GitlabAgent(use_memory=False),
-                            FileSystemAgent(use_memory=False),
-                            GoogleDriveAgent(use_memory=False),
+                            #CachedConfluenceAgent(use_memory=False),
+                            #GitlabAgent(use_memory=False),
+                            #FileSystemAgent(use_memory=False),
+                            #GoogleDriveAgent(use_memory=False),
                         ])
                        .initialize_agents())).build()
 
@@ -185,6 +182,10 @@ async def call_agent():
             "query": "Cómo se gestionan las migraciones de la base de datos?",
             "messages": []
         })
+        try:
+            return result["formatter_result"]
+        except Exception as e:
+            return "Error al formatear el resultado: " + str(e)
     finally:
         await MCPClient.cleanup()
 
