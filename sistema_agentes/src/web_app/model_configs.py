@@ -38,11 +38,18 @@ class ModelConfigs:
 
         use_double_agent=True
     )
+
+    AGENTE_DUMMY = AgentConfiguration(
+        main_type=None,
+        planner_type=None,
+        orchestrator_type=None,
+    )
     
     _CONFIGS = {
         "planificador_unificado": PLANIFICADOR_UNIFICADO,
-        "agente-simple": AGENTE_SIMPLE,
-        "agente-doble": AGENTE_DOBLE
+        "agente_simple": AGENTE_SIMPLE,
+        "agente_doble": AGENTE_DOBLE,
+        "agente_dummy": AGENTE_DUMMY
     }
     
     DEFAULT_MODEL = "planificador_unificado"
@@ -67,6 +74,13 @@ def get_available_models():
     """
     return [
         {
+            "id": "agente_dummy",
+            "object": "model",
+            "created": 1677652288,
+            "owned_by": "sistema-agentes",
+            "description": "Agente dummy sin funcionalidades"
+        },
+        {
             "id": "planificador_unificado",
             "object": "model",
             "created": 1677652288,
@@ -74,14 +88,14 @@ def get_available_models():
             "description": "Agente completo con planificador unificado y todos los MCP servers"
         },
         {
-            "id": "agente-simple",
+            "id": "agente_simple",
             "object": "model",
             "created": 1677652288,
             "owned_by": "sistema-agentes",
             "description": "Agente simple con funcionalidades básicas y patrón ReAct"
         },
         {
-            "id": "agente-doble",
+            "id": "agente_doble",
             "object": "model",
             "created": 1677652288,
             "owned_by": "sistema-agentes",

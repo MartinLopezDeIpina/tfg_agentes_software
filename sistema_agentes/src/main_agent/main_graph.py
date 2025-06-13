@@ -1,8 +1,8 @@
 from abc import ABC
-from typing import List
+from typing import List, Union
 
 from langchain.chains.question_answering.map_reduce_prompt import messages
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langchain_core.runnables.graph import CurveStyle, NodeStyles, MermaidDrawMethod
 from langchain_core.stores import BaseStore
 from langgraph.graph import StateGraph
@@ -20,6 +20,9 @@ from src.planner_agent.planner_agent_graph import PlannerAgent
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CitedAIMessage
+from src.utils import (
+    normalize_agent_input_for_reasoner_agent,
+)
 
 
 class MainAgent(BaseAgent, ABC):
@@ -40,6 +43,11 @@ class MainAgent(BaseAgent, ABC):
             debug=debug
         )
         self.formatter_agent = formatter_agent or FormatterAgent()
+
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """Override to handle multiple input formats and convert conversation history."""
+        normalized_input = normalize_agent_input_for_reasoner_agent(input)
+        return await super().execute_agent_graph_with_exception_handling(normalized_input)
 
     async def execute_formatter_graph(self, state: MainAgentState):
         messages = state.get("messages")

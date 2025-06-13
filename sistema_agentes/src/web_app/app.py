@@ -11,13 +11,11 @@ app.register_blueprint(bp)
 
 @app.before_serving
 async def startup():
-    """Initialize the AgentManager before serving requests"""
     agent_manager = AgentManager.get_instance()
     await agent_manager.initialize()
 
 @app.after_serving
 async def cleanup():
-    """Cleanup the AgentManager after serving"""
     await AgentManager.clean()
 
 if __name__ == '__main__':

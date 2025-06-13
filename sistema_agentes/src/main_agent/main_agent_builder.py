@@ -168,7 +168,7 @@ class FlexibleAgentBuilder:
             self._planner_agent = BasicPlannerAgent(max_steps=2)
         elif self._planner_type == PlannerAgentType.ORCHESTRATOR_PLANNER:
             self._planner_agent = OrchestratorPlannerAgent(available_agents=self._available_agents)
-        else:  # NONE
+        else:
             self._planner_agent = None
 
         # Crear el orquestador según el tipo seleccionado

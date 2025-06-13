@@ -1,4 +1,6 @@
 from typing import Dict, List, Optional
+
+from src.dummy_agent_graph import DummyAgent
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
 from src.main_agent.main_graph import MainAgent
 from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
@@ -65,18 +67,19 @@ class AgentManager:
         if config.use_double_agent:
             cache_key = "double_agent"
         else:
-            cache_key = f"{config.main_type.value}_{config.planner_type.value}_{config.orchestrator_type.value}"
+            cache_key = f"{getattr(config.main_type, 'value', 'none')}_{getattr(config.planner_type, 'value', 'none')}_{getattr(config.orchestrator_type, 'value', 'none')}"
         
-        # Return cached agent if exists
         if cache_key in self.main_agents_cache:
             print(f"Returning cached agent for configuration: {cache_key}")
             return self.main_agents_cache[cache_key]
         
-        # Create new agent and cache it
         print(f"Creating new agent for configuration: {cache_key}")
         
         if config.use_double_agent:
             agent = await self._create_double_main_agent()
+        # Este if no es nada limpio, habría que abstraer
+        elif not config.main_type:
+            agent = DummyAgent()
         else:
             builder = FlexibleAgentBuilder()
             agent = await (await (builder
@@ -86,8 +89,6 @@ class AgentManager:
                            .with_orchestrator_type(config.orchestrator_type.value)
                            .with_specialized_agents(self.available_agents)
                            .initialize_skipping_specialized_agents_initialization())).build()
-        
-        # Cache the created agent
         self.main_agents_cache[cache_key] = agent
         
         return agent
@@ -157,18 +158,9 @@ class AgentManager:
                 "query": query,
                 "messages": conversation_messages
             })
-            
-            # Extract the formatted result
-            try:
-                if "formatter_result" in result:
-                    return result["formatter_result"]
-                elif "response" in result:
-                    return result["response"]
-                else:
-                    return str(result)
-            except Exception as e:
-                return f"Error al formatear el resultado: {str(e)}"
-        
+            result = agent.process_result(result)
+            return result
+
         except Exception as e:
             print(f"Error en handle_query: {str(e)}")
             return f"Error ejecutando el agente: {str(e)}"

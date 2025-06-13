@@ -1,8 +1,10 @@
 from pathlib import Path
-from typing import List
+from typing import List, Union, Sequence, Tuple
 
-from langchain_core.messages import AIMessage
+from langchain_community.adapters.openai import convert_openai_messages
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, messages_from_dict
 from langgraph.store.base import Item, SearchItem
+from networkx.classes import is_empty
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -60,4 +62,91 @@ def get_memory_prompt_from_docs(memory_docs: List[SearchItem]) -> List[AIMessage
     return memories_list
 
 
+def normalize_agent_input_for_reasoner_agent(input_dict: dict) -> dict:
+    query = input_dict.get("query", "")
+    messages = input_dict.get("messages", [])
+    try:
+        messages = convert_openai_messages(messages)
+    except Exception as e:
+        print("Error parsing messages from input dictionary, using empty list.")
+        messages = []
+    messages.append(HumanMessage(content=query))
 
+    if len(messages) > 1:
+        conversation_text = format_conversation_as_query(messages)
+        input_dict["query"] = conversation_text
+
+    return input_dict
+
+def format_conversation_as_query(messages: List[BaseMessage]) -> str:
+    """Convert conversation messages into a single descriptive query text for planner."""
+    if not messages:
+        return ""
+    
+    conversation_parts = []
+
+    for msg in messages[:-1]:
+        if isinstance(msg, HumanMessage):
+            conversation_parts.append(f"User: {msg.content}")
+        elif isinstance(msg, AIMessage):
+            conversation_parts.append(f"Assistant: {msg.content}")
+
+    context_summary = "Previous conversation context:\n" + "\n".join(conversation_parts)
+    return f"{context_summary}\n\nCurrent user request: {messages[-1].content}"
+
+
+def validate_messages_format(messages: List[dict]) -> tuple[bool, str]:
+    """
+    Validate the format of messages from frontend requests.
+    
+    Args:
+        messages: List of message dictionaries with 'role' and 'content' keys
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if not messages:
+        return False, "No messages provided"
+    
+    for i, msg in enumerate(messages):
+        if not isinstance(msg, dict):
+            return False, f"Message {i} is not a dictionary"
+        
+        if 'role' not in msg:
+            return False, f"Message {i} missing 'role' field"
+        
+        if 'content' not in msg:
+            return False, f"Message {i} missing 'content' field"
+        
+        if not isinstance(msg['content'], str):
+            return False, f"Message {i} 'content' must be a string"
+        
+        valid_roles = ['user', 'assistant', 'system']
+        if msg['role'] not in valid_roles:
+            return False, f"Message {i} has invalid role '{msg['role']}'. Must be one of: {valid_roles}"
+    
+    return True, ""
+
+
+def calculate_token_usage(messages: List[dict], result) -> Tuple[int, int, int, str]:
+    """
+    Calculate token usage for OpenAI-compatible API response.
+    Args:
+        messages: List of input messages
+        result: Agent result (can be CitedAIMessage or string)
+    Returns:
+        Tuple of (prompt_tokens, completion_tokens, total_tokens, result_content)
+    """
+    prompt_content = ' '.join([msg.get('content', '') for msg in messages])
+    prompt_tokens = len(prompt_content.split())
+    
+    # Handle CitedAIMessage objects vs strings
+    if hasattr(result, 'content'):
+        completion_tokens = len(str(result.content).split())
+        result_content = str(result.content)
+    else:
+        completion_tokens = len(str(result).split())
+        result_content = str(result)
+    
+    total_tokens = prompt_tokens + completion_tokens
+    return prompt_tokens, completion_tokens, total_tokens, result_content
