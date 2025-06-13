@@ -133,15 +133,13 @@ class AgentManager:
         Handle a user query using the appropriate agent
         """
         try:
-            # Extract the latest user message as the query
-            query = "¿En qué puedo ayudarte?"  # Default fallback
             conversation_messages = []
             
             if messages and len(messages) > 0:
                 # Get the latest user message as the main query
                 for msg in reversed(messages):
                     if msg.get('role') == 'user':
-                        query = msg.get('content', query)
+                        query = msg.get('content')
                         break
                 
                 # Prepare conversation history for the agent (exclude the current query)

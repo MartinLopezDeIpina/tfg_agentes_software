@@ -41,7 +41,6 @@ async def completions():
         max_tokens = data.get('max_tokens', 1500)  # Increased for longer responses
         stream = data.get('stream', False)
 
-        # Validate messages format using utils function
         is_valid, error_message = validate_messages_format(messages)
         if not is_valid:
             return jsonify({"error": {"message": error_message}}), 400

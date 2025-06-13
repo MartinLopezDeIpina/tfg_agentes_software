@@ -61,21 +61,30 @@ def get_memory_prompt_from_docs(memory_docs: List[SearchItem]) -> List[AIMessage
         )
     return memories_list
 
-
-def normalize_agent_input_for_reasoner_agent(input_dict: dict) -> dict:
-    query = input_dict.get("query", "")
+def _normalize_messages(input_dict: dict) -> list:
     messages = input_dict.get("messages", [])
     try:
         messages = convert_openai_messages(messages)
     except Exception as e:
         print("Error parsing messages from input dictionary, using empty list.")
         messages = []
-    messages.append(HumanMessage(content=query))
+    return messages
 
+def normalize_agent_input_for_reasoner_agent(input_dict: dict) -> dict:
+    query = input_dict.get("query", "")
+    messages = _normalize_messages(input_dict)
+
+    messages.append(HumanMessage(content=query))
     if len(messages) > 1:
         conversation_text = format_conversation_as_query(messages)
         input_dict["query"] = conversation_text
 
+    input_dict["messages"] = messages
+    return input_dict
+
+def normalize_agent_input_for_orchestrator_agent(input_dict: dict) -> dict:
+    messages = _normalize_messages(input_dict)
+    input_dict["messages"] = messages
     return input_dict
 
 def format_conversation_as_query(messages: List[BaseMessage]) -> str:

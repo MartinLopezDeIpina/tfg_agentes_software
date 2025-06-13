@@ -21,7 +21,7 @@ from src.planner_agent.state import MainAgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CitedAIMessage
 from src.utils import (
-    normalize_agent_input_for_reasoner_agent,
+    normalize_agent_input_for_reasoner_agent, normalize_agent_input_for_orchestrator_agent,
 )
 
 
@@ -43,11 +43,6 @@ class MainAgent(BaseAgent, ABC):
             debug=debug
         )
         self.formatter_agent = formatter_agent or FormatterAgent()
-
-    async def execute_agent_graph_with_exception_handling(self, input: dict):
-        """Override to handle multiple input formats and convert conversation history."""
-        normalized_input = normalize_agent_input_for_reasoner_agent(input)
-        return await super().execute_agent_graph_with_exception_handling(normalized_input)
 
     async def execute_formatter_graph(self, state: MainAgentState):
         messages = state.get("messages")
@@ -89,6 +84,11 @@ class BasicMainAgent(MainAgent):
         )
         self.planner_agent = planner_agent
         self.orchestrator_agent = orchestrator_agent
+
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """Override to handle multiple input formats and convert conversation history."""
+        normalized_input = normalize_agent_input_for_reasoner_agent(input)
+        return await super().execute_agent_graph_with_exception_handling(normalized_input)
 
     async def execute_orchestrator_graph(self, state: MainAgentState) -> MainAgentState:
         if "planner_high_level_plan" in state:
@@ -156,10 +156,15 @@ class OrchestratorOnlyMainAgent(MainAgent):
         )
         self.orchestrator_agent = orchestrator_agent
 
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """Override to handle multiple input formats and convert conversation history."""
+        normalized_input = normalize_agent_input_for_orchestrator_agent(input)
+        return await super().execute_agent_graph_with_exception_handling(normalized_input)
+
     async def execute_orchestrator_direct(self, state: MainAgentState) -> MainAgentState:
-        # Procesar la consulta directamente con el orquestrador, sin un plan estructurado
         result = await self.orchestrator_agent.execute_agent_graph_with_exception_handling({
             "planner_high_level_plan": state["query"],
+            "messages": state["messages"]
         })
         specialized_agents_responses = self.orchestrator_agent.process_result(result)
         if specialized_agents_responses:
@@ -169,7 +174,6 @@ class OrchestratorOnlyMainAgent(MainAgent):
 
     async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
         print(f"--> Ejecutando agente {self.name} (sin planificador)")
-        state["messages"] = []
         return state
 
     def create_graph(self) -> CompiledGraph:
