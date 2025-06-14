@@ -22,10 +22,14 @@ MAX_REFERENCING_CHUNKS = 1
 
 LLM_TEMPERATURE = 0.5
 
+#DIRECTROY_TO_INDEX="/home/martin/open_source/ia-core-tools"
+# No se usa para los tests por lo que no es necesario cambiarlo
+#REPO_ROOT_ABSOLUTE_PATH = os.environ.get("REPO_ROOT_ABSOLUTE_PATH", "/home/martin/open_source/ia-core-tools")
+DIRECTROY_TO_INDEX="/home/martin/openwebui_docs/docs"
+REPO_ROOT_ABSOLUTE_PATH = os.environ.get("REPO_ROOT_ABSOLUTE_PATH", "/home/martin/openwebui_docs/docs")
+
 TEST_EXAMPLE_FILES_PATH = "tests/chunker/example_files"
 ROOT_DIR = os.environ.get("ROOT_DIR", os.path.dirname(os.path.abspath(__file__)))
-# No se usa para los tests por lo que no es necesario cambiarlo
-REPO_ROOT_ABSOLUTE_PATH = os.environ.get("REPO_ROOT_ABSOLUTE_PATH", "/home/martin/open_source/ia-core-tools")
 
 # directorios a ignorar solo para la visualización del aŕbol
 TREE_STR_IGNORE_DIRS = [".git"]
