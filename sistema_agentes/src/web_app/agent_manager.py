@@ -151,7 +151,7 @@ class AgentManager:
             # Get the appropriate agent
             agent = await self.get_or_create_main_agent(model)
             
-            # Execute the agent
+            # Execute the agent (StreamManager handles streaming internally)
             result = await agent.execute_agent_graph_with_exception_handling({
                 "query": query,
                 "messages": conversation_messages

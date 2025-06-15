@@ -48,7 +48,7 @@ class OrchestratorAgent(BaseAgent, ABC):
         super().__init__(
             name="orchestrator_agent",
             model=model,
-            debug=debug
+            debug=debug,
         )
         self.available_agents = available_agents
 

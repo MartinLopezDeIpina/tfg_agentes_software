@@ -1,21 +1,25 @@
-from typing import List
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.graph import CompiledGraph
 from langsmith import Client
 
-from config import default_llm
+from config import default_llm, dummy_llm
 from src.BaseAgent import BaseAgent, AgentState
 
 
 class DummyAgent(BaseAgent):
     """
     Agente simple que ejecuta el modelo directamente sin lógica compleja.
-    Ideal para tareas básicas como generación de títulos, resúmenes simples, etc.
+    Para tareas básicas como generación de títulos, resúmenes simples.
     """
 
-    def __init__(self, name: str = "dummy_agent", model=default_llm, debug: bool = True, prompt: str = ""):
-        super().__init__(name, model, debug, prompt)
+    def __init__(self, name: str = "dummy_agent", model=dummy_llm, debug: bool = True, prompt: str = ""):
+        super().__init__(
+            name=name,
+            model=model,
+            debug=debug,
+            prompt=prompt,
+        )
 
     async def prepare_prompt(self, state: AgentState, store=None) -> AgentState:
         messages = state.get("messages", [])

@@ -23,6 +23,7 @@ from src.specialized_agents.citations_tool.models import CitedAIMessage
 from src.utils import (
     normalize_agent_input_for_reasoner_agent, normalize_agent_input_for_orchestrator_agent,
 )
+from src.web_app.stream_manager import StreamManager
 
 
 class MainAgent(BaseAgent, ABC):
@@ -40,7 +41,7 @@ class MainAgent(BaseAgent, ABC):
         super().__init__(
             name="main_agent",
             model=None,
-            debug=debug
+            debug=debug,
         )
         self.formatter_agent = formatter_agent or FormatterAgent()
 
@@ -118,8 +119,6 @@ class BasicMainAgent(MainAgent):
 
     async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
 
-        print(f"--> Ejecutando agente {self.name}")
-
         state["planner_current_step"] = 0
         state["messages"] = []
 
@@ -173,7 +172,6 @@ class OrchestratorOnlyMainAgent(MainAgent):
         return state
 
     async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
-        print(f"--> Ejecutando agente {self.name} (sin planificador)")
         return state
 
     def create_graph(self) -> CompiledGraph:

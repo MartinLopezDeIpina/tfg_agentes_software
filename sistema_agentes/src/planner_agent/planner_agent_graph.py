@@ -38,7 +38,7 @@ class PlannerAgent(BaseAgent, ABC):
         super().__init__(
             name="planner_agent",
             model=planner_model,
-            debug = debug
+            debug = debug,
         )
 
         self.structure_model = structure_model
@@ -85,6 +85,11 @@ class PlannerAgent(BaseAgent, ABC):
 
         planner_scratchpad = await self.model.ainvoke(
             input=planner_input
+        )
+
+        await self.stream_manager.emit_planner_activity(
+            plan_content=planner_scratchpad.content,
+            activity_description="plan de orquestación completado"
         )
 
         state["planner_scratchpad"] = planner_scratchpad.content

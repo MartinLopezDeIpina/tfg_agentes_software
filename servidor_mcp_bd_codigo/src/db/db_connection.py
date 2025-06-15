@@ -8,7 +8,7 @@ class DBConnection:
     DB_PASSWORD='c09f61d6f'
     DB_HOST='localhost'
     DB_PORT='5432'
-    DB_NAME='postgres_2'
+    DB_NAME='postgres'
 
     """
     Devuelve una instancia del patrón Singleton para la conexión a la base de datos.

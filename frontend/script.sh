@@ -6,5 +6,6 @@ docker run -d \
   -e OPENAI_API_KEY=none \
   -e TASK_MODEL_EXTERNAL="agente_dummy" \
   -e RAG_EMBEDDING_MODEL="" \
+  -e GLOBAL_LOG_LEVEL="DEBUG" \
   --name open-webui \
   ghcr.io/open-webui/open-webui:main
