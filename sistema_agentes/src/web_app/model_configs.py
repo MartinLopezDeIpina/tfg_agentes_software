@@ -68,37 +68,29 @@ def get_model_configuration(model: str = None) -> AgentConfiguration:
     """
     return ModelConfigs.get_configuration(model)
 
+def get_tasks_model():
+    return[
+        {
+            "id": "agente_dummy",
+            "name": "agente_dummy",
+        },
+    ]
+
 def get_available_models():
     """
     Get list of available model configurations for OpenWebGUI
     """
     return [
         {
-            "id": "agente_dummy",
-            "object": "model",
-            "created": 1677652288,
-            "owned_by": "sistema-agentes",
-            "description": "Agente dummy sin funcionalidades"
-        },
-        {
             "id": "planificador_unificado",
-            "object": "model",
-            "created": 1677652288,
-            "owned_by": "sistema-agentes",
-            "description": "Agente completo con planificador unificado y todos los MCP servers"
+            "name": "planificador_unificado",
         },
         {
             "id": "agente_simple",
-            "object": "model",
-            "created": 1677652288,
-            "owned_by": "sistema-agentes",
-            "description": "Agente simple con funcionalidades básicas y patrón ReAct"
+            "name": "agente_simple",
         },
         {
             "id": "agente_doble",
-            "object": "model",
-            "created": 1677652288,
-            "owned_by": "sistema-agentes",
-            "description": "Agente inteligente que clasifica consultas y usa el agente apropiado"
+            "name": "agente_doble",
         }
     ]

@@ -8,4 +8,6 @@ class Config:
     DEBUG = False
     HOST = '0.0.0.0'
     PORT = BACKEND_PORT
+    # Importante porque sino se cancela el streaming en 60 segundos
+    RESPONSE_TIMEOUT=300
 

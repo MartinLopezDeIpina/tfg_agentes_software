@@ -8,7 +8,7 @@ from quart import Blueprint, request, jsonify, Response
 
 from src.specialized_agents.citations_tool.models import Citation
 from src.web_app.agent_manager import AgentManager
-from src.web_app.model_configs import get_available_models
+from src.web_app.model_configs import get_available_models, get_tasks_model
 from src.web_app.stream_manager import StreamManager
 from src.utils import validate_messages_format, calculate_token_usage
 
@@ -30,6 +30,13 @@ async def test():
 
 @bp.route('/api/models', methods=['GET'])
 def get_models():
+    return {
+        "object": "list",
+        "data": get_tasks_model()
+    }
+
+@bp.route('/api/models_streaming', methods=['GET'])
+def get_models_streaming():
     """Return available agent models for OpenWebGUI"""
     return {
         "object": "list",

@@ -10,7 +10,8 @@ class Pipe:
             description="sistema agentes backend url"
         )
         REQUEST_TIMEOUT: int = Field(
-            default=60,
+            # Si toda la ejecución del backend completo tarda más de 5 minutos cancelar la petición
+            default=300,
             description="Timeout en segundos para requests al backend"
         )
 
@@ -18,11 +19,22 @@ class Pipe:
         self.valves = self.Valves()
 
     def pipes(self):
-        #todo: que llame al backend para que obtenga los modelos
-        return [{
-            "id": "modelo_backend",
-            "name": "Modelo Backend"
-        }]
+        try:
+            response = requests.get(
+                url=f"{self.valves.BACKEND_URL}/api/models_streaming",
+            )
+            if response.status_code == 200:
+                data = response.json()["data"]
+                return data
+            else:
+                raise Exception
+        except Exception as e:
+            return [
+                {
+                    "id": "error",
+                    "name": "Error al obtener modelos desde el backend"
+                }
+            ]
 
     async def pipe(self, body: dict, __user__: dict, __event_emitter__):
         self.print_log("Iniciando pipe")

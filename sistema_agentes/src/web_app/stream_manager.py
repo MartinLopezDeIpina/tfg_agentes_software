@@ -36,6 +36,9 @@ class StreamManager:
             cls._instance.dummy_llm = dummy_llm
             cls._instance.event_queue = []
             cls._instance._stream_generator = None
+            cls._instance.iterations_since_heartbeat = 0
+            cls._instance.heartbeat_threshold = 50
+            cls._instance.last_status = "Iniciando..."
         return cls._instance
 
     @classmethod
@@ -49,6 +52,7 @@ class StreamManager:
         self._instance.is_streaming = True
         self._instance.events_sent = 0
         self._instance.event_queue = []
+        self._instance.iterations_since_heartbeat = 0
         print("StreamManager: Started streaming")
 
     def is_streaming_active(self) -> bool:
@@ -56,6 +60,15 @@ class StreamManager:
 
     def stop_streaming(self):
         self._instance.is_streaming = False
+
+    def get_last_status(self) -> str:
+        return self._instance.last_status
+
+    def get_heartbeat_threshold(self) -> int:
+        return self._instance.heartbeat_threshold
+
+    def _update_last_status(self, status: str):
+        self._instance.last_status = status
 
     async def consume_remaining_events(self) -> AsyncGenerator[str, None]:
         """Consume all remaining events in the queue without the streaming loop"""
@@ -72,10 +85,15 @@ class StreamManager:
             if self._instance.event_queue:
                 event = self._instance.event_queue.pop(0)
                 self._instance.events_sent += 1
+                self._instance.iterations_since_heartbeat = 0
                 yield f"data: {json.dumps(event)}\n\n"
             else:
                 if self._instance.is_streaming:
-                    await asyncio.sleep(0.01)
+                    self._instance.iterations_since_heartbeat += 1
+                    if self._instance.iterations_since_heartbeat >= self.get_heartbeat_threshold():
+                        await self._emit_heartbeat()
+                        self._instance.iterations_since_heartbeat = 0
+                    await asyncio.sleep(0.1)
                 else:
                     break
 
@@ -87,6 +105,7 @@ class StreamManager:
         self._instance.event_queue.append(openwebui_event)
 
     async def _emit_status_event(self, description: str, done: bool = False):
+        self._update_last_status(description)
         openwebui_event = {
             "type": "status",
             "data": {
@@ -206,6 +225,22 @@ class StreamManager:
             "data": {
                 "type": notification_type,
                 "content": message
+            }
+        }
+        self._add_event(openwebui_event)
+
+    async def _emit_heartbeat(self):
+        """Emite un heartbeat para mantener viva la conexión SSE"""
+        current_status = self.get_last_status()
+        heartbeat_status = f"{current_status}*"
+        self._update_last_status(heartbeat_status)
+        
+        openwebui_event = {
+            "type": "status",
+            "data": {
+                "description": heartbeat_status,
+                "done": False,
+                "hidden": False
             }
         }
         self._add_event(openwebui_event)

@@ -7,6 +7,7 @@ from quart import Quart
 load_dotenv()
 
 app = Quart(__name__)
+app.config.from_object(Config)
 app.register_blueprint(bp)
 
 @app.before_serving
