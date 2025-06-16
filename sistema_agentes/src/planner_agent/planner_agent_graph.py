@@ -76,6 +76,10 @@ class PlannerAgent(BaseAgent, ABC):
 
     async def execute_planner_reasoner_agent(self, state: MainAgentState):
         print("+Ejecutando agente planner")
+        await self.stream_manager.emit_agent_called(
+            agent_name=self.name,
+        )
+
         messages = state["messages"]
         if len(messages) == 1:
             # si es el primer plan que se hace

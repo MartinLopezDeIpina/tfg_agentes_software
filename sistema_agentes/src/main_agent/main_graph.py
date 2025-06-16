@@ -53,6 +53,14 @@ class MainAgent(BaseAgent, ABC):
             "messages": messages
         })
         formatter_result = self.formatter_agent.process_result(result)
+
+        for cite in formatter_result.citations:
+            await self.stream_manager.emit_citation(cite)
+        await self.stream_manager.emit_formatter_generation(
+            content=formatter_result.content
+        )
+        await self.stream_manager.emit_generation_finished()
+
         state["formatter_result"] = formatter_result
         return state
 

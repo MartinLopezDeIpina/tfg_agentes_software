@@ -1,7 +1,7 @@
-import time
 import json
 import uuid
 import asyncio
+import time
 
 from langchain_core.messages import BaseMessage
 from quart import Blueprint, request, jsonify, Response
@@ -125,38 +125,12 @@ async def handle_streaming_completion(model: str, messages: list, temperature: f
             async for event in stream_manager.stream_events():
                 yield event
 
-                # Verificar si el agente ya terminó
-                if agent_task.done():
-                    # Dar tiempo para que se procesen últimos eventos
-                    await asyncio.sleep(0.1)
-
-                    # Consumir cualquier evento restante en la cola
-                    async for last_event in stream_manager.stream_events():
-                        yield last_event
-                    break
-
-            # 4. ASEGURAR QUE EL AGENTE TERMINE
-            if not agent_task.done():
-                await agent_task
-
-            # 5. SEÑAL DE FIN
-            yield "data: [DONE]\n\n"
-
         except Exception as e:
-            # 6. MANEJO DE ERRORES
+            await stream_manager.emit_error(error_message=str(e), agent_name="main_agent")
             print(f"Streaming error: {e}")
-            error_event = {
-                "type": "notification",
-                "data": {
-                    "type": "error",
-                    "content": f"Error durante el streaming: {str(e)}"
-                }
-            }
-            yield f"data: {json.dumps(error_event)}\n\n"
-            yield "data: [DONE]\n\n"
-
         finally:
             stream_manager.stop_streaming()
+            yield "data: [DONE]\n\n"
 
     return Response(
         stream_generator(),

@@ -7,6 +7,7 @@ from src.specialized_agents.code_agent.code_agent_graph import CodeAgent
 from src.difficulty_classifier_agent.double_main_agent import DoubleMainAgent
 from src.difficulty_classifier_agent.difficulty_classifier_graph import ClassifierAgent
 from src.mcp_client.mcp_multi_client import MCPClient
+from src.specialized_agents.confluence_agent.confluence_agent_graph import CachedConfluenceAgent
 from src.web_app.model_configs import get_model_configuration
 
 
@@ -37,8 +38,8 @@ class AgentManager:
         Initialize the AgentManager by initializing specialized agents
         """
         specialized_agents = [
-            CodeAgent(use_memory=False),
             # Claude agent, do not uncomment this
+            CodeAgent(use_memory=False),
             #CachedConfluenceAgent(use_memory=False),
             #FileSystemAgent(use_memory=False),
             #GoogleDriveAgent(use_memory=False),

@@ -10,7 +10,7 @@ class Pipe:
             description="sistema agentes backend url"
         )
         REQUEST_TIMEOUT: int = Field(
-            default=300,
+            default=60,
             description="Timeout en segundos para requests al backend"
         )
 
@@ -39,6 +39,7 @@ class Pipe:
                 json=payload,
                 headers=headers,
                 stream=True,
+                timeout=self.valves.REQUEST_TIMEOUT,
             )
 
             r.raise_for_status()
@@ -49,6 +50,8 @@ class Pipe:
             else:
                 self.print_log("STREAM==FALSE")
                 return r.json()
+        except requests.exceptions.Timeout:
+            return f"Error: Request timeout after {self.valves.REQUEST_TIMEOUT} seconds"
         except Exception as e:
             return f"Error: {e}"
 

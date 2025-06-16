@@ -113,7 +113,6 @@ class FormatterAgent(BaseAgent):
                 try:
                     cite = available_citations[output_citation.cite_id]
                     formatter_citations.append(cite)
-                    await self.stream_manager.emit_citation(cite)
                 except Exception as e:
                     print(f"Formatter no ha formateado bien una cita: {e}")
 

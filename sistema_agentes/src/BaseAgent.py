@@ -81,6 +81,7 @@ class BaseAgent(ABC):
         """
         await self.stream_manager.emit_agent_called(
             agent_name=self.name,
+            task=input.get("query")
         )
         agent_graph = self.create_graph()
         try:

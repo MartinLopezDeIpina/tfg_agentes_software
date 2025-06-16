@@ -1,6 +1,7 @@
+import uuid
 from typing import Dict, Optional, Any, AsyncGenerator
 from enum import Enum
-from datetime import datetime
+import time
 from langchain_core.messages import SystemMessage
 from config import dummy_llm
 from src.specialized_agents.citations_tool.models import Citation
@@ -45,62 +46,66 @@ class StreamManager:
         return cls._instance
 
     def start_streaming(self):
-        self.is_streaming = True
-        self.events_sent = 0
-        self.event_queue = []
+        self._instance.is_streaming = True
+        self._instance.events_sent = 0
+        self._instance.event_queue = []
         print("StreamManager: Started streaming")
 
-    def stop_streaming(self):
-        if self.is_streaming:
-            print(f"StreamManager: Stopped streaming. Events sent: {self.events_sent}")
-        self.is_streaming = False
-        self.events_sent = 0
-        self.event_queue = []
-
     def is_streaming_active(self) -> bool:
-        return self.is_streaming
+        return self._instance.is_streaming
+
+    def stop_streaming(self):
+        self._instance.is_streaming = False
+
+    async def consume_remaining_events(self) -> AsyncGenerator[str, None]:
+        """Consume all remaining events in the queue without the streaming loop"""
+        while self._instance.event_queue:
+            event = self._instance.event_queue.pop(0)
+            self._instance.events_sent += 1
+            yield f"data: {json.dumps(event)}\n\n"
 
     async def stream_events(self) -> AsyncGenerator[str, None]:
         """
         Generador principal que yielda eventos en formato SSE.
         """
-        empty_cycles = 0
-        max_empty_cycles = 10  # Número de ciclos vacíos antes de terminar
-
-        while self.is_streaming or self.event_queue:
-            if self.event_queue:
-                event = self.event_queue.pop(0)
-                self.events_sent += 1
-                empty_cycles = 0  # Reset counter cuando hay eventos
+        while self._instance.is_streaming or self._instance.event_queue:
+            if self._instance.event_queue:
+                event = self._instance.event_queue.pop(0)
+                self._instance.events_sent += 1
                 yield f"data: {json.dumps(event)}\n\n"
             else:
-                # Si no hay eventos y el streaming está activo, esperar
-                if self.is_streaming:
+                if self._instance.is_streaming:
                     await asyncio.sleep(0.01)
                 else:
-                    # Si el streaming terminó, incrementar contador
-                    empty_cycles += 1
-                    if empty_cycles >= max_empty_cycles:
-                        break
-                    await asyncio.sleep(0.01)
+                    break
 
     def _add_event(self, openwebui_event: Dict[str, Any]):
         """Agrega un evento a la cola interna"""
         if not self.is_streaming_active():
             return
 
-        self.event_queue.append(openwebui_event)
+        self._instance.event_queue.append(openwebui_event)
 
-    async def emit_agent_called(self, agent_name: str):
+    async def _emit_status_event(self, description: str, done: bool = False):
         openwebui_event = {
             "type": "status",
             "data": {
-                "description": f"Llamando agente {agent_name}",
-                "done": False,
+                "description": description,
+                "done": done,
                 "hidden": False
             }
         }
         self._add_event(openwebui_event)
+
+    async def emit_agent_called(self, agent_name: str, task: Optional[str] = None):
+        if task:
+            await self._emit_status_event(description=f"LLamando agente {agent_name}: {task}", done=False)
+        else:
+            await self._emit_status_event(description=f"LLamando agente {agent_name}", done=False)
+
+    async def emit_generation_finished(self):
+        await self._emit_status_event(description="", done=True)
+        self.stop_streaming()
 
     async def emit_planner_activity(self, plan_content: str, activity_description: str = ""):
         """Emite evento de actividad del planner con resumen del plan"""
@@ -113,39 +118,35 @@ class StreamManager:
                 [SystemMessage(content=summary_prompt)],
             )
             summary = summary_result.content if hasattr(summary_result, 'content') else str(summary_result)
-            description = f"Agente planner: {summary.strip()}"
 
         except Exception as e:
             print(f"StreamManager: Error generating planner summary: {e}")
-            description = f"Agente planner: {activity_description or 'generando plan'}"
+            summary = "generando plan"
 
+        await self.emit_agent_called(agent_name="Agente planner", task=summary)
+
+    async def emit_formatter_generation(self, content: str):
         openwebui_event = {
-            "type": "status",
-            "data": {
-                "description": description,
-                "done": False,
-                "hidden": False
+            "id": f"chatcmpl-{uuid.uuid4().hex[:8]}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": "agent_system",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": content
+                    },
+                    "finish_reason": "stop"
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0
             }
         }
-        self._add_event(openwebui_event)
-
-    async def emit_formatter_generation(self, partial_content: str, is_complete: bool = False):
-        """Emite eventos de generación en tiempo real del formatter"""
-        if is_complete:
-            openwebui_event = {
-                "type": "chat:message",
-                "data": {
-                    "content": partial_content
-                }
-            }
-        else:
-            openwebui_event = {
-                "type": "chat:message:delta",
-                "data": {
-                    "content": partial_content
-                }
-            }
-
         self._add_event(openwebui_event)
 
     async def emit_citation(self, citation: Citation):
@@ -154,17 +155,30 @@ class StreamManager:
             return
 
         try:
-            openwebui_event = {
-                "type": "source",
-                "data": {
-                    "document": [citation.doc_explanation],
-                    "metadata": [],
-                    "source": {
-                        "name": citation.doc_name,
-                        "source": citation.doc_url
+            if citation.doc_url.startswith("http") or citation.doc_url.startswith("https"):
+                openwebui_event = {
+                    "type": "source",
+                    "data": {
+                        "document": [citation.doc_explanation],
+                        "metadata": [],
+                        "source": {
+                            "name": citation.doc_name,
+                            "url": citation.doc_url
+                        }
                     }
                 }
-            }
+            else:
+                openwebui_event = {
+                    "type": "source",
+                    "data": {
+                        "document": [citation.doc_explanation],
+                        "metadata": [],
+                        "source": {
+                            "name": citation.doc_url,
+                        }
+                    }
+                }
+
             self._add_event(openwebui_event)
 
         except Exception as e:
@@ -195,8 +209,3 @@ class StreamManager:
             }
         }
         self._add_event(openwebui_event)
-
-    async def cleanup(self):
-        """Limpia el estado del streaming"""
-        if self.is_streaming:
-            self.stop_streaming()
