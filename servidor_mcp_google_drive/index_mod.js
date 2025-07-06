@@ -322,9 +322,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
     }
     else if (request.params.name === "gdrive_list_files") {
-        const pageSize = request.params.arguments?.page_size || 30;
-        const pageToken = request.params.arguments?.page_token || null;
-
         try {
             // Determinar la carpeta raíz para iniciar el listado recursivo
             const rootFolderId = config.specificFolderId;

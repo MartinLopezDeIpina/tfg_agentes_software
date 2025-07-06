@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
+from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_mistralai import ChatMistralAI
 
 load_dotenv()
 
@@ -27,8 +29,44 @@ default_llm = ChatOpenAI(
 default_reasoner_llm = ChatOpenAI(
     model="o4-mini"
 )
+
+
+dummy_llm = ChatOpenAI(
+    model="gpt-4.1-nano"
+)
+
+"""
+default_llm = ChatOpenAI(
+    model="gpt-4.1-nano"
+)
+default_reasoner_llm = ChatOpenAI(
+    model="gpt-4.1-nano"
+)
+"""
+
+
+"""
+default_llm = ChatMistralAI(
+    model="mistral-medium-latest"
+)
+default_reasoner_llm = ChatMistralAI(
+    model="mistral-large-latest"
+)
+"""
+"""
+default_llm = ChatGroq(
+    model="llama-3.1-8b-instant"
+)
+default_reasoner_llm = ChatGroq(
+    model="llama-3.1-8b-instant"
+)
+"""
+
 default_embedding_llm = OpenAIEmbeddings(
     model="text-embedding-3-small"
+)
+default_judge_llm = ChatOpenAI(
+    model="gpt-4.1-mini"
 )
 
 db_user=os.getenv("DB_USER")
@@ -40,4 +78,6 @@ postgre_connection_string = f"postgresql://{db_user}:{db_password}@{db_host}:{db
 psycopg_connection_string = f"postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 PGVECTOR_COLLECTION_PREFIX="collection_"
+STORE_COLLECTION_PREFIX="documents"
 
+BACKEND_PORT = 5000

@@ -12,7 +12,6 @@ import argparse
 def main():
     load_dotenv()
 
-
     confluence_url = os.getenv('CONFLUENCE_URL')
     confluence_username = os.getenv('CONFLUENCE_USERNAME')
     confluence_token = os.getenv('CONFLUENCE_TOKEN')

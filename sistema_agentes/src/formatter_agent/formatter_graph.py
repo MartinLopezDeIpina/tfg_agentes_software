@@ -10,7 +10,7 @@ from langsmith import Client
 from src.BaseAgent import AgentState, BaseAgent
 from src.formatter_agent.models import FormatterResponse
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
-from src.planner_agent.models import PlannerResponse
+from src.planner_agent.models import PlannerResponse, PlanAIMessage
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import CitedAIMessage, Citation
@@ -27,8 +27,8 @@ def get_citations_string(citations: List[Citation]) -> str:
         )
     return citation_str
 
+# todo: se podría hacer un formatter que solo coja el último mensaje y las citas y solo haga print del resultado, para usarlo con el ReactOrchestratorAgent
 class FormatterAgentState(AgentState):
-    messages: List[BaseMessage]
     available_citations: List[Citation]
 
     current_try: int
@@ -72,11 +72,20 @@ class FormatterAgent(BaseAgent):
                 content=state["query"]
             )
         ]
-        for message in state["messages"][1:]:
-            if isinstance(message, CitedAIMessage):
+        for message in state["messages"]:
+            if isinstance(message, SystemMessage):
+                continue
+            if isinstance(message, CitedAIMessage) or isinstance(message, PlanAIMessage):
                 formatter_agent_messages.append(message.format_to_ai_message())
             else:
                 formatter_agent_messages.append(message)
+
+        # Añadir de nuevo la consulta para que el modelo de mistral no de error.
+        formatter_agent_messages.append(
+            HumanMessage(
+                content=state["query"]
+            )
+        )
 
         state["messages"] = formatter_agent_messages
         return state
@@ -102,7 +111,8 @@ class FormatterAgent(BaseAgent):
             available_citations = state["available_citations"]
             for output_citation in output_citations:
                 try:
-                    formatter_citations.append(available_citations[output_citation.cite_id])
+                    cite = available_citations[output_citation.cite_id]
+                    formatter_citations.append(cite)
                 except Exception as e:
                     print(f"Formatter no ha formateado bien una cita: {e}")
 

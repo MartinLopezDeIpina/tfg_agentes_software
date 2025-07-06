@@ -1,9 +1,11 @@
 CITE_REFERENCES_PROMPT="""{agent_prompt}
+{memories_prompt}
 If a document is going to be used to answer the question, cite it with the cite_document tool.
 You can also cite the information source you have access to: cite it using the indicated document_name, as it is explained in the cite_tool description. 
 IMPORTANT: YOU CAN NOT USE A DOCUMENT'S INFORMATION TO ANSWER A QUESTION IF IT WAS NOT CITED
 IMPORTANT: IF YOU MENTION A FILE'S NAME OR ID, YOU MUST MENTION IN WHICH INFORMATION SOURCE IT IS STORED
 """
+MEMORIES_PROMPT = """You will be provided with a series of memory passages. You MUST consider them as information resources too."""
 
 google_drive_system_prompt="""You are a Google Drive researcher agent. 
 You will be provided with a list of files in a folder, including their names and IDs. Your job is to decide which files, if any, are relevant to the user's query, retrieve their contents, and provide a comprehensive answer.
@@ -19,7 +21,8 @@ Your task is to answer questions based on the files in the official documentatio
 
 Use the available tools to gather the required information to answer the user's question. 
 You should call the rag tool to retrieve relevant chunks, after that, consider if you should read the whole file.
-If it is clear which document will contain information for the query, you can read it without calling the rag tool 
+If it is clear which document will contain information for the query, you can read it without calling the rag tool.
+The tools to interact with the file system must be used with the absolute path.
 
 The available directory is: {available_directory}
 The available files are: 
@@ -86,6 +89,8 @@ PLANNER_PROMPT_INITIAL = """You are a software project information gatherer. You
 - If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
 - Clearly indicate which are the steps
 
+IMPORTANT: Your new plan should not contain steps that where previously executed and you don't want to repeat. Every step that you indicate will be executed.
+
 {few_shot_examples}
 
 User question:
@@ -93,10 +98,7 @@ User question:
 """
 PLANNER_PROMPT_AFTER = """{initial_prompt}
 
-The previous plan was: 
-{previous_plan}
-
-The execution result of the current step is:
+The execution of the current plan is:
 {step_result}
 """
 
@@ -118,6 +120,47 @@ The available agents are:
 {available_agents}
 
 {few_shots_examples}
+"""
+
+ORCHESTRATOR_PLANNER_PROMPT="""You are planner which has to create a plan to solve a user's question about a software project.
+
+You will receive the software project description and a sequence of available specialized agents description, your task is to create a brief plan on how to solve the plan calling the available agents. 
+
+- Focus solely on information gathering, not answering.
+- You must create concise plans, with the minimum number of steps possible. If the query is straightforward, you should return a single step.
+- Execute steps sequentially, reviewing results as you go and dynamically adjusting the plan. If gathering information about a topic was not successful do not try to gather information about the exact same topic.
+- Each plan step will be executed sequentially, but multiple agents can be called in a single step. For example, gathering information about X might require to call multiple agents.
+- If you have gathered enough information to answer the question, indicate that enough information has been gathered and DO NOT create additional steps.
+- Clearly indicate which are the steps
+
+IMPORTANT: Your new plan should not contain steps that where previously executed and you don't want to repeat. Every step that you indicate will be executed.
+
+{few_shot_examples}
+
+Project description: 
+{project_description}
+
+Available agents: 
+{available_agents}
+
+User question:
+{user_query}
+"""
+
+REACT_ORCHESTRATOR_PROMPT="""You are an agent orchestrator. Your task is to call different specialized agents to answer a question about a software project.
+
+You will receive a list of agents as tools to call and a question. You must analyze the question carefully and call ONLY the agents that are necessary to help answer the question effectively. For each agent you decide to call, create an appropriate individual question tailored to that agent's specific expertise or capabilities.
+
+If you execute more than one agents at a time, it will be executed in parallel. Some questions might need to sequentially wait for the response of another agent to call the necessary agent. 
+Execute in parallel agents that don't depend on each other (if any), and sequentially wait for the response before calling an agent whose query depends on other agents.
+
+-Do not answer the question if sufficient information is not available.
+-Do not call extra agents if the current responses contain enough information to answer the question.
+
+{few_shot_examples}
+
+Project description: 
+{project_description}
 """
 
 SOLVER_AGENT_PROMPT = """Your are an agent specialized in responding users questions based on the retrieved information. 
@@ -154,3 +197,44 @@ REACT_SUMMARIZER_SYSTEM_PROMPT="""You are a response summary generator.
 An agent has failed to answer a user's question, your task is to generate a useful response with the available information. 
 DO NOT hallucinate information, just answer with the available resources.
 """
+
+MEMORY_SUMMARIZER_PROMPT="""You are a technical concept extractor. Your task is to distill the key technical information from an agent's response about a software project into a single concise paragraph.
+The agent response will answer a question about a software project, basing in some source information. Your task is to explain all the concepts in a single short paragraph.
+Limit your summary to 75 words maximum. Be precise, technical, and information-dense.
+"""
+MEMORY_CLUSTER_SUMMARIZER_PROMPT="""You are a memory cluster consolidator. Your task is to synthesize multiple related memories within a single cluster into one comprehensive memory.
+
+Take the collection of memories presented and distill their core technical information into a single concise representation that captures all essential elements.
+
+Limit your consolidated memory to 75 words maximum. Be precise, technical, and ensure the summary represents all significant information from the original memories.
+
+Memories:
+{memories}
+"""
+
+CLASSIFIER_AGENT_PROMPT="""Classify the following question as "EASY" or "HARD" based on this conceptual distinction:
+
+EASY: Questions about general project knowledge that would typically be found in standard documentation and available to most team members. These questions address overall project aspects without requiring specialized knowledge of specific implementations, individual responsibilities, or internal technical details.
+
+HARD: Questions that require specific technical knowledge about particular implementations, components, algorithms, or individual responsibilities. These questions typically cannot be answered from general documentation alone and would require specialized knowledge, access to internal resources, or familiarity with specific technical details of the project.
+
+The key distinction is specificity and accessibility of information - general project knowledge (EASY) versus specific technical implementations or responsibilities (HARD).
+
+{few_shot_examples}
+
+Question to classify: {question}
+"""
+
+# Prompt en español -> modelo clasificador español
+CLASSIFIER_BERT_PROMPT="""Clasificar dificultad: 
+    
+{question}
+
+FÁCIL: información general, bien documentada, fundamental
+DIFÍCIL: implementaciones específicas, componentes concretos, personas responsables, acceso no evidente"""
+
+# Prompt en español -> respuesta en español
+PLANNER_SUMMARY_PROMPT="""resume MUY CONCISAMENTE de qué trata el plan:
+{plan_content}
+MÁXIMO una oración, no más de 10 palabras.
+Ejemplo: buscando información sobre x"""

@@ -11,11 +11,13 @@ from langgraph.constants import END
 from langgraph.graph import StateGraph
 from langgraph.graph.graph import CompiledGraph
 from langgraph.prebuilt import create_react_agent
+from langgraph.store.postgres import AsyncPostgresStore
 
 from langsmith import Client
 
 from config import default_llm
 from src.BaseAgent import AgentState, BaseAgent
+from src.db.langchain_store_utils import get_and_manage_agent_memory_docs, save_agent_memory_in_store
 from src.evaluators.cite_references_evaluator import CiteEvaluator
 from src.evaluators.llm_as_judge_evaluator import JudgeLLMEvaluator
 from src.mcp_client.mcp_multi_client import MCPClient
@@ -23,15 +25,15 @@ from src.db.postgres_connection_manager import PostgresPoolManager
 from src.specialized_agents.citations_tool.citations_tool_factory import create_citation_tool
 from src.specialized_agents.citations_tool.citations_utils import get_citations_from_conversation_messages
 from src.specialized_agents.citations_tool.models import DataSource, CitedAIMessage
-from src.utils import tab_all_lines_x_times
+from src.utils import tab_all_lines_x_times, get_memory_prompt_from_docs
 from src.evaluators.tool_precision_evaluator import ToolPrecisionEvaluator
 
-from static.prompts import REACT_SUMMARIZER_SYSTEM_PROMPT
-
+from static.prompts import REACT_SUMMARIZER_SYSTEM_PROMPT, MEMORY_SUMMARIZER_PROMPT
 
 
 class SpecializedAgentState(AgentState):
     recursion_limit_exceded: bool
+    memory_docs: List[AIMessage]
 
 class SpecializedAgent(BaseAgent):
 
@@ -41,9 +43,12 @@ class SpecializedAgent(BaseAgent):
     tools: List[BaseTool]
     mcp_client: MCPClient
     data_sources: List[DataSource]
+
     max_steps: int
     react_graph: CompiledGraph
     checkpointer: BaseCheckpointSaver
+    use_memory: bool
+    k_memory_docs: int
 
     def __init__(
         self,
@@ -54,7 +59,9 @@ class SpecializedAgent(BaseAgent):
         tools_str: List[str] = None,
         prompt_only_tools: List[str] = None,
         data_sources: List[DataSource] = None,
-        max_steps: int = 10
+        max_steps: int = 10,
+        use_memory: bool = False,
+        k_memory_docs: int = 4
     ):
         super().__init__(
             name=name,
@@ -68,6 +75,8 @@ class SpecializedAgent(BaseAgent):
         self.prompt_only_tools_str = prompt_only_tools or []
         self.data_sources = data_sources or []
         self.max_steps = max_steps
+        self.use_memory = use_memory
+        self.k_memory_docs = k_memory_docs
 
 
     @abstractmethod
@@ -81,6 +90,19 @@ class SpecializedAgent(BaseAgent):
         Sobreescribir para añadir herramientas que no están disponibles en el servidor mcp en el caso de que sean necesarias
         """
         pass
+
+    async def prepare_prompt(self, state: SpecializedAgentState, store: AsyncPostgresStore) -> SpecializedAgentState:
+        if self.use_memory:
+            try:
+                memory_docs = await get_and_manage_agent_memory_docs(store=store, agent_name=self.name, query=state.get("query"), k_docs=self.k_memory_docs)
+                state["memory_docs"] = get_memory_prompt_from_docs(memory_docs)
+            except Exception as e:
+                print(f"Error obteniendo memoria en agente {self.name}")
+                state["memory_docs"] = []
+        else:
+            state["memory_docs"] = []
+
+        return state
 
     def get_agent_tools(self):
         return [tool for tool in self.tools if tool.name not in self.prompt_only_tools_str]
@@ -158,6 +180,7 @@ class SpecializedAgent(BaseAgent):
             configurable={"thread_id": thread_id}
         )
 
+        result = {}
         try:
             result = await self.react_graph.ainvoke(
                 input={
@@ -167,23 +190,20 @@ class SpecializedAgent(BaseAgent):
             )
             if result["messages"][-1].content == "Sorry, need more steps to process this request.":
                 raise Exception("Recursion limit reached")
-            return result
         except Exception as e:
             print(f"Límite de {self.max_steps} pasos alcanzado en agente {self.name}")
             state["recursion_limit_exceded"] = True
-            last_state = await self.react_graph.aget_state(config)
-            messages = last_state.values.get("messages", [])
+            last_state = await self.checkpointer.aget(config)
+            messages = last_state["channel_values"].get("messages", [])
             state["messages"] = messages
-            return state
-        
-    def check_react_recursion_limit(self, state: SpecializedAgentState):
-        recursion_limit_exceded = state.get("recursion_limit_exceded")
-        
-        if recursion_limit_exceded:
-            return "response_summarizer"
-        else:
-            return END
-        
+            result = state
+        finally:
+            # El modelo mistral devuelve a veces el contenido en listas, convertirlo a texto
+            for message in result["messages"]:
+                if not isinstance(message.content, str) and isinstance(message, AIMessage):
+                    message.content = str(message.content)
+            return result
+
     async def generate_summarized_response(self, state: SpecializedAgentState):
         messages = state.get("messages")
         if not messages:
@@ -206,6 +226,45 @@ class SpecializedAgent(BaseAgent):
             state["messages"].append(AIMessage(content="Error ejecutando agente especializado"))
             return state
 
+    def route_memory_summarizer(self, state: SpecializedAgentState):
+        if self.use_memory:
+            return "memory_summarizer"
+        return END
+
+    def check_react_recursion_limit(self, state: SpecializedAgentState):
+        recursion_limit_exceded = state.get("recursion_limit_exceded")
+
+        if recursion_limit_exceded:
+            return "response_summarizer"
+        else:
+            return "memory_check"
+
+    async def execute_memory_summarizer_agent(self, state, store):
+        available_cites = get_citations_from_conversation_messages(state.get("messages"))
+        available_cites_serialized = [str(cite) for cite in available_cites]
+        response_message = state.get("messages")[-1]
+
+        prompt = [
+            SystemMessage(
+                content=MEMORY_SUMMARIZER_PROMPT
+            ),
+            response_message
+        ]
+
+        summarizer_response = await self.model.ainvoke(prompt)
+        stored_data = {
+            "concept": summarizer_response.content,
+            "cites": available_cites_serialized,
+            "access_count": 0
+        }
+
+        await save_agent_memory_in_store(
+            store=store,
+            values = stored_data,
+            key=uuid.uuid4().__str__(),
+            agent_name=self.name
+        )
+
     def create_graph(self) -> CompiledGraph:
         """
         Devolver el grafo compilado del agente
@@ -214,17 +273,22 @@ class SpecializedAgent(BaseAgent):
         self.react_graph = create_react_agent(
             model=self.model,
             tools=agent_tools,
-            checkpointer=self.checkpointer
+            checkpointer=self.checkpointer,
         )
-        graph_builder = StateGraph(AgentState)
+        graph_builder = StateGraph(SpecializedAgentState)
 
         graph_builder.add_node("prepare", self.prepare_prompt)
         graph_builder.add_node("react", self.call_langgraph_react_graph)
         graph_builder.add_node("response_summarizer", self.generate_summarized_response)
+        graph_builder.add_node("memory_summarizer", self.execute_memory_summarizer_agent)
+        # nodo placeholder para ir al condicional directamente
+        graph_builder.add_node("memory_check", lambda x: x)
 
         graph_builder.set_entry_point("prepare")
         graph_builder.add_edge("prepare", "react")
         graph_builder.add_conditional_edges("react", self.check_react_recursion_limit)
+        graph_builder.add_conditional_edges("memory_check", self.route_memory_summarizer)
+        graph_builder.add_conditional_edges("response_summarizer", self.route_memory_summarizer)
 
         return graph_builder.compile()
 
@@ -252,5 +316,17 @@ class SpecializedAgent(BaseAgent):
 
         result = await self.call_agent_evaluation(langsmith_client, evaluators)
         return result
+
+
+def get_agents_description(available_agents: List[SpecializedAgent]):
+    agents_description = ""
+    for agent in available_agents:
+        agents_description += f"\n-{agent.to_string()}"
+
+    return agents_description
+
+
+
+
 
 

@@ -8,13 +8,14 @@ from typing import List
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
-from src.specialized_agents.SpecializedAgent import SpecializedAgent
+from src.specialized_agents.SpecializedAgent import SpecializedAgent, SpecializedAgentState
 
 from static.agent_descriptions import GOOGLE_DRIVE_AGENT_DESCRIPTION
-from static.prompts import CITE_REFERENCES_PROMPT, google_drive_system_prompt
+from static.prompts import CITE_REFERENCES_PROMPT, google_drive_system_prompt, MEMORIES_PROMPT
+
 
 class GoogleDriveAgent(SpecializedAgent):
-    def __init__(self, model: BaseChatModel = None):
+    def __init__(self, model: BaseChatModel = None, use_memory: bool = False):
         super().__init__(
             name="google_drive_agent",
             description=GOOGLE_DRIVE_AGENT_DESCRIPTION,
@@ -31,16 +32,21 @@ class GoogleDriveAgent(SpecializedAgent):
             ],
             data_sources=[GoogleDriveDataSource("gdrive_list_files_json")],
             prompt=CITE_REFERENCES_PROMPT.format(
-                agent_prompt=google_drive_system_prompt
-            )
+                agent_prompt=google_drive_system_prompt,
+                memories_prompt = MEMORIES_PROMPT if use_memory else ""
+            ),
+            use_memory=use_memory
         )
 
     async def connect_to_mcp(self):
-        self.mcp_client = MCPClient(agent_tools=self.tools_str)
+        self.mcp_client = MCPClient.get_instance()
         await self.mcp_client.connect_to_google_drive_server()
-        self.tools = self.mcp_client.get_tools()
 
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+        self.mcp_client.register_agent(self.name, self.tools_str)
+        self.tools = self.mcp_client.get_agent_tools(self.name)
+
+    async def prepare_prompt(self, state: SpecializedAgentState, store = None) -> AgentState:
+        state = await super().prepare_prompt(state=state, store=store)
         files_tool = None
         for tool in self.tools:
             if tool.name == "gdrive_list_files":
@@ -54,9 +60,10 @@ class GoogleDriveAgent(SpecializedAgent):
         messages = [
             SystemMessage(
                 self.prompt.format(
-                    google_drive_files_info=files_str
+                    google_drive_files_info=files_str,
                 )
-            ),
+            )
+            ] + state.get("memory_docs") + [
             HumanMessage(
                 content=state["query"]
             )

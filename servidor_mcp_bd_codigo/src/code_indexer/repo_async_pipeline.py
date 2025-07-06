@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass, field
 from importlib import resources
 from typing import List, Dict, Any, Optional, TypeVar, Generic, DefaultDict
@@ -453,5 +454,4 @@ async def run_documentation_pipeline(repo_path, files_to_ignore=None, log_freque
     return result_context
 
 def run_documentation_pipeline_sync(repo_path, files_to_ignore=None, log_frequency=2):
-    import asyncio
     return asyncio.run(run_documentation_pipeline(repo_path, files_to_ignore, log_frequency))

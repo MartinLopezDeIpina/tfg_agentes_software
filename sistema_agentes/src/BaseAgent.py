@@ -1,28 +1,19 @@
-import functools
 import os.path
-import subprocess
-import tempfile
-import uuid
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import List, TypedDict, Callable
+from typing import List, TypedDict, Callable, Optional
 
+from langchain.smith import RunEvalConfig
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, AIMessage
-from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_core.runnables.graph import CurveStyle, NodeStyles
-from langchain_core.tools import BaseTool
-from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph
+from langchain_core.stores import BaseStore
 from langgraph.graph.graph import CompiledGraph
-from langgraph.prebuilt import create_react_agent
 
 from langsmith import Client, evaluate, aevaluate, EvaluationResult
 
 from src.evaluators.base_evaluator import BaseEvaluator
-from src.mcp_client.mcp_multi_client import MCPClient
-from src.utils import tab_all_lines_x_times
 from src.evaluators.dataset_utils import search_langsmith_dataset
+from src.web_app.stream_manager import StreamManager
 from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, default_llm
 
 
@@ -44,6 +35,7 @@ class BaseAgent(ABC):
     model: BaseChatModel
     debug: bool
     prompt: str
+    stream_manager: StreamManager
 
     def __init__(
             self,
@@ -56,9 +48,10 @@ class BaseAgent(ABC):
         self.model = model or default_llm
         self.debug = True
         self.prompt = prompt
+        self.stream_manager = StreamManager.get_instance()
 
     @abstractmethod
-    async def prepare_prompt(self, state: AgentState) -> AgentState:
+    async def prepare_prompt(self, state, store):
         """
         Prepara los mensajes del sistema y usuario para este agente.
         Utiliza algunas de las tools para proporcionar información contextual al agente.
@@ -83,12 +76,24 @@ class BaseAgent(ABC):
         """
 
     async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """
+        Execute agent graph with exception handling and streaming support
+        """
+        await self.stream_manager.emit_agent_called(
+            agent_name=self.name,
+            task=input.get("query")
+        )
         agent_graph = self.create_graph()
         try:
             result = await agent_graph.ainvoke(input=input)
             return result
         except Exception as e:
-            print(f"Excepción ejecutando agente {self.name}: {e}")
+            error_msg = f"Excepción ejecutando agente {self.name}: {e}"
+            print(error_msg)
+            await self.stream_manager.emit_error(
+                error_message=str(e),
+                agent_name=self.name
+            )
             return input
 
     async def execute_from_dataset(self, inputs: dict) -> dict:
@@ -109,15 +114,20 @@ class BaseAgent(ABC):
                "error": True
             }
 
-    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False, evaluation_name: str = None):
+    async def call_agent_evaluation(self, langsmith_client: Client, evaluators: List[BaseEvaluator], max_conc: int = 10, is_prueba: bool = False, evaluation_name: str = None, dataset_name: str = None, dataset_split: str = None):
         if not evaluation_name:
             evaluation_name = f"{self.name} evaluation"
 
         evaluator_functions = [evaluator.evaluate_metrics for evaluator in evaluators]
 
-        agent_name = self.name if not is_prueba else f"{self.name}_prueba"
-        dataset = search_langsmith_dataset(langsmith_client = langsmith_client, agent_name=agent_name)
-        if not dataset:
+        if not dataset_name:
+            dataset_name = self.name if not is_prueba else f"{self.name}_prueba"
+            dataset_name = f"evaluate_{dataset_name}"
+
+        splits = [dataset_split] if dataset_split else []
+        data=langsmith_client.list_examples(dataset_name=dataset_name, splits=splits)
+
+        if not data:
             print(f"Evaluation dataset for {self.name} not found")
             return
 
@@ -125,7 +135,7 @@ class BaseAgent(ABC):
 
         results = await aevaluate(
             run_function,
-            data=dataset,
+            data=data,
             client=langsmith_client,
             evaluators=evaluator_functions,
             max_concurrency=max_conc,
