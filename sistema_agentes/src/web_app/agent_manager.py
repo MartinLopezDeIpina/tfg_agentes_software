@@ -8,6 +8,9 @@ from src.difficulty_classifier_agent.double_main_agent import DoubleMainAgent
 from src.difficulty_classifier_agent.difficulty_classifier_graph import ClassifierAgent
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.specialized_agents.confluence_agent.confluence_agent_graph import CachedConfluenceAgent
+from src.specialized_agents.filesystem_agent.filesystem_agent_graph import FileSystemAgent
+from src.specialized_agents.gitlab_agent.gitlab_agent_graph import GitlabAgent
+from src.specialized_agents.google_drive_agent.google_drive_agent_graph import GoogleDriveAgent
 from src.web_app.model_configs import get_model_configuration
 
 
@@ -40,10 +43,10 @@ class AgentManager:
         specialized_agents = [
             # Claude agent, do not uncomment this
             CodeAgent(use_memory=False),
-            #CachedConfluenceAgent(use_memory=False),
-            #FileSystemAgent(use_memory=False),
-            #GoogleDriveAgent(use_memory=False),
-            #GitlabAgent(use_memory=False)
+            CachedConfluenceAgent(use_memory=False),
+            FileSystemAgent(use_memory=False),
+            GoogleDriveAgent(use_memory=False),
+            GitlabAgent(use_memory=False)
         ]
         
         for agent in specialized_agents:

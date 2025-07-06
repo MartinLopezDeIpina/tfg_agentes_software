@@ -24,12 +24,14 @@ This is a Spanish university thesis (TFG) implementing a sophisticated multi-age
 
 ## Technology Stack
 
-- **Backend**: Python 3.x with Quart (async Flask), LangChain/LangGraph for agent orchestration
+- **Backend**: Python 3.x with Quart, LangChain/LangGraph for agent orchestration
 - **Database**: PostgreSQL with pgvector extension for vector embeddings
 - **AI/ML**: OpenAI GPT, Anthropic Claude, Mistral, Groq models; HuggingFace Transformers
 - **Frontend**: Open WebUI (Docker container on port 3000)
 - **Protocols**: MCP (Model Context Protocol) for agent communication
 - **TypeScript**: Node.js/TypeScript for Google Drive MCP server
+
+The openwebui docker has a "function" proxy to communicate with the backend. It establishes a SSE connection. 
 
 ## Development Commands
 
@@ -49,23 +51,6 @@ cd frontend && ./script.sh
 
 # Google Drive MCP Server (TypeScript)
 cd servidor_mcp_google_drive && npm run build && node dist/index.js
-```
-
-### Testing
-```bash
-# Run specific tests (pytest available in servidor_mcp_bd_codigo)
-cd servidor_mcp_bd_codigo && python -m pytest tests/
-
-# Agent evaluation system
-cd sistema_agentes && python -m src.evaluators.llm_as_judge_evaluator
-```
-
-### TypeScript/Node.js (Google Drive Server)
-```bash
-cd servidor_mcp_google_drive
-npm install
-npm run build    # Compile TypeScript
-npm run watch    # Watch mode for development
 ```
 
 ## Architecture Overview
@@ -98,48 +83,3 @@ The system supports multiple architectural patterns defined in agent builders:
 
 Configuration managed through `src/main_agent/main_agent_builder.py`
 
-## Code Standards
-
-Use descriptive variables and function names following clean code principles in moderation.
-
-**Comment Usage Rules:**
-- Function docstrings only
-- Complex code sequences that cannot be easily extracted to functions
-- No inline comments unless absolutely necessary
-
-**Important Constraints:**
-- Single-threaded design: Use asyncio for concurrency, never create threads
-- Generalize solutions: Create abstract patterns instead of multiple conditionals
-
-## Database Operations
-
-```bash
-# Database setup (PostgreSQL with pgvector required)
-cd servidor_mcp_bd_codigo && python main.py
-
-# The main.py runs chunking and documentation pipeline
-# Modify paths in main.py for different repositories
-```
-
-## Environment Configuration
-
-Each component requires `.env` files with:
-- OpenAI, Anthropic, Mistral, Groq API tokens
-- Google Cloud Platform credentials for Drive integration
-- GitLab and Confluence API access tokens
-- PostgreSQL connection strings with pgvector
-
-## Testing and Evaluation
-
-- Evaluation datasets in `sistema_agentes/src/evaluators/eval_results/`
-- Performance metrics tracking across agent configurations
-- Agent difficulty classification system
-- LangSmith integration for monitoring
-
-## Important Implementation Notes
-
-- **MCP Communication**: Standardized protocol for inter-agent messaging
-- **Async Architecture**: Quart-based async web framework for the main system
-- **Vector Search**: pgvector extension required for semantic code search
-- **Tree-sitter Parsing**: Syntax-aware code chunking across languages (Python, Java, JavaScript)
-- **Memory Management**: Sophisticated context clustering and retrieval systems
