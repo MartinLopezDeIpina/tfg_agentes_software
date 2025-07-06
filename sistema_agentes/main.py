@@ -8,13 +8,11 @@ from langsmith import Client
 from sklearn.datasets import make_blobs
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
-from config import default_llm
 from src.db.documentation_indexer import AsyncPGVectorRetriever
 from src.db.langchain_store_utils import delete_all_memory_documents, visualize_clusters, print_elbow_graph
 from src.db.pgvector_utils import PGVectorStore
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.difficulty_classifier_agent.double_main_agent import DoubleMainAgent
-from src.evaluators.dataset_utils import create_question_classifier_dataset, create_langsmith_datasets
 from src.main_agent.main_agent_builder import FlexibleAgentBuilder
 from src.mcp_client.mcp_multi_client import MCPClient
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent
@@ -154,7 +152,45 @@ async def pruebas_pgvector_store():
     docs = await retriever.ainvoke(input="LKS next", top_k=5)
     print(docs)
 
-async def call_agent():
+def get_agent_configuration(model=None):
+    """
+    Map OpenWebGUI model names to agent configurations
+    """
+    model_configs = {
+        "agente-codigo": {
+            "main_type": "basic",
+            "planner_type": "basic",
+            "orchestrator_type": "react",
+            "agents": [CodeAgent(use_memory=False)]
+        },
+        "agente-completo": {
+            "main_type": "basic",
+            "planner_type": "orchestrator_planner",
+            "orchestrator_type": "dummy",
+            "agents": [
+                CodeAgent(use_memory=False),
+                CachedConfluenceAgent(use_memory=False),
+                FileSystemAgent(use_memory=False),
+                GoogleDriveAgent(use_memory=False),
+            ]
+        },
+        "agente-simple": {
+            "main_type": "orchestrator_only",
+            "planner_type": "none",
+            "orchestrator_type": "react",
+            "agents": [
+                CodeAgent(use_memory=False),
+            ]
+        },
+        "agente-clasificador": {
+            "use_double_agent": True
+        }
+    }
+
+    # Default configuration
+    return model_configs.get(model, model_configs["agente-completo"])
+
+async def call_agent(model=None, messages=None, temperature=0.7, max_tokens=150):
     """
     Configuraciones posibles main - planner - orchestrator:
         - orchestrator_only, none, basic
@@ -163,8 +199,23 @@ async def call_agent():
         - basic, basic, basic
         - basic, basic, react
     """
-
     try:
+        query = "Cómo se gestionan las migraciones de la base de datos?"
+        conversation_messages = []
+        
+        if messages and len(messages) > 0:
+            # Get the latest user message as the main query
+            for msg in reversed(messages):
+                if msg.get('role') == 'user':
+                    query = msg.get('content', query)
+                    break
+            
+            # Prepare conversation history for the agent
+            conversation_messages = [
+                {"role": msg.get('role'), "content": msg.get('content', '')}
+                for msg in messages[:-1]  # Exclude the latest message since it's the query
+            ]
+
         # Construcción de agente con BasicMain + BasicPlanner + ReactOrchestrator (configuración válida)
         builder = FlexibleAgentBuilder()
         agent = await (await (builder
@@ -182,9 +233,18 @@ async def call_agent():
                        .initialize_agents())).build()
 
         result = await agent.execute_agent_graph_with_exception_handling({
-            "query": "Cómo se gestionan las migraciones de la base de datos?",
-            "messages": []
+            "query": query,
+            "messages": conversation_messages
         })
+        
+        try:
+            return result["formatter_result"]
+        except Exception as e:
+            return f"Error al formatear el resultado: {str(e)}"
+    
+    except Exception as e:
+        return f"Error ejecutando el agente: {str(e)}"
+    
     finally:
         await MCPClient.cleanup()
 
@@ -268,34 +328,6 @@ async def probar_modelo_hf():
     resultado = classifier("Qué metodología de gestión se utiliza?")
     print(resultado)
 
-def printear_graficos():
-    # Generar datos de ejemplo
-    n_samples = 100
-    n_features = 50  # Dimensionalidad original alta
-    n_clusters = 4
-
-    # Crear vectores de ejemplo (simulando embeddings de documentos)
-    vectors, true_labels = make_blobs(n_samples=n_samples,
-                                     centers=n_clusters,
-                                     n_features=n_features,
-                                     random_state=42)
-
-    # Llamar a la función mejorada
-    visualize_clusters(vectors, true_labels, agent_name="Agente Ejemplo")
-    # Valores de K probados
-
-    K = list(range(1, 11))  # De 1 a 10 clusters
-
-    # Distorsiones simuladas (típicamente decrecen con tendencia de codo)
-    distortions = [150, 80, 50, 30, 22, 18, 15, 13, 11, 10]
-
-    # Parámetros del método del codo
-    optimal_k = 4  # Suponiendo que 4 es el k óptimo
-    elbow_idx = 2  # Índice donde está el verdadero codo (K=3)
-    adjusted_idx = 3  # Índice ajustado por algún criterio adicional (K=4)
-
-    # Llamar a la función mejorada
-    print_elbow_graph(K, distortions, optimal_k, elbow_idx, adjusted_idx)
 
 if __name__ == '__main__':
     load_dotenv()

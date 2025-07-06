@@ -236,15 +236,22 @@ class MCPClient:
 async def main():
     mcp_client = MCPClient()
     await mcp_client.connect_to_code_server()
-    
+
+    """
     tool_name = "get_code_repository_rag_docs_from_query_tool"
     tool_args = {
         "query": "¿Se utiliza algún patrón o metodología para crear alguna clase?"
     }
+    """
+
+    tool_name = "get_docs_rag_from_query"
+    tool_args = {
+        "query": "Cómo implemento streams"
+    }
 
     result = await mcp_client.call_tool(server_id="code_repo", tool_name=tool_name, tool_args=tool_args)
-    tree = await mcp_client.call_tool(server_id="code_repo", tool_name="get_repository_tree_tool", tool_args={})
-    print(tree)
+    #tree = await mcp_client.call_tool(server_id="code_repo", tool_name="get_repository_tree_tool", tool_args={})
+    #print(tree)
     print(result)
 
     await MCPClient.cleanup()

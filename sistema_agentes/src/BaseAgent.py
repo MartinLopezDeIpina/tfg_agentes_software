@@ -1,6 +1,6 @@
 import os.path
 from abc import ABC, abstractmethod
-from typing import List, TypedDict, Callable
+from typing import List, TypedDict, Callable, Optional
 
 from langchain.smith import RunEvalConfig
 from langchain_core.language_models import BaseChatModel
@@ -13,6 +13,7 @@ from langsmith import Client, evaluate, aevaluate, EvaluationResult
 
 from src.evaluators.base_evaluator import BaseEvaluator
 from src.evaluators.dataset_utils import search_langsmith_dataset
+from src.web_app.stream_manager import StreamManager
 from config import GRAPH_IMAGES_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, default_llm
 
 
@@ -34,6 +35,7 @@ class BaseAgent(ABC):
     model: BaseChatModel
     debug: bool
     prompt: str
+    stream_manager: StreamManager
 
     def __init__(
             self,
@@ -46,6 +48,7 @@ class BaseAgent(ABC):
         self.model = model or default_llm
         self.debug = True
         self.prompt = prompt
+        self.stream_manager = StreamManager.get_instance()
 
     @abstractmethod
     async def prepare_prompt(self, state, store):
@@ -73,12 +76,24 @@ class BaseAgent(ABC):
         """
 
     async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """
+        Execute agent graph with exception handling and streaming support
+        """
+        await self.stream_manager.emit_agent_called(
+            agent_name=self.name,
+            task=input.get("query")
+        )
         agent_graph = self.create_graph()
         try:
             result = await agent_graph.ainvoke(input=input)
             return result
         except Exception as e:
-            print(f"Excepción ejecutando agente {self.name}: {e}")
+            error_msg = f"Excepción ejecutando agente {self.name}: {e}"
+            print(error_msg)
+            await self.stream_manager.emit_error(
+                error_message=str(e),
+                agent_name=self.name
+            )
             return input
 
     async def execute_from_dataset(self, inputs: dict) -> dict:

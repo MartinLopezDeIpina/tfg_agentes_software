@@ -111,7 +111,8 @@ class FormatterAgent(BaseAgent):
             available_citations = state["available_citations"]
             for output_citation in output_citations:
                 try:
-                    formatter_citations.append(available_citations[output_citation.cite_id])
+                    cite = available_citations[output_citation.cite_id]
+                    formatter_citations.append(cite)
                 except Exception as e:
                     print(f"Formatter no ha formateado bien una cita: {e}")
 

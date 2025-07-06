@@ -30,6 +30,11 @@ default_reasoner_llm = ChatOpenAI(
     model="o4-mini"
 )
 
+
+dummy_llm = ChatOpenAI(
+    model="gpt-4.1-nano"
+)
+
 """
 default_llm = ChatOpenAI(
     model="gpt-4.1-nano"
@@ -75,3 +80,4 @@ psycopg_connection_string = f"postgresql+psycopg://{db_user}:{db_password}@{db_h
 PGVECTOR_COLLECTION_PREFIX="collection_"
 STORE_COLLECTION_PREFIX="documents"
 
+BACKEND_PORT = 5000

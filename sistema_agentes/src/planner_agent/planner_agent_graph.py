@@ -38,7 +38,7 @@ class PlannerAgent(BaseAgent, ABC):
         super().__init__(
             name="planner_agent",
             model=planner_model,
-            debug = debug
+            debug = debug,
         )
 
         self.structure_model = structure_model
@@ -76,6 +76,10 @@ class PlannerAgent(BaseAgent, ABC):
 
     async def execute_planner_reasoner_agent(self, state: MainAgentState):
         print("+Ejecutando agente planner")
+        await self.stream_manager.emit_agent_called(
+            agent_name=self.name,
+        )
+
         messages = state["messages"]
         if len(messages) == 1:
             # si es el primer plan que se hace
@@ -85,6 +89,11 @@ class PlannerAgent(BaseAgent, ABC):
 
         planner_scratchpad = await self.model.ainvoke(
             input=planner_input
+        )
+
+        await self.stream_manager.emit_planner_activity(
+            plan_content=planner_scratchpad.content,
+            activity_description="plan de orquestación completado"
         )
 
         state["planner_scratchpad"] = planner_scratchpad.content

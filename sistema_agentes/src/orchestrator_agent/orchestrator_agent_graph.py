@@ -48,7 +48,7 @@ class OrchestratorAgent(BaseAgent, ABC):
         super().__init__(
             name="orchestrator_agent",
             model=model,
-            debug=debug
+            debug=debug,
         )
         self.available_agents = available_agents
 
@@ -211,7 +211,7 @@ class BasicOrchestratorAgent(OneStepOrchestratorAgent):
                 "error": True
             }
 
-    async def prepare_prompt(self, state: OrchestratorAgentState) -> OrchestratorAgentState:
+    async def prepare_prompt(self, state: OrchestratorAgentState, store = None) -> OrchestratorAgentState:
         agents_description = get_agents_description(self.available_agents)
 
         messages = state.get("messages")
@@ -279,7 +279,7 @@ class DummyOrchestratorAgent(OneStepOrchestratorAgent):
 
         return state
 
-    async def prepare_prompt(self, state: OrchestratorAgentState) -> AgentState:
+    async def prepare_prompt(self, state: OrchestratorAgentState, store = None) -> AgentState:
         return state
 
 class ReactOrchestratorAgent(OrchestratorAgent):
@@ -321,24 +321,22 @@ class ReactOrchestratorAgent(OrchestratorAgent):
             self.checkpointer = MemorySaver()
 
     async def prepare_prompt(self, state: OrchestratorAgentState) -> AgentState:
-        state["messages"] = []
-
-        state["messages"].extend([
+        state["messages"].insert(0,
             SystemMessage(
                 content=REACT_ORCHESTRATOR_PROMPT.format(
                     project_description=PROJECT_DESCRIPTION,
                     few_shot_examples=react_orchestrator_few_shots
                 )
             ),
+        )
+        state["messages"].append(
             HumanMessage(
                 content=state["planner_high_level_plan"]
             )
-        ])
-
+        )
         return state
 
     def transform_specialized_agent_into_tool(self, agent: SpecializedAgent) -> BaseTool:
-        # Crear un nombre único basado en el agente
         tool_name = f"call_{agent.name.lower()}"
 
         # Definir la función con una docstring temporal

@@ -14,14 +14,13 @@ from src.evaluators.question_difficulty_evaluator import QuestionDifficultyEvalu
 from src.difficulty_classifier_agent.few_shots import classifier_few_shots
 from src.difficulty_classifier_agent.models import ClassifierResponse
 from src.main_agent.main_graph import MainAgent
-from src.planner_agent.state import MainAgentState
+from src.specialized_agents.citations_tool.models import CitedAIMessage
 from src.structured_output_validator import execute_structured_llm_with_validator_handling
 from static.prompts import CLASSIFIER_AGENT_PROMPT, CLASSIFIER_BERT_PROMPT
 
 
 class ClassifierAgentState(AgentState):
     classifier_result: ClassifierResponse
-    main_final_state: MainAgentState
 
 class ClassifierAgent(BaseAgent):
     use_tuned_model = bool

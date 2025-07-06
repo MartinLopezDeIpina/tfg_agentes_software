@@ -1,8 +1,8 @@
 from abc import ABC
-from typing import List
+from typing import List, Union
 
 from langchain.chains.question_answering.map_reduce_prompt import messages
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 from langchain_core.runnables.graph import CurveStyle, NodeStyles, MermaidDrawMethod
 from langchain_core.stores import BaseStore
 from langgraph.graph import StateGraph
@@ -20,6 +20,10 @@ from src.planner_agent.planner_agent_graph import PlannerAgent
 from src.planner_agent.state import MainAgentState
 from src.specialized_agents.SpecializedAgent import SpecializedAgent
 from src.specialized_agents.citations_tool.models import CitedAIMessage
+from src.utils import (
+    normalize_agent_input_for_reasoner_agent, normalize_agent_input_for_orchestrator_agent,
+)
+from src.web_app.stream_manager import StreamManager
 
 
 class MainAgent(BaseAgent, ABC):
@@ -37,7 +41,7 @@ class MainAgent(BaseAgent, ABC):
         super().__init__(
             name="main_agent",
             model=None,
-            debug=debug
+            debug=debug,
         )
         self.formatter_agent = formatter_agent or FormatterAgent()
 
@@ -49,6 +53,14 @@ class MainAgent(BaseAgent, ABC):
             "messages": messages
         })
         formatter_result = self.formatter_agent.process_result(result)
+
+        for cite in formatter_result.citations:
+            await self.stream_manager.emit_citation(cite)
+        await self.stream_manager.emit_formatter_generation(
+            content=formatter_result.content
+        )
+        await self.stream_manager.emit_generation_finished()
+
         state["formatter_result"] = formatter_result
         return state
 
@@ -82,6 +94,11 @@ class BasicMainAgent(MainAgent):
         self.planner_agent = planner_agent
         self.orchestrator_agent = orchestrator_agent
 
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """Override to handle multiple input formats and convert conversation history."""
+        normalized_input = normalize_agent_input_for_reasoner_agent(input)
+        return await super().execute_agent_graph_with_exception_handling(normalized_input)
+
     async def execute_orchestrator_graph(self, state: MainAgentState) -> MainAgentState:
         if "planner_high_level_plan" in state:
             next_step = state["planner_high_level_plan"].steps[0]
@@ -109,8 +126,6 @@ class BasicMainAgent(MainAgent):
         return "orchestrator"
 
     async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
-
-        print(f"--> Ejecutando agente {self.name}")
 
         state["planner_current_step"] = 0
         state["messages"] = []
@@ -148,10 +163,15 @@ class OrchestratorOnlyMainAgent(MainAgent):
         )
         self.orchestrator_agent = orchestrator_agent
 
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """Override to handle multiple input formats and convert conversation history."""
+        normalized_input = normalize_agent_input_for_orchestrator_agent(input)
+        return await super().execute_agent_graph_with_exception_handling(normalized_input)
+
     async def execute_orchestrator_direct(self, state: MainAgentState) -> MainAgentState:
-        # Procesar la consulta directamente con el orquestrador, sin un plan estructurado
         result = await self.orchestrator_agent.execute_agent_graph_with_exception_handling({
             "planner_high_level_plan": state["query"],
+            "messages": state["messages"]
         })
         specialized_agents_responses = self.orchestrator_agent.process_result(result)
         if specialized_agents_responses:
@@ -160,8 +180,6 @@ class OrchestratorOnlyMainAgent(MainAgent):
         return state
 
     async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
-        print(f"--> Ejecutando agente {self.name} (sin planificador)")
-        state["messages"] = []
         return state
 
     def create_graph(self) -> CompiledGraph:
