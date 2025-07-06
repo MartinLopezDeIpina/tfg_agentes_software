@@ -19,7 +19,7 @@ from src.code_indexer.llm_tools import AsyncLLMPrompter, AsyncEmbedder
 from src.code_indexer.prompt_builder import DocPromptBuilder
 from src.code_indexer.extra_docs_generator import generate_extra_docs, get_extra_docs_if_exists
 
-from db.models import FileChunk, FSEntry
+from src.db.models import FileChunk, FSEntry
 
 """
 Patrón Pipeline de forma asíncrona con sistema integrado de logging.

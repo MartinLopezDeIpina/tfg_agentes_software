@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 from langchain_core.prompts import PromptTemplate
 from src.code_indexer.prompts import system_prompt, user_prompt, prompt_parts_explanation
-from utils.utils import get_start_to_end_lines_from_text_code, tab_all_lines
+from src.utils.utils import get_start_to_end_lines_from_text_code, tab_all_lines
 from langchain_core.messages import SystemMessage, HumanMessage, BaseMessage
 
 

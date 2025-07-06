@@ -1,7 +1,7 @@
 from config import files_to_ignore, DIRECTROY_TO_INDEX
 from dotenv import load_dotenv
 
-from db.db_connection import DBConnection
+from src.db.db_connection import DBConnection
 
 load_dotenv()
 
