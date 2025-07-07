@@ -12,7 +12,7 @@ app.register_blueprint(bp)
 
 @app.before_serving
 async def startup():
-    agent_manager = AgentManager.get_instance()
+    agent_manager = AgentManager.ge_instance()
     await agent_manager.initialize()
 
 @app.after_serving
