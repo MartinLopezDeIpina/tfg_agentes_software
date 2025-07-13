@@ -1,14 +1,16 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 class DBConnection:
     _instance = None
     _engine = None
-    DB_USER='postgres'
-    DB_PASSWORD='c09f61d6f'
-    DB_HOST='localhost'
-    DB_PORT='5432'
-    DB_NAME='postgres'
+    DB_USER=os.getenv('DB_USER')
+    DB_PASSWORD=os.getenv('DB_PASSWORD')
+    DB_HOST=os.getenv('DB_HOST')
+    DB_PORT=os.getenv('DB_PORT')
+    DB_NAME=os.getenv('DB_NAME')
 
     """
     Devuelve una instancia del patrón Singleton para la conexión a la base de datos.
