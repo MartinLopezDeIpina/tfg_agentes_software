@@ -100,6 +100,7 @@ class PGVectorStore:
 
 
     async def is_collection_empty(self) -> bool:
+        await self.create()
         async with AsyncSession(self.engine) as session:
             collection = await session.execute(
                 select(CollectionStore).where(CollectionStore.name == self.vector_store.collection_name)
