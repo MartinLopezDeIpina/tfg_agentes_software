@@ -1,4 +1,4 @@
-This repository contains the code developed for my bachelor's thesis at UPV/EHU. For detailed information about the methodology, evaluation, and findings, please refer to the complete thesis document (main.pdf). This README provides a project overview and deployment guide for the system.
+This repository contains the code developed for my bachelor's thesis at UPV/EHU. For detailed information about the methodology, evaluation, and findings, please refer to the complete thesis document (thesis_document.pdf). This README provides a project overview and deployment guide for the system.
 
 ## What did I do?
 
