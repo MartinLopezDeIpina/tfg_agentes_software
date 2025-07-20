@@ -25,7 +25,6 @@ These agents are coordinated by:
 
 ## ✨ Key Features
 
-- **Multi-source Integration**: Seamlessly accesses code, docs, and project management tools
 - **Model Context Protocol (MCP)**: Standardized tool integration
 - **Persistent Memory**: Learns from previous interactions
 - **Adaptive Design**: Adjusts complexity based on query difficulty
