@@ -1,14 +1,14 @@
 from dotenv import load_dotenv
 load_dotenv(dotenv_path="../.env")
 
-from utils.llm_strings_formatter import format_retrieved_chunks_into_string
+from src.utils.llm_strings_formatter import format_retrieved_chunks_into_string
 
 import os.path
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
 from config import REPO_ROOT_ABSOLUTE_PATH, MAX_CHUNKS, MAX_REFERENCED_CHUNKS, MAX_REFERENCING_CHUNKS
 from src.db.db_connection import DBConnection
-from mcp_tools import get_code_repository_rag_docs_from_query, get_code_from_repository_file, get_all_files_list
+from src.mcp_tools import get_code_repository_rag_docs_from_query, get_code_from_repository_file, get_all_files_list
 from src.utils.proyect_tree import generate_repo_tree_str
 
 from src.pg_vector_tools import PGVectorTools

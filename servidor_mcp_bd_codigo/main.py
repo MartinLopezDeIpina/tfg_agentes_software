@@ -16,6 +16,13 @@ if __name__ == '__main__':
             chunk_max_line_size=200,
             chunk_minimum_proportion=0.2
         )
+        file_chunker.chunk_repo(DIRECTROY_TO_INDEX,
+                                [".git",
+                                 "app/static/css/style.css",
+                                 "app/static/js/bootstrap.bundle.js",
+                                 "app/static/js/bootstrap.bundle.min.js",
+                                 "app/static/vendor"]
+                                )
 
         """
         file_chunker.chunk_repo("/home/martin/open_source/ia-core-tools",
@@ -26,7 +33,6 @@ if __name__ == '__main__':
                                  "app/static/vendor"]
                                 )
         """
-        #file_chunker.chunk_repo(DIRECTROY_TO_INDEX)
 
         #file_chunker.visualize_chunks("/home/martin/open_source/ia-core-tools")
         #file_chunker.visualize_chunks_with_references("/home/martin/open_source/ia-core-tools")
