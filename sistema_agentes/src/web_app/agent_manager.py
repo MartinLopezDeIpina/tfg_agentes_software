@@ -48,6 +48,7 @@ class AgentManager:
             GoogleDriveAgent(use_memory=False),
             GitlabAgent(use_memory=False)
         ]
+
         
         for agent in specialized_agents:
             try:

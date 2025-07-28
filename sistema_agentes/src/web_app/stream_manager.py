@@ -174,13 +174,15 @@ class StreamManager:
             return
 
         try:
+            citation_id = str(uuid.uuid4())
             if citation.doc_url.startswith("http") or citation.doc_url.startswith("https"):
                 openwebui_event = {
-                    "type": "source",
+                    "type": "citation",
                     "data": {
                         "document": [citation.doc_explanation],
                         "metadata": [],
                         "source": {
+                            "id": citation_id,
                             "name": citation.doc_name,
                             "url": citation.doc_url
                         }
@@ -188,11 +190,12 @@ class StreamManager:
                 }
             else:
                 openwebui_event = {
-                    "type": "source",
+                    "type": "citation",
                     "data": {
                         "document": [citation.doc_explanation],
                         "metadata": [],
                         "source": {
+                            "id": citation_id,
                             "name": citation.doc_url,
                         }
                     }

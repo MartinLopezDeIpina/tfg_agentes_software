@@ -22,8 +22,8 @@ def get_citations_string(citations: List[Citation]) -> str:
     citation_str = ""
     for i, citation in enumerate(citations):
         citation_str+=tab_all_lines_x_times(
-            f"""Citation id {i}:
-    {tab_all_lines_x_times(citation.to_string())}"""
+            f"""\nCitation id {i}:
+    {tab_all_lines_x_times(citation.to_string())}\n"""
         )
     return citation_str
 

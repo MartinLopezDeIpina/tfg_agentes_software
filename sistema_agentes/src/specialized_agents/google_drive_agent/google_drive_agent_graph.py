@@ -1,3 +1,5 @@
+import os
+
 from langchain_core.language_models import BaseChatModel
 
 from src.BaseAgent import AgentState
@@ -30,7 +32,7 @@ class GoogleDriveAgent(SpecializedAgent):
                 "gdrive_list_files",
                 "gdrive_list_files_json"
             ],
-            data_sources=[GoogleDriveDataSource("gdrive_list_files_json")],
+            data_sources=[GoogleDriveDataSource(get_documents_tool_name="gdrive_list_files_json", tool_args={"folder_id": os.getenv("GDRIVE_FOLDER_ID", "")})],
             prompt=CITE_REFERENCES_PROMPT.format(
                 agent_prompt=google_drive_system_prompt,
                 memories_prompt = MEMORIES_PROMPT if use_memory else ""
