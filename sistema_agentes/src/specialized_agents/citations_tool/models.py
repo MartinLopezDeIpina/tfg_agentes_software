@@ -263,14 +263,16 @@ class DataSource(ABC):
     def resource_exists(self, document_name: str) -> bool:
         return document_name in self.available_documents
 
-    def format_citation(self, document_name: str, doc_explanation: str) -> Citation:
+    def format_citation(self, document_name: str, doc_explanation: str, include_document_name=True) -> Citation:
         """Formatea una cita para un recurso específico"""
         resource_url = self.url
         if document_name != self.docs_id:
             doc_extra_url = self.available_documents[document_name]
             if doc_extra_url != "":
                 doc_extra_url = f"/{doc_extra_url}"
-            resource_url += f"{doc_extra_url}/{document_name}"
+            resource_url += doc_extra_url
+            if include_document_name:
+                resource_url += f"/{document_name}"
             
         return Citation(
             doc_name=document_name,
@@ -279,16 +281,19 @@ class DataSource(ABC):
         )
             
 class GoogleDriveDataSource(DataSource):
-    def __init__(self, get_documents_tool_name: str):
+    def __init__(self, get_documents_tool_name: str, tool_args: dict):
         super().__init__(
             get_documents_tool_name=[get_documents_tool_name],
-            tool_args=[{}],
-            url="https://drive.google.com/drive/u/0/folders/1axp3gAWo6VeAFq16oj1B5Nm06us2FBdR",
+            tool_args=[tool_args],
+            url="https://drive.google.com/file/d",
             docs_id="google_drive_documents",
             use_example="if there is a file named file.html: doc_name = file.html",
             response_parser=GoogleDriveResponseParser()
-
         )
+
+    def format_citation(self, document_name: str, doc_explanation: str) -> Citation:
+        return super().format_citation(document_name, doc_explanation, include_document_name=False)
+
 class FileSystemDataSource(DataSource):
     def __init__(self, get_documents_tool_name: str, tool_args: dict):
         super().__init__(

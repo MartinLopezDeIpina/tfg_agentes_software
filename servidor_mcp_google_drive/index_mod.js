@@ -107,12 +107,19 @@ async function listFilesRecursively(folderId, depth = 0, maxDepth = 5) {
     // Limitar la profundidad para evitar bucles infinitos o llamadas excesivas
     if (depth > maxDepth) return [];
     
-    // Consultar archivos en la carpeta actual
-    const res = await drive.files.list({
-        q: `'${folderId}' in parents`,
+    // Construir parámetros de consulta
+    const params = {
         pageSize: 1000,
         fields: "files(id, name, mimeType, modifiedTime, size)"
-    });
+    };
+    
+    // Solo añadir query si folderId es válido
+    if (folderId) {
+        params.q = `'${folderId}' in parents`;
+    }
+    
+    // Consultar archivos en la carpeta actual usando params
+    const res = await drive.files.list(params);
     
     let allFiles = [];
     
@@ -324,7 +331,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     else if (request.params.name === "gdrive_list_files") {
         try {
             // Determinar la carpeta raíz para iniciar el listado recursivo
-            const rootFolderId = config.specificFolderId;
+            const rootFolderId = request.params.arguments?.folder_id || config.specificFolderId;
             
             // Usar la función recursiva para obtener todos los archivos
             const fileList = await listFilesRecursively(rootFolderId, 0, 5);
@@ -370,21 +377,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     else if (request.params.name === "gdrive_list_files_json") {
-        const pageSize = request.params.arguments?.page_size || 30;
-        const pageToken = request.params.arguments?.page_token || null;
 
         try {
             // Determinar la carpeta raíz para iniciar el listado recursivo
-            const rootFolderId = config.specificFolderId;
+            const rootFolderId = request.params.arguments?.folder_id || config.specificFolderId;
 
             // Usar la función recursiva para obtener todos los archivos
             const fileList = await listFilesRecursively(rootFolderId, 0, 5);
 
             // Crear un array de solo los nombres de archivos
-            const fileNames = fileList.map(file => ({name: file.name, url: ""}));
+            const file_json = fileList.map(file => ({name: file.name, url: `${file.id}/view`}));
 
             // Convertir a JSON string con formato
-            const jsonResponse = JSON.stringify({ documents: fileNames }, null, 2);
+            const jsonResponse = JSON.stringify({ documents: file_json }, null, 2);
 
             return {
                 content: [
@@ -470,51 +475,107 @@ else {
     });
 }
 
+async function debugReadFile(fileId) {
+  try {
+    console.log("Iniciando debug de gdrive_read_file...");
+    console.log(`File ID a leer: ${fileId}`);
+
+    // ✅ Simular exactamente la misma request que recibe el servidor
+    const mockRequest = {
+      params: {
+        name: "gdrive_read_file",
+        arguments: {
+          file_id: fileId
+        }
+      }
+    };
+
+    console.log(`Request simulada:`, JSON.stringify(mockRequest, null, 2));
+
+    try {
+        const result = await readFileContent(fileId);
+        const serverResponse = {
+            content: [
+                {
+                    type: "text",
+                    text: result.content,
+                },
+            ],
+            isError: false,
+        };
+        
+        console.log(`✅ Archivo leído exitosamente`);
+        console.log(`   MIME Type: ${result.mimeType}`);
+        console.log(`   Tamaño del contenido: ${result.content.length} caracteres`);
+        console.log(`   Primeros 200 caracteres:`);
+        console.log(`   "${result.content.substring(0, 200)}${result.content.length > 200 ? '...' : ''}"`);
+        
+        console.log("\n=== RESPUESTA DEL SERVIDOR ===");
+        console.log(JSON.stringify(serverResponse, null, 2).substring(0, 500) + "...");
+        
+        return serverResponse;
+    }
+    catch (error) {
+        const errorResponse = {
+            content: [
+                {
+                    type: "text",
+                    text: `Error reading file: ${error.message}`,
+                },
+            ],
+            isError: true,
+        };
+        
+        console.error(`❌ Error: ${error.message}`);
+        console.log("\n=== RESPUESTA DE ERROR DEL SERVIDOR ===");
+        console.log(JSON.stringify(errorResponse, null, 2));
+        
+        return errorResponse;
+    }
+
+    console.log("\n✅ Debug completado");
+    
+  } catch (error) {
+    console.error("Error en debugReadFile:", error);
+    console.error("Stack trace:", error.stack);
+  }
+}
 
 
-
-// Función de debug
 async function debugListFiles() {
   try {
     console.log("Iniciando debug de gdrive_list_files...");
+    console.log(`Config specificFolderId: ${config.specificFolderId}`);
 
-    // Parámetros para probar la función
-    const pageSize = 10;
-    const pageToken = null;
+    // ✅ Usar la función real en lugar de replicar la lógica
+    const folder_id = '1axp3gAWo6VeAFq16oj1B5Nm06us2FBdR'
+    const fileList = await listFilesRecursively(folder_id, 0, 5);
 
-    const params = {
-      pageSize: Math.min(pageSize, 100),
-      fields: "nextPageToken, files(id, name, mimeType, modifiedTime, size)",
-      pageToken: pageToken
-    };
-
-    // Añadir filtro por carpeta específica si está configurado
-    if (config.specificFolderId) {
-      console.log(`Usando carpeta específica: ${config.specificFolderId}`);
-      params.q = `'${config.specificFolderId}' in parents`;
-    } else {
-      console.log("No se ha configurado una carpeta específica");
-    }
-
-    // Realizar la consulta a Google Drive
-    console.log("Ejecutando drive.files.list con params:", params);
-    const res = await drive.files.list(params);
-
-    console.log(`Se encontraron ${res.data.files?.length || 0} archivos`);
-    console.log("NextPageToken:", res.data.nextPageToken);
+    console.log(`Se encontraron ${fileList.length} archivos recursivamente`);
 
     // Mostrar información detallada de cada archivo
-    res.data.files?.forEach((file, index) => {
-      console.log(`\nArchivo ${index + 1}: ${file.name}`);
-      console.log(`  ID: ${file.id}`);
-      console.log(`  Tipo: ${file.mimeType}`);
-      console.log(`  Modificado: ${file.modifiedTime}`);
-      console.log(`  Tamaño: ${file.size || 'N/A'}`);
+    fileList.forEach((file, index) => {
+      const indent = '  '.repeat(file.depth);
+      console.log(`\nArchivo ${index + 1}: ${indent}${file.name}`);
+      console.log(`  ${indent}ID: ${file.id}`);
+      console.log(`  ${indent}Tipo: ${file.mimeType}`);
+      console.log(`  ${indent}Profundidad: ${file.depth}`);
+      console.log(`  ${indent}Modificado: ${file.modifiedTime}`);
+      console.log(`  ${indent}Tamaño: ${file.size}`);
     });
 
     console.log("\nDebug completado con éxito");
+    
+    // También mostrar el formato que devuelve el servidor real
+    console.log("\n=== SIMULANDO RESPUESTA DEL SERVIDOR ===");
+    const folderInfo = config.specificFolderId
+      ? `in folder ID: ${config.specificFolderId}`
+      : 'in root or all folders';
+    console.log(`Found ${fileList.length} files recursively ${folderInfo}`);
+    
   } catch (error) {
     console.error("Error en debugListFiles:", error);
+    console.error("Stack trace:", error.stack);
   }
 }
 
@@ -552,7 +613,8 @@ else if (process.argv[2] === "debug") {
       }
 
       // Ejecutar la función de debug
-      await debugListFiles();
+      //await debugListFiles();
+      await debugReadFile("1qzI7GibrlzU0tBo9ufGBQBXmCnrUdRYw")
       process.exit(0);
     } catch (error) {
       console.error("Error:", error);
