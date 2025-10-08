@@ -1,8 +1,9 @@
-This repository contains the code developed for my bachelor's thesis at UPV/EHU. For detailed information about the methodology, evaluation, and findings, please refer to the complete thesis document (thesis_document.pdf). This README provides a project overview and deployment guide for the system.
+This README provides a project overview and deployment guide for the system.
 
-## What did I do?
+## What was done?
 
-I developed a multi-agent system based on Large Language Models designed to assist new developers during software project onboarding by synthesizing information from multiple distributed sources.
+A multi-agent system based on Large Language Models was developed to assist new developers during software project onboarding by synthesizing information from multiple distributed sources.
+
 
 ## 🎯 Overview
 
@@ -33,7 +34,7 @@ These agents are coordinated by:
 
 ## 📊 Automated Evaluation System
 
-The system was evaluated using an **LLM-as-Judge approach** with automated quantifiable metrics implemented through LangSmith SDK. A ground truth dataset of **46 real-world questions** was created from requirements elicitation with LKS Next professionals, covering three complexity levels: single-source, multi-source, and sequential multi-source queries with dependencies.
+The system was evaluated using an **LLM-as-Judge approach** with automated quantifiable metrics implemented through LangSmith SDK. A ground truth dataset of **46 real-world questions** was created from requirements elicitation with industry professionals, covering three complexity levels: single-source, multi-source, and sequential multi-source queries with dependencies.
 ### Used Metrics
 
 - **🎯 LLM Judge Precision (80%+)**: Measures if responses adequately address questions by evaluating presence of essential annotated concepts
@@ -125,7 +126,7 @@ curl -LsSf https://astral.sh/uv/install.sh | less
 Clone the project using the GitHub URL. From now on, I will reference the project path where you cloned it as "$PPATH".
 
 ```bash
-git clone https://github.com/MartinLopezDeIpina/tfg_agentes_software.git $PPATH
+git clone https://github.com/[ANONYMOUS_REPO].git $PPATH
 cd tfg_agentes_software/
 python3 -m venv servidor_mcp_bd_codigo/.venv servidor_mcp_confluence/.venv sistema_agentes/.venv frontend/.venv
 ```
