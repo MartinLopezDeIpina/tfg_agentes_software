@@ -1,5 +1,7 @@
 import os
+from pathlib import Path
 from typing import List
+from config import ROOT_DIR
 
 from sqlalchemy.orm import Session
 from grep_ast.tsl import get_language, get_parser  # noqa: E402
@@ -24,12 +26,7 @@ def analyze_file_abstract_syntaxis_tree(code_text: str, file_path: str):
     lang = get_language(language)
     parser = get_parser(language)
 
-    scm_file = resources.files("servidor_mcp_bd_codigo").joinpath(
-        "src",
-        "chunker",
-        "language_queries",
-        f"{language}-tags.scm"
-    )
+    scm_file = Path(ROOT_DIR) / "src" / "chunker" / "language_queries" / f"{language}-tags.scm"
     if not scm_file.exists():
         raise Exception(f"error, could not find {language}-tags.scm in package resources")
 

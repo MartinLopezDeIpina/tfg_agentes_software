@@ -16,12 +16,20 @@ CSV_DATASET_PRUEBA_RELATIVE_PATH = "static/evaluation_dataset_prueba.csv"
 
 GRAPH_IMAGES_RELATIVE_PATH = "static/images"
 OFFICIAL_DOCS_RELATIVE_PATH = "/sistema_agentes/static/gen_docs"
+FULL_RAG_DOCS_DIR = "/home/martin/rag_tfg"
+VISUAL_DOCS_RAG_DIR = f"{FULL_RAG_DOCS_DIR}/visual_docs"
+GENERAL_DOCS_RAG_DIR = f"{FULL_RAG_DOCS_DIR}/gen_docs"
+MOCK_DOCS_DOCS_RAG_DIR = f"{FULL_RAG_DOCS_DIR}/agente_google_drive_docs"
 
 CODE_REPO_ROOT_ABSOLUTE_PATH = "/home/martin/open_source/ia-core-tools"
 
 GITLAB_API_URL="https://gitlab.devops.lksnext.com/api/v4"
 GITLAB_PROJECT_URL=1141
 GITLAB_PROJECT_NORMAL_URL="https://gitlab.devops.lksnext.com/lks/genai/ia-core-tools"
+
+GITLAB_MOCK_ISSUES="/home/martin/rag_tfg/gitlab/parsed_issues.json"
+GITLAB_MOCK_COMMITS="/home/martin/rag_tfg/gitlab/commits.json"
+GITLAB_MOCK_MEMBERS="/home/martin/rag_tfg/gitlab/members.json"
 
 default_llm = ChatOpenAI(
     model="gpt-4.1-mini"

@@ -56,7 +56,7 @@ async def get_code_repository_rag_docs_from_query_tool(query: str, directory: st
 @mcp.tool()
 async def get_file_from_repository_tool(file_path: str) -> TextContent:
     """
-    Returns all the chunks associated with a file in the repository.
+    Returns all the chunks associated with a file in the code repository.
     It also includes chunks that reference and are referenced by these chunks.
     :param file_path: The relative path to the file in the repository, from the repository root.
     :return: dictionary with the following structure:
@@ -82,7 +82,7 @@ async def get_file_from_repository_tool(file_path: str) -> TextContent:
 @mcp.tool()
 async def get_repository_tree_tool(sub_path: str = None) -> TextContent:
     """
-    Returns a tree of the files and directories in the repository.
+    Returns a tree of the files and directories in the code repository.
     :param sub_path:
         The sub-path directory to list, relative to the repository root.
         If not indicated, the root directory is listed.
@@ -103,7 +103,7 @@ async def get_repository_tree_tool(sub_path: str = None) -> TextContent:
 @mcp.tool()
 async def get_all_respository_files_list() -> TextContent:
     """
-    Devuelve una lista en formato string serializable a JSON de todos los ficheros en el repositorio respecto a su ruta relativa
+    Returns a JSON-serializable list of strings containing all files in the repository with their relative paths.
     """
     files_list = get_all_files_list(db_session=db_session)
     files_list_str=str(files_list)

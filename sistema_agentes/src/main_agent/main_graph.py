@@ -195,3 +195,59 @@ class OrchestratorOnlyMainAgent(MainAgent):
 
         return graph_builder.compile(store=self.memory_store)
 
+
+class SpecializedAgentWrapperMainAgent(MainAgent):
+    """MainAgent that directly wraps a single SpecializedAgent, bypassing orchestrator and planner."""
+
+    def __init__(self,
+                 specialized_agent: SpecializedAgent,
+                 formatter_agent: FormatterAgent,
+                 debug: bool = True
+                 ):
+        super().__init__(
+            formatter_agent=formatter_agent,
+            debug=debug
+        )
+        self.specialized_agent = specialized_agent
+
+    async def execute_agent_graph_with_exception_handling(self, input: dict):
+        """Override to handle multiple input formats."""
+        normalized_input = normalize_agent_input_for_orchestrator_agent(input)
+        return await super().execute_agent_graph_with_exception_handling(normalized_input)
+
+    async def execute_specialized_agent(self, state: MainAgentState) -> MainAgentState:
+        """Directly call the specialized agent with the query."""
+        # normalize messages so we never pass None to the specialized agent
+        messages = state.get("messages") or []
+        result = await self.specialized_agent.execute_agent_graph_with_exception_handling({
+            "query": state["query"],
+            "messages": messages
+        })
+
+        # ensure state has a messages list (handle case where key exists but is None)
+        if "messages" not in state or state.get("messages") is None:
+            state["messages"] = []
+        specialized_agent_response = self.specialized_agent.process_result(result)
+        if specialized_agent_response:
+            state["messages"].append(specialized_agent_response)
+
+        return state
+
+    async def prepare_prompt(self, state: MainAgentState) -> MainAgentState:
+        # make sure messages exists and is a list (not None)
+        if "messages" not in state or state.get("messages") is None:
+            state["messages"] = []
+        return state
+
+    def create_graph(self) -> CompiledGraph:
+        graph_builder = StateGraph(MainAgentState)
+
+        graph_builder.add_node("prepare", self.prepare_prompt)
+        graph_builder.add_node("specialized_agent", self.execute_specialized_agent)
+        graph_builder.add_node("formatter", self.execute_formatter_graph)
+
+        graph_builder.set_entry_point("prepare")
+        graph_builder.add_edge("prepare", "specialized_agent")
+        graph_builder.add_edge("specialized_agent", "formatter")
+
+        return graph_builder.compile(store=self.memory_store)

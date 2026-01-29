@@ -4,7 +4,8 @@ from typing import List, Optional, Dict, Set, Tuple, Callable
 
 from src.db.postgres_connection_manager import PostgresPoolManager
 from src.formatter_agent.formatter_graph import FormatterAgent
-from src.main_agent.main_graph import MainAgent, BasicMainAgent, OrchestratorOnlyMainAgent
+from src.main_agent.main_graph import MainAgent, BasicMainAgent, OrchestratorOnlyMainAgent, \
+    SpecializedAgentWrapperMainAgent
 from src.orchestrator_agent.orchestrator_agent_graph import OrchestratorAgent, BasicOrchestratorAgent, \
     DummyOrchestratorAgent, ReactOrchestratorAgent
 from src.planner_agent.planner_agent_graph import PlannerAgent, BasicPlannerAgent, OrchestratorPlannerAgent
@@ -18,6 +19,8 @@ from src.specialized_agents.google_drive_agent.google_drive_agent_graph import G
 class MainAgentType(Enum):
     BASIC = "basic"
     ORCHESTRATOR_ONLY = "orchestrator_only"
+    SPECIALIZED_WRAPPER = "specialized_wrapper"
+
 
 class PlannerAgentType(Enum):
     NONE = "none"
@@ -46,6 +49,13 @@ class IncompatibilityRule:
         return self.check_func(main_type, planner_type, orchestrator_type)
 
 
+"""
+IncompatibilityRule(
+    lambda main, planner,
+           orch: orch == OrchestratorAgentType.DUMMY and planner != PlannerAgentType.ORCHESTRATOR_PLANNER,
+    "DummyOrchestratorAgent solo puede combinarse con OrchestratorPlannerAgent"
+),
+"""
 class AgentCompatibilityValidator:
     """Clase para validar la compatibilidad entre los diferentes tipos de agentes"""
 
@@ -55,26 +65,23 @@ class AgentCompatibilityValidator:
             lambda main, planner, orch: main == MainAgentType.ORCHESTRATOR_ONLY and planner != PlannerAgentType.NONE,
             "OrchestratorOnlyMainAgent no puede tener un planificador, debe usar PlannerAgentType.NONE"
         ),
-
         #BasicMainAgent requiere un planificador
         IncompatibilityRule(
             lambda main, planner, orch: main == MainAgentType.BASIC and planner == PlannerAgentType.NONE,
             "BasicMainAgent requiere un planificador, no puede usar PlannerAgentType.NONE"
         ),
-
         #OrchestratorPlannerAgent solo puede ir con DummyOrchestratorAgent
         IncompatibilityRule(
             lambda main, planner,
                    orch: planner == PlannerAgentType.ORCHESTRATOR_PLANNER and orch != OrchestratorAgentType.DUMMY,
             "OrchestratorPlannerAgent solo puede combinarse con DummyOrchestratorAgent"
         ),
-
         #DummyOrchestratorAgent solo puede ir con OrchestratorPlannerAgent
+
         IncompatibilityRule(
-            lambda main, planner,
-                   orch: orch == OrchestratorAgentType.DUMMY and planner != PlannerAgentType.ORCHESTRATOR_PLANNER,
-            "DummyOrchestratorAgent solo puede combinarse con OrchestratorPlannerAgent"
-        )
+            lambda main, planner, orch: main == MainAgentType.SPECIALIZED_WRAPPER and planner != PlannerAgentType.NONE,
+            "SpecializedAgentWrapperMainAgent does not use a planner"
+        ),
     ]
 
     @staticmethod
@@ -237,6 +244,13 @@ class FlexibleAgentBuilder:
         elif self._main_agent_type == MainAgentType.ORCHESTRATOR_ONLY:
             main_agent = OrchestratorOnlyMainAgent(
                 orchestrator_agent=self._orchestrator_agent,
+                formatter_agent=self._formatter_agent
+            )
+        elif self._main_agent_type == MainAgentType.SPECIALIZED_WRAPPER:
+            if len(self._available_agents) != 1:
+                raise ValueError("SPECIALIZED_WRAPPER requires exactly one specialized agent")
+            main_agent = SpecializedAgentWrapperMainAgent(
+                specialized_agent=self._available_agents[0],
                 formatter_agent=self._formatter_agent
             )
 

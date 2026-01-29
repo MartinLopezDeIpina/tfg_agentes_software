@@ -9,7 +9,9 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel
 
 from src.db.pgvector_utils import PGVectorStore
-from config import OFFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH
+from config import OFFICIAL_DOCS_RELATIVE_PATH, REPO_ROOT_ABSOLUTE_PATH, GENERAL_DOCS_RAG_DIR, FULL_RAG_DOCS_DIR, \
+    VISUAL_DOCS_RAG_DIR, MOCK_DOCS_DOCS_RAG_DIR
+
 
 class AsyncPGVectorRetriever(BaseRetriever, BaseModel):
     pg_vector_store: PGVectorStore
@@ -35,7 +37,7 @@ class AsyncDocsIndexer:
 
 
     async def index_file(self, file_path: Path) -> None:
-        docs_absolute_path = f"{REPO_ROOT_ABSOLUTE_PATH}{OFFICIAL_DOCS_RELATIVE_PATH}"
+        docs_absolute_path = f"{FULL_RAG_DOCS_DIR}"
         metadata = {
             "file_path": str(file_path.relative_to(docs_absolute_path))
         }
@@ -59,7 +61,10 @@ class AsyncDocsIndexer:
         is_collection_empty =  await self.pg_vector_store.is_collection_empty()
         if not is_collection_empty:
             print(f"Documentación previamente indexada")
+            # todo: remove this
+            await self.index_all_directory_files(directory_path)
             return
+
 
         try:
             await self.pg_vector_store.create()
@@ -71,4 +76,13 @@ class AsyncDocsIndexer:
         return AsyncPGVectorRetriever(
             pg_vector_store=self.pg_vector_store
         )
+
+async def main():
+    indexer = AsyncDocsIndexer(collection_name="mocks_docs_rag")
+    directory_path = MOCK_DOCS_DOCS_RAG_DIR
+
+    await indexer.index_all_directory_files_if_not_indexed(directory_path)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 

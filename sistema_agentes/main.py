@@ -27,6 +27,8 @@ from src.specialized_agents.google_drive_agent.google_drive_agent_graph import G
 from langchain_huggingface.llms import HuggingFacePipeline
 from huggingface_hub import login
 
+from src.specialized_agents.rag_agent.rag_agent_graph import RagAgent
+
 
 def get_specialized_agents():
     return [
@@ -130,7 +132,7 @@ async def evaluate_orchestrator_planner_agent():
         await agents[0].cleanup()
 
 async def debug_agent():
-    agent = CodeAgent(use_memory=False)
+    agent = RagAgent(use_memory=False)
     try:
         await agent.init_agent()
         await agent.execute_agent_graph_with_exception_handling(input={
@@ -254,10 +256,10 @@ async def evaluate_main_agent(is_prueba: bool = True):
         ls_client = Client()
         agent = await (await (builder
                         .reset()
-                        .with_main_agent_type("basic")
-                        .with_planner_type("basic")
-                        .with_orchestrator_type("react")
-                        .with_specialized_agents()
+                        .with_main_agent_type("specialized_wrapper")
+                        .with_planner_type("none")
+                        .with_orchestrator_type("dummy")
+                        .with_specialized_agents([RagAgent(use_memory=False)])
                         .initialize_agents())).build()
         await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba)
         #await agent.evaluate_agent(langsmith_client=ls_client, is_prueba=is_prueba, dataset_name="evaluate_main_agent_memory", dataset_split="test")
@@ -328,14 +330,29 @@ async def probar_modelo_hf():
     resultado = classifier("Qué metodología de gestión se utiliza?")
     print(resultado)
 
+async def run_rag():
+    builder = FlexibleAgentBuilder()
+    builder.with_main_agent_type("specialized_wrapper") \
+        .with_planner_type("none") \
+        .with_orchestrator_type("dummy") \
+        .with_specialized_agents([RagAgent(use_memory=False)]) \
+        .with_formatter_agent()
+
+    await builder.initialize_agents()
+    main_agent = await builder.build()
+
+    result = await main_agent.execute_agent_graph_with_exception_handling({
+        "query": "Is there any main color for hte app?"
+    })
 
 if __name__ == '__main__':
     load_dotenv()
-
+    #asyncio.run(run_rag())
 
     #asyncio.run(debug_agent())
+    #asyncio.run(debug_main)
     #create_langsmith_datasets(dataset_prueba=False, agents_to_update=["main_agent"])
-    #asyncio.run(evaluate_main_agent(is_prueba=False))
+    asyncio.run(evaluate_main_agent(is_prueba=True))
 
     #asyncio.run(evaluate_orchestrator_planner_agent())
     #asyncio.run(evaluate_cached_confluence_agent())
@@ -343,7 +360,7 @@ if __name__ == '__main__':
     #asyncio.run(prueba())
     #clase = ClaseB()
     #asyncio.run(clase.prueba())
-    asyncio.run(call_agent())
+    #asyncio.run(call_agent())
     
     #asyncio.run(evaluate_main_agent(is_prueba=True))
 

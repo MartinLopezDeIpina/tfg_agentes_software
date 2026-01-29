@@ -55,7 +55,8 @@ class PGVectorStore:
         )
         return vector_store
 
-    def _get_loader_for_file(self, file_path: Path):
+
+    def _get_loader_for_file(self, file_path: Path, structured: bool = True):
         """Devuelve el file loader apropiado basado en el tipo de documento"""
         ext = file_path.suffix.lower()
         if ext == '.pdf':
@@ -82,8 +83,8 @@ class PGVectorStore:
         resource_text = read_file_content(resource)
 
         headers_to_split_on = [
-            ("#", "Header 1"),
-            ("##", "Header 2"),
+            ("#", "Header 0"),
+            ("##", "Header 1"),
         ]
 
         splitter = ExperimentalMarkdownSyntaxTextSplitter(

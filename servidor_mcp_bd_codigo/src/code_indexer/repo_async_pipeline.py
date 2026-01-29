@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 import os
 
+from config import ROOT_DIR
 from src.utils.utils import get_file_text, get_start_to_end_lines_from_text_code
 from src.db.db_utils import get_chunk_code
 
@@ -227,20 +228,35 @@ class Pipeline:
                 file_context = await stage.process(file_context)
 
         # Etapas a nivel de chunk
-        chunk_tasks = []
+        all_chunks = []
         for file_context in context.files:
             for chunk_context in file_context.chunks:
-                task = self._process_chunk(chunk_context, self.chunk_stages)
-                chunk_tasks.append(task)
+                all_chunks.append(chunk_context)
 
-        if chunk_tasks:
-            # Mostrar estado inicial
-            print(f"Iniciando procesamiento paralelo de {len(chunk_tasks)} chunks...")
+        """
+        OpenAI API is a ******* joke so we have to batch ~60 chunks / minute to not break the rate limits
+        """
+        if all_chunks:
+            chunks_per_minute = 15
+            total_chunks = len(all_chunks)
+            print(f"Iniciando procesamiento de {total_chunks} chunks ({chunks_per_minute} por minuto)...")
 
-            # Ejecutar todas las tareas en paralelo
-            await asyncio.gather(*chunk_tasks)
+            for i in range(0, total_chunks, chunks_per_minute):
+                batch = all_chunks[i:i + chunks_per_minute]
+                batch_num = i // chunks_per_minute + 1
+                total_batches = (total_chunks + chunks_per_minute - 1) // chunks_per_minute
 
-            # Mostrar resumen final
+                print(f"Batch {batch_num}/{total_batches}: procesando {len(batch)} chunks...")
+
+                # Process batch in parallel
+                tasks = [self._process_chunk(ctx, self.chunk_stages) for ctx in batch]
+                await asyncio.gather(*tasks)
+
+                # Wait 60 seconds before next batch (unless it's the last one)
+                if i + chunks_per_minute < total_chunks:
+                    print(f"Esperando 60 segundos antes del siguiente batch...")
+                    await asyncio.sleep(60)
+
             context.log_pipeline_status()
 
         total_time = time.time() - context.start_time
@@ -339,12 +355,7 @@ class ContextPreparationStage(PipelinePipelineStage):
         # Generar el mapa del repositorio
         context.repo_tree_str = generate_repo_tree_str(context.repo_path)
 
-        # Generar la documentación extra
-        context.extra_docs_path = resources.files("servidor_mcp_bd_codigo").joinpath(
-            "src",
-            "code_indexer",
-            "extra_docs"
-        )
+        context.extra_docs_path = os.path.join(ROOT_DIR, "src", "code_indexer", "extra_docs")
         extra_doc_exist = len(os.listdir(context.extra_docs_path)) > 0
         if not extra_doc_exist:
             generate_extra_docs(
